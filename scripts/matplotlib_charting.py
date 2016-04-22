@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import colors
+import matplotlib.patches as mpatches
 import math
 
 import pandas as pd
@@ -17,17 +18,21 @@ import functions as f
 def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                                job_str_list,
                                proposal, proposal_dict, eg_dict, color_list,
-                               style='bar',
+                               style='bar', plot_differential=True,
                                custom_color=False, cm_name='Dark2', start=0.0,
                                stop=1.0, flip_x=False, flip_y=False,
                                rotate=False,
-                               normalize_yr_scale=False):
+                               normalize_yr_scale=False, year_clip=30,
+                               xsize=8, ysize=6):
     '''stacked bar or area chart presenting the time spent in the various
     job levels for quartiles of a selected employee group.
 
 inputs
-    ds
-        dataset to explore
+    prop_ds (dataframe)
+        proposal dataset to explore
+
+    sa_ds (dataframe)
+        standalone dataset
 
     job_levels
         the number of job levels in the model
@@ -43,7 +48,7 @@ inputs
             jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
 
     proposal
-        text name of the dataset, used as key in the proposal dict
+        text name of the (proposal) dataset, used as key in the proposal dict
 
     proposal_dict
         a dictionary of proposal text keys and corresponding proposal text
@@ -69,33 +74,50 @@ inputs
         'flip' the chart horizontally if True
 
     flip_y
-        'flip' the chart vertically if True'''
+        'flip' the chart vertically if True
+
+    rotate
+        transpose the chart output
+
+    normalize_yr_scale
+        set all output charts to have the same x axis range
+
+    yr_clip
+        max x axis value (years) if normalize_yr_scale set True
+    '''
 
     if 'new_order' in prop_ds.columns:
-        frame_all = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
-                             'new_order', 'doh', 'retdate']]
+        ds_sel_cols = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
+                               'new_order', 'doh', 'retdate']]
+        if plot_differential:
+            sa_ds['new_order'] = sa_ds['idx']
+            sa_sel_cols = sa_ds[['mnum', 'eg', 'jnum', 'empkey',
+                                 'new_order', 'doh', 'retdate']].copy()
+
     else:
         prop_ds['new_order'] = prop_ds['idx']
-        frame_all = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
-                             'new_order', 'doh', 'retdate']]
+        ds_sel_cols = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
+                               'new_order', 'doh', 'retdate']].copy()
+        plot_differential = False
 
-    # frame_all = frame_all[(frame_all.doh > '1989-07-01')]
-    frame_sort = frame_all[frame_all.mnum == 0]
-    egs = sorted(list(set(frame_all.eg)))
+    mnum0 = ds_sel_cols[ds_sel_cols.mnum == 0][[]]
+    mnum0['order'] = np.arange(len(mnum0)) + 1
+
+    # ds_sel_cols = ds_sel_cols[(ds_sel_cols.doh > '1989-07-01')]
+    egs = sorted(list(set(ds_sel_cols.eg)))
 
     for eg in egs:
 
-        frame = frame_all[(frame_all.eg == eg) & (frame_all.jnum >= 1)]
+        ds_eg = ds_sel_cols[(ds_sel_cols.eg == eg) & (ds_sel_cols.jnum >= 1)]
 
-        job_counts_by_emp = frame.groupby(['empkey', 'jnum']).size()
+        job_counts_by_emp = ds_eg.groupby(['empkey', 'jnum']).size()
 
         months_in_jobs = job_counts_by_emp.unstack() \
             .fillna(0).sort_index(axis=1, ascending=True).astype(int)
 
-        months_in_jobs = months_in_jobs.join(frame_sort[['new_order']],
-                                             how='left')
-        months_in_jobs.sort_values(by='new_order', inplace=True)
-        months_in_jobs.pop('new_order')
+        months_in_jobs = months_in_jobs.join(mnum0[['order']], how='left')
+        months_in_jobs.sort_values(by='order', inplace=True)
+        months_in_jobs.pop('order')
 
         bin_lims = pd.qcut(np.arange(len(months_in_jobs)),
                            num_bins,
@@ -124,7 +146,57 @@ inputs
 
         quantile_yrs = quantile_mos / 12
 
-        if custom_color:  # dict color mapping to job level is lost...
+        if plot_differential:
+
+            sa_eg = sa_sel_cols[
+                (sa_sel_cols.eg == eg) & (sa_sel_cols.jnum >= 1)]
+
+            sa_job_counts_by_emp = sa_eg.groupby(['empkey', 'jnum']).size()
+
+            sa_months_in_jobs = sa_job_counts_by_emp.unstack() \
+                .fillna(0).sort_index(axis=1, ascending=True).astype(int)
+
+            sa_months_in_jobs = sa_months_in_jobs.join(
+                mnum0[['order']], how='left')
+            sa_months_in_jobs.sort_values(by='order', inplace=True)
+            sa_months_in_jobs.pop('order')
+
+            sa_bin_lims = pd.qcut(np.arange(len(sa_months_in_jobs)),
+                                  num_bins,
+                                  retbins=True,
+                                  labels=np.arange(num_bins) + 1)[1] \
+                .astype(int)
+
+            sa_result_arr = np.zeros(
+                (num_bins, len(sa_months_in_jobs.columns)))
+
+            for i in np.arange(num_bins):
+                sa_bin_avg = \
+                    np.array(sa_months_in_jobs
+                             [sa_bin_lims[i]:sa_bin_lims[i + 1]].mean())
+                sa_result_arr[i] = sa_bin_avg
+
+            sa_quantile_mos = pd.DataFrame(sa_result_arr,
+                                           columns=sa_months_in_jobs.columns,
+                                           index=np.arange(1, num_bins + 1))
+
+            sa_quantile_yrs = sa_quantile_mos / 12
+
+            for col in quantile_yrs:
+                if col not in sa_quantile_yrs:
+                    sa_quantile_yrs[col] = 0
+
+            sa_quantile_yrs.sort_index(axis=1, inplace=True)
+
+            sa_labels = ['Gain', 'Loss']
+            sa_colors = []
+            sa_cols = list(sa_quantile_yrs.columns)
+            for sa_col in sa_cols:
+                sa_labels.append(job_str_list[sa_col - 1])
+                sa_colors.append(color_list[sa_col - 1])
+
+        # dict color mapping to job level is currently lost...
+        if custom_color:
             num_of_colors = cf.num_of_job_levels + 1
             cm_subsection = np.linspace(start, stop, num_of_colors)
             colormap = eval('cm.' + cm_name)
@@ -133,7 +205,7 @@ inputs
         with sns.axes_style('darkgrid'):
 
             if style == 'area':
-                quantile_yrs.plot(kind='area', width=1,
+                quantile_yrs.plot(kind='area',
                                   stacked=True, color=colors)
             if style == 'bar':
                 if rotate:
@@ -143,40 +215,98 @@ inputs
                 quantile_yrs.plot(kind=kind, width=1,
                                   stacked=True, color=colors)
 
-            fig = plt.gca()
+            ax = plt.gca()
 
             if normalize_yr_scale:
-                plt.xlim(0, 30)
+                if rotate:
+                    plt.xlim(0, year_clip)
+                else:
+                    plt.ylim(ymax=year_clip)
 
-            if not flip_y:
-                fig.invert_yaxis()
+            if style == 'bar':
 
-            if rotate:
-                plt.xlabel('years')
-                plt.ylabel('quartiles')
-            else:
-                plt.ylabel('years')
-                plt.xlabel('quartiles')
+                if not flip_y:
+                    ax.invert_yaxis()
+
+                if rotate:
+                    plt.xlabel('years')
+                    plt.ylabel('quartiles')
+                else:
+                    plt.ylabel('years')
+                    plt.xlabel('quartiles')
+                    plt.xticks(rotation='horizontal')
 
             if flip_x:
-                fig.invert_xaxis()
-                if rotate:
-                    loc = 2
-                else:
-                    loc = 4
-            else:
-                if rotate:
-                    loc = 1
-                else:
-                    loc = 3
+                ax.invert_xaxis()
 
             plt.suptitle(proposal_dict[proposal] + ', GROUP ' + eg_dict[eg],
                          fontsize=20, y=1.02)
             plt.title('years in position, ' + str(num_bins) + '-quantiles',
                       y=1.02)
-            plt.legend((labels), loc=loc)
-            # plt.ylim(30, 0)
+
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax.legend((labels), loc='center left', bbox_to_anchor=(1, 0.5))
+
+            fig = plt.gcf()
+            fig.set_size_inches(xsize, ysize)
             plt.show()
+
+            if plot_differential and style == 'bar':
+
+                diff = quantile_yrs - sa_quantile_yrs
+
+                if style == 'area':
+                    diff.plot(kind='area',
+                              stacked=True, color=colors)
+                if style == 'bar':
+                    if rotate:
+                        kind = 'barh'
+                    else:
+                        kind = 'bar'
+                    diff.plot(kind=kind, width=1,
+                              stacked=True, color=colors)
+
+                ax = plt.gca()
+
+                if rotate:
+                    plt.xlabel('years')
+                    plt.ylabel('quartiles')
+                    if normalize_yr_scale:
+                        plt.xlim(year_clip / -3, year_clip / 3)
+                    if not flip_y:
+                        ax.invert_yaxis()
+                    x_min, x_max = plt.xlim()
+                    plt.axvspan(0, x_max, facecolor='g', alpha=0.15)
+                    plt.axvspan(0, x_min, facecolor='r', alpha=0.15)
+                else:
+                    plt.ylabel('years')
+                    plt.xlabel('quartiles')
+                    if normalize_yr_scale:
+                        plt.ylim(year_clip / -3, year_clip / 3)
+                    if flip_y:
+                        ax.invert_yaxis()
+                    ymin, ymax = plt.ylim()
+                    plt.axhspan(0, ymax, facecolor='g', alpha=0.15)
+                    plt.axhspan(0, ymin, facecolor='r', alpha=0.15)
+                    ax.invert_xaxis()
+                    plt.xticks(rotation='horizontal')
+
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+                ax.legend(
+                    (sa_labels), loc='center left', bbox_to_anchor=(1, 0.5))
+
+                plt.suptitle(proposal_dict[proposal] +
+                             ', GROUP ' + eg_dict[eg],
+                             fontsize=20, y=1.02)
+                plt.title('years differential vs standalone, ' +
+                          str(num_bins) + '-quantiles',
+                          y=1.02)
+
+                fig = plt.gcf()
+                fig.set_size_inches(xsize, ysize)
+                plt.show()
 
 
 def age_vs_spcnt(df, eg_list, mnum, color_list,
@@ -263,7 +393,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
                          proposal, proposal_dict,
                          job_levels, colors, formatter, mnum=0,
                          scatter=False, exclude_fur=False,
-                         full_pcnt_xscale=False, anon=cf.anon):
+                         full_pcnt_xscale=False):
 
     frame = df[(df.mnum == mnum)]
 
@@ -327,14 +457,10 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
 
     plt.legend(loc=4)
 
-    if anon:
-        plt.title(measure.upper() +
-                  ' ordered by ' + xax + ' - ' +
-                  'Proposal' + ' - Month: ' + str(mnum), y=1.02)
-    else:
-        plt.title(measure.upper() +
-                  ' ordered by ' + xax + ' - ' +
-                  proposal_dict[proposal] + ' - Month: ' + str(mnum), y=1.02)
+    plt.title(measure.upper() +
+              ' ordered by ' + xax + ' - ' +
+              proposal_dict[proposal] + ' - Month: ' + str(mnum), y=1.02)
+
     plt.show()
 
 
@@ -771,7 +897,8 @@ def differential_scatter(sa_ds, proposal_ds_list,
                          show_scatter=True, show_lin_reg=True,
                          show_mean=True, mean_len=50, eg_list=[1, 2, 3],
                          dot_size=15, lin_reg_order=15, ylimit=False, ylim=5,
-                         width=22, height=14, bright_bg=False):
+                         width=22, height=14, bright_bg=False,
+                         chart_style='whitegrid'):
 
     cols = [measure, 'new_order']
 
@@ -827,7 +954,7 @@ def differential_scatter(sa_ds, proposal_ds_list,
         df['evs'] = df[measure + '_2'] - df[measure + '_s']
         df['wvs'] = df[measure + '_3'] - df[measure + '_s']
 
-    with sns.axes_style('darkgrid'):
+    with sns.axes_style(chart_style):
         for yval in yval_list:
             df.sort_values(by=order_dict[yval], inplace=True)
 
@@ -858,8 +985,12 @@ def differential_scatter(sa_ds, proposal_ds_list,
                     plt.xlim(0, x_limit)
 
                 if show_lin_reg:
+                    if show_scatter:
+                        lr_colors = cf.lr_colors
+                    else:
+                        lr_colors = cf.lr_colors2
                     sns.regplot(x=xval, y=yval, data=data,
-                                color=cf.lr_colors[eg - 1],
+                                color=lr_colors[eg - 1],
                                 label=cf.eg_dict[eg],
                                 scatter=False, truncate=True, ci=50,
                                 order=lin_reg_order,
@@ -1160,4 +1291,164 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors, cols=200,
         plt.gca().spines['bottom'].set_visible(True)
         plt.gca().spines['left'].set_visible(True)
         plt.gca().spines['right'].set_visible(True)
+        plt.show()
+
+
+def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
+                             clip=True, year_clip=2035, kind='area',
+                             quartile_ticks=False,
+                             custom_color=True, cm_name='Set1',
+                             quartile_alpha=.75, grid_alpha=.5,
+                             custom_start=0, custom_finish=.75,
+                             xsize=10, ysize=8, alt_bg_color=False,
+                             bg_color='#faf6eb'):
+
+    if custom_color:
+        cm_subsection = np.linspace(custom_start, custom_finish, bins)
+        colormap = eval('cm.' + cm_name)
+        quartile_colors = [colormap(x) for x in cm_subsection]
+    else:
+        quartile_colors = cf.color1
+
+    if clip:
+        eg_df = df[(df.eg == eg) & (df.date.dt.year <= year_clip)]
+    else:
+        eg_df = df[df.eg == eg]
+
+    eg_df = eg_df[['date', 'empkey', measure]]
+    eg_df['year'] = eg_df.date.dt.year
+
+    bin_lims = np.linspace(0, 1, num=bins + 1, endpoint=True, retstep=False)
+    years = np.unique(eg_df.year)
+
+    result_arr = np.zeros((years.size, bin_lims.size - 1))
+
+    if measure in ['spcnt', 'lspcnt']:
+        filler = 1
+    else:
+        filler = 0
+
+    grouped = eg_df.groupby(['year', 'empkey'])[measure].mean().reset_index()[
+        ['year', measure]].fillna(filler)
+
+    i = 0
+    denom = len(grouped[grouped.year == min(eg_df.year)])
+
+    for year in years:
+        this_year = grouped[grouped.year == year][measure]
+        these_bins = pd.cut(this_year, bin_lims)
+        these_counts = this_year.groupby(these_bins).count()
+        these_pcnts = these_counts / denom
+        result_arr[i, :] = these_pcnts
+        i += 1
+
+    frm = pd.DataFrame(result_arr, columns=np.arange(1, bins + 1), index=years)
+
+    with sns.axes_style('white'):
+
+        if custom_color:
+            cm_subsection = np.linspace(custom_start, custom_finish, bins)
+            colormap = eval('cm.' + cm_name)
+            quartile_colors = [colormap(x) for x in cm_subsection]
+        else:
+            quartile_colors = cf.color1
+
+        step = 1 / bins
+        offset = step / 2
+        legend_pos_adj = 0
+        quartiles = np.arange(1, bins + 1)
+
+        ymajor_ticks = np.arange(offset, 1, step)
+        yminor_ticks = np.arange(0, 1, step)
+
+        xmajor_ticks = np.arange(min(df.date.dt.year), year_clip, 1)
+
+        if kind == 'area':
+            frm.plot(kind=kind, linewidth=1, stacked=True,
+                     color=quartile_colors, alpha=quartile_alpha)
+        elif kind == 'bar':
+            frm.plot(kind=kind, width=1, stacked=True,
+                     color=quartile_colors, alpha=quartile_alpha)
+
+        ax = plt.gca()
+        plt.ylim(0, 1)
+
+        if quartile_ticks:
+
+            if kind == 'area':
+                ax.set_xticks(xmajor_ticks, minor=True)
+            ax.set_yticks(ymajor_ticks)
+            ax.set_yticks(yminor_ticks, minor=True)
+            ax.invert_yaxis()
+            plt.ylabel('original quartile')
+
+            if bins > 20:
+                plt.gca().legend_ = None
+            if bins < 41:
+
+                if kind != 'area':
+                    ax.grid(which='major', color='grey',
+                            ls='dotted', alpha=grid_alpha)
+                else:
+                    ax.grid(which='minor', color='grey', alpha=grid_alpha)
+                ax.yaxis.set(ticklabels=np.arange(1, bins + 1))
+            else:
+
+                ax.grid(which='minor', color='grey', alpha=0.1)
+                plt.tick_params(axis='y', which='both', left='off',
+                                right='off', labelleft='off')
+
+            legend_labels = quartiles
+            legend_title = 'result quartile'
+
+        else:
+            ax.set_yticks(ymajor_ticks + offset)
+
+            if kind == 'area':
+                ax.set_xticks(xmajor_ticks, minor=True)
+                ax.grid(which='both', color='grey', alpha=grid_alpha)
+            else:
+                ax.grid(which='major', color='grey',
+                        ls='dotted', alpha=grid_alpha)
+
+            ax.invert_yaxis()
+            plt.ylabel('original percentage')
+            plt.xlabel('year')
+            plt.gca().yaxis.set_major_formatter(formatter)
+            legend_labels = ['{percent:.1f}'
+                             .format(percent=((quart * step) - step) * 100) +
+                             ' - ' +
+                             '{percent:.1%}'.format(percent=quart * step)
+                             for quart in quartiles]
+            legend_title = 'result_pcnt'
+            legend_pos_adj = .1
+
+        if alt_bg_color:
+            ax.set_axis_bgcolor(bg_color)
+
+        plt.title('<group name> quartile change over time',
+                  fontsize=16, y=1.02)
+
+        quartiles = np.arange(1, bins + 1)
+
+        recs = []
+        patch_alpha = min(quartile_alpha + .1, 1)
+        legend_font_size = np.clip(int(bins / 1.65), 12, 14)
+        legend_cols = int(bins / 30) + 1
+        legend_position = 1 + (legend_cols * .17) + legend_pos_adj
+
+        for i in np.arange(bins, dtype='int'):
+            recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                           fc=quartile_colors[i],
+                                           alpha=patch_alpha))
+
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
+        ax.legend(recs, legend_labels, bbox_to_anchor=(legend_position, 1),
+                  title=legend_title, fontsize=legend_font_size,
+                  ncol=legend_cols)
+
+        fig = plt.gcf()
+        fig.set_size_inches(xsize, ysize)
+        fig.tight_layout()
         plt.show()

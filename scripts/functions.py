@@ -1432,7 +1432,7 @@ Selected eg idx numbers within the selected zone
 This function could be modified to return the original input array
 resorted with the new order ready to be resqueezed!'''
 
-    idx_arr = np.array(data.idx).astype(int)
+    idx_arr = np.array(data.new_order).astype(int)
     eg_arr = np.array(data.eg).astype(int)
 
     np.putmask(idx_arr[L:H], eg_arr[L:H] == eg, idx_arr[L:H] + increment)
@@ -1444,6 +1444,96 @@ resorted with the new order ready to be resqueezed!'''
     # data.loc[:,'idx'] = idx_arr
 
     return idx_arr
+
+
+# SQUEEZE_LOGRITHMIC
+def squeeze_logrithmic(data, eg, H, L,
+                       log_factor=1.5,
+                       put_segment=1,
+                       direction='d'):
+    '''perform a log squeeze (logrithmic-based movement of
+        one eg (employee group), determine the closest
+        matching indexes within the rng to fit the squeeze,
+        put the affected group in those indexes,
+        then fill in the remaining slots with the
+        other group(s), maintaining orig ordering
+        within each group at all times
+
+Inputs:
+
+    data
+        a dataframe indexed by empkey with at least 2 columns:
+            employee group (eg) and order (order)
+
+    eg
+        the employee group to move
+
+    H and L
+        integers marking the boundries (rng)
+        for the operation
+        (H must be greater than L)
+
+    log_factor
+        determines the degree of 'logrithmic packing'
+
+    put_segment
+        allows compression of the squeeze result (values under 1)
+
+    direction input
+        squeeze direction
+            move up ("u", more senior) the list
+            or down ("d", more junior) the list
+    '''
+    if put_segment <= 0:
+        return
+
+    if H <= L:
+        return
+
+    if L < 0:
+        L = 0
+
+    if H > len(data):
+        H = len(data)
+
+    rng = H - L
+    if rng < 2:
+        return
+
+    rng_dummy = np.arange(L, H, dtype=np.int_)
+
+    order_arr = np.array(data.new_order, dtype=np.float_)
+    eg_arr = np.array(data.eg, dtype=np.int_)
+
+    order_segment = order_arr[L:H]
+    eg_segment = eg_arr[L:H]
+
+    eg_count = np.sum(eg_segment == eg)
+    if eg_count == 0:
+        return
+
+    log_result = np.logspace(0, log_factor, eg_count, endpoint=False)
+    log_result = log_result - log_result[0]
+    pcnt_result = (log_result / log_result[-1])
+    additive_arr = (pcnt_result * rng) * put_segment
+    additive_arr = np.int16(additive_arr)
+
+    if direction == 'd':
+        put_nums = (H - additive_arr[::-1])
+        put_nums = get_indexes_down(put_nums)
+        additive_arr = H - get_indexes_up(additive_arr)[::-1] - L
+    else:
+        put_nums = (additive_arr + L)
+        put_nums = get_indexes_up(put_nums)
+        additive_arr = get_indexes_up(additive_arr)
+
+    np.put(order_segment, np.where(eg_segment == eg)[0], put_nums)
+
+    rng_dummy = np.delete(rng_dummy, additive_arr)
+
+    np.put(order_segment, np.where(eg_segment != eg)[0], rng_dummy)
+
+    return order_arr.astype(int)
 
 
 # GET_INDEXES_UP
@@ -1474,80 +1564,6 @@ output > [0,1,2,7,8,9]
         if list_of_positions[i] >= list_of_positions[i + 1]:
             list_of_positions[i] = list_of_positions[i + 1] - 1
     return list_of_positions
-
-
-# SQUEEZE_LOGRITHMIC
-def squeeze_logrithmic(data, eg, H, L,
-                       log_factor=1.5,
-                       put_segment=1,
-                       direction='d'):
-    '''perform a log squeeze (logrithmic-based movement of
-        one eg (employee group), determine the closest
-        matching indexes within the rng to fit the squeeze,
-        put the affected group in those indexes,
-        then fill in the remaining slots with the
-        other group(s), maintaining orig ordering
-        within each group at all times
-
-Inputs:
-    data
-        a dataframe indexed by empkey with at least 2 columns:
-            employee group (eg) and order (order)
-        H and L
-            integers marking the boundries (rng)
-            for the operation
-            (H must be greater than L)
-        log_factor
-            determines the degree of 'logrithmic packing'
-        put_segment
-            allows compression of the squeeze result (values under 1)
-        direction input
-            up ("u") or down ("d") for the squeeze
-'''
-    if put_segment <= 0:
-        return
-
-    if H <= L:
-        return
-
-    rng = H - L
-    if rng < 2:
-        return
-
-    rng_dummy = np.arange(L, H, dtype=np.int_)
-
-    order_arr = np.array(data.order, dtype=np.float_)
-    eg_arr = np.array(data.eg, dtype=np.int_)
-
-    order_segment = order_arr[L:H]
-    eg_segment = eg_arr[L:H]
-
-    eg_count = np.sum(eg_segment == eg)
-    if eg_count == 0:
-        return
-
-    log_result = np.logspace(0, log_factor, eg_count, endpoint=False)
-    pcnt_result = (log_result / log_result[-1])
-    pcnt_adj = pcnt_result - pcnt_result[0]
-    additive_arr = (pcnt_adj * rng) * put_segment
-    additive_arr = np.int16(additive_arr)
-
-    if direction == 'd':
-        put_nums = (H - additive_arr[::-1])
-        put_nums = get_indexes_down(put_nums)
-        additive_arr = H - get_indexes_up(additive_arr)[::-1] - L
-    else:
-        put_nums = (additive_arr + L)
-        put_nums = get_indexes_up(put_nums)
-        additive_arr = get_indexes_up(additive_arr)
-
-    np.put(order_segment, np.where(eg_segment == eg)[0], put_nums)
-
-    rng_dummy = np.delete(rng_dummy, additive_arr)
-
-    np.put(order_segment, np.where(eg_segment != eg)[0], rng_dummy)
-
-    return order_arr.astype(int)
 
 
 # MAKE_DECILE_BANDS
@@ -2165,13 +2181,13 @@ inputs
 # To 8 (job levels) from 16 (job_levels)
 def eliminate_block_and_reserve(j):
     '''Convert blockholder and reserve job levels(16) to
-group job counts (CA and FO counts, total of 8 counts
-for the 4 groups)
+    group job counts (CA and FO counts, total of 8 counts
+    for the 4 groups)
 
-    Input is a list of 16 integers.
-    Returns a list of 8 integers.
+        Input is a list of 16 integers.
+        Returns a list of 8 integers.
 
-Inputs
+    Inputs
 
     j
         A list of the 16 level job counts
@@ -2209,14 +2225,23 @@ Inputs
         Example: 'no_rsv_with_fur'
         layout example (partial table...more rows and columns...):
 
-        year    jnum        1        2      3       4
-        2013.0      1   40.00   197.04  198.64  200.24
-        2013.0      2   40.00   197.04  198.64  200.24
-        2013.0      3   40.00   167.20  168.56  169.91
-        2013.0      4   40.00   155.10  156.36  157.62
-        2013.0      5   40.00   167.20  168.56  169.91
-        2013.0      6   40.00   155.10  156.36  157.62
-        2013.0      7   40.00   98.52   119.18  122.15
+        +-------+-------+-------+-------+-------+-------+
+        | year  | jnum  |   1   |   2   |   3   |   4   |
+        +-------+-------+-------+-------+-------+-------+
+        |2013.0 |   1   | 40.00 | 197.04| 198.64| 200.24|
+        +-------+-------+-------+-------+-------+-------+
+        |2013.0 |   2   | 40.00 | 197.04| 198.64| 200.24|
+        +-------+-------+-------+-------+-------+-------+
+        |2013.0 |   3   | 40.00 | 167.20| 168.56| 169.91|
+        +-------+-------+-------+-------+-------+-------+
+        |2013.0 |   4   | 40.00 | 155.10| 156.36| 157.62|
+        +-------+-------+-------+-------+-------+-------+
+        |2013.0 |   5   | 40.00 | 167.20| 168.56| 169.91|
+        +-------+-------+-------+-------+-------+-------+
+        |2013.0 |   6   | 40.00 | 155.10| 156.36| 157.62|
+        +-------+-------+-------+-------+-------+-------+
+        |2013.0 |   7   | 40.00 | 98.52 | 119.18| 122.15|
+        +-------+-------+-------+-------+-------+-------+
 
 
     hours_sheetname (string)
@@ -2224,11 +2249,18 @@ Inputs
         credited to each job level
         Example: 'block_only_hours'
         layout example (2 columns, partial example):
-                  jnum   hours
-                    1   85
-                    2   74
-                    3   85
-                    4   85
+
+                +-----+-----+
+                |jnumm|hours|
+                +-----+-----+
+                |  1  | 85  |
+                +-----+-----+
+                |  2  | 74  |
+                +-----+-----+
+                |  3  | 85  |
+                +-----+-----+
+                |  4  | 85  |
+                +-----+-----+
 
         Data is contained in 2 columns of worksheet
 
@@ -2293,12 +2325,12 @@ Inputs
 def make_delayed_job_counts(imp_month, delayed_jnums,
                             lower, upper):
     '''STANDALONE JOB COUNTS
-Make an array of job counts to be inserted into the long_form job counts
-array of the job assignment function.  The main assignment function calls this
-function prior to the implementation month. The array output of this function
-is inserted into what will become the job count column.  These jobs are
-from the standalone job results.
-'''
+    Make an array of job counts to be inserted into the long_form job counts
+    array of the job assignment function.  The main assignment function calls
+    this function prior to the implementation month. The array output of this
+    function is inserted into what will become the job count column.
+    These jobs are from the standalone job results.
+    '''
     imp_high = upper[imp_month]
     stand_job_counts = np.zeros(imp_high)
     job_numbers = sorted(list(set(delayed_jnums[:imp_high])))

@@ -6,7 +6,7 @@ compute_with_job_changes = True
 discount_longev_for_fur = True
 lspcnt_calc_on_remaining_population = False
 
-anon = True
+edit_mode = False
 
 # CONDITIONS
 apply_supc = True
@@ -263,6 +263,7 @@ if num_of_job_levels == 8:
 # eg_colors = ["#505050", "#0081ff", "#FF4500", '#CC00FF']
 eg_colors = ["#505050", "#0081ff", "#ff6600", '#CC00FF']
 lr_colors = ['#00b300', '#0086b3', '#cc5200']
+lr_colors2 = ['grey', '#0086b3', '#cc5200']
 mean_colors = ['#66ff33', '#00ffff', '#ff66ff']
 row_colors = ['#ffffe6', '#404040', '#3399ff', '#ff8000', '#00cc44',
               '#b800e6', '#ff0000', '#996633', '#ff99ff']

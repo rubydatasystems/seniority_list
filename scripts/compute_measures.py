@@ -65,9 +65,12 @@ jcnts_arr = f.make_jcnts(eg_counts)
 # use the empkey index (contains duplicates) to align
 # the idx (order) column from the proposed list to the skeleton
 
-order_key = df_proposal.idx
-
-ds['new_order'] = order_key
+if cf.edit_mode:
+    df_new_order = pd.read_pickle('dill/new_order.pkl')
+    ds['new_order'] = df_new_order['new_order']
+else:
+    order_key = df_proposal.idx
+    ds['new_order'] = order_key
 
 # sort the skeleton by month and proposed list order
 
