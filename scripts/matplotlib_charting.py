@@ -105,6 +105,8 @@ inputs
 
     # ds_sel_cols = ds_sel_cols[(ds_sel_cols.doh > '1989-07-01')]
     egs = sorted(list(set(ds_sel_cols.eg)))
+    legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
+    ytick_fontsize = np.clip(int(ysize * 1.55), 9, 14)
 
     for eg in egs:
 
@@ -246,8 +248,9 @@ inputs
 
             box = ax.get_position()
             ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-            ax.legend((labels), loc='center left', bbox_to_anchor=(1, 0.5))
-
+            ax.legend((labels), loc='center left', bbox_to_anchor=(1, 0.5),
+                      fontsize=legend_font_size)
+            plt.yticks(fontsize=ytick_fontsize)
             fig = plt.gcf()
             fig.set_size_inches(xsize, ysize)
             plt.show()
@@ -295,7 +298,8 @@ inputs
                 box = ax.get_position()
                 ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
                 ax.legend(
-                    (sa_labels), loc='center left', bbox_to_anchor=(1, 0.5))
+                    (sa_labels), loc='center left', bbox_to_anchor=(1, 0.5),
+                    fontsize=legend_font_size)
 
                 plt.suptitle(proposal_dict[proposal] +
                              ', GROUP ' + eg_dict[eg],
@@ -303,7 +307,7 @@ inputs
                 plt.title('years differential vs standalone, ' +
                           str(num_bins) + '-quantiles',
                           y=1.02)
-
+                plt.yticks(fontsize=ytick_fontsize)
                 fig = plt.gcf()
                 fig.set_size_inches(xsize, ysize)
                 plt.show()
@@ -1451,4 +1455,129 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
         fig = plt.gcf()
         fig.set_size_inches(xsize, ysize)
         fig.tight_layout()
+        plt.show()
+
+
+def job_transfer(p_df, p_text, sa_df, eg,
+                 measure='jnum', gb_period='M',
+                 job_levels=cf.num_of_job_levels, colors=cf.color1,
+                 custom_color=True, cm_name='Paired',
+                 start=0, stop=.95, job_alpha=1, chart_style='white',
+                 start_date=cf.starting_date, yticks_lim=5000,
+                 ytick_interval=100, legend_xadj=1.62,
+                 legend_yadj=.78, annotate=False,
+                 xsize=10, ysize=8):
+
+    p_df = p_df[p_df.eg == eg][['date', measure]].copy()
+    sa_df = sa_df[sa_df.eg == eg][['date', measure]].copy()
+
+    pg = pd.DataFrame(p_df.groupby(['date', measure]).size()
+                      .unstack().fillna(0).resample(gb_period).mean())
+    sg = pd.DataFrame(sa_df.groupby(['date', measure]).size()
+                      .unstack().fillna(0).resample(gb_period).mean())
+
+    for job_level in np.arange(1, cf.num_of_job_levels + 1):
+        if job_level not in sg:
+            sg[job_level] = 0
+
+    sg.sort_index(axis=1, inplace=True)
+
+    diff2 = pg - sg
+    abs_diff2 = np.absolute(diff2.values).astype(int)
+    v_crop = (np.amax(np.add.reduce(abs_diff2, axis=1)) / 2) + 75
+
+    if custom_color:
+        num_of_colors = job_levels + 1
+        cm_subsection = np.linspace(start, stop, num_of_colors)
+        colormap = eval('cm.' + cm_name)
+        colors = [colormap(x) for x in cm_subsection]
+
+    with sns.axes_style(chart_style):
+        ax = diff2.plot(kind='bar', width=1, linewidth=0,
+                        color=colors, stacked=True, alpha=job_alpha)
+        fig = plt.gcf()
+
+        xtick_locs = ax.xaxis.get_majorticklocs()
+
+        if gb_period == 'M':
+            i = 13 - pd.to_datetime(cf.starting_date).month
+        elif gb_period == 'Q':
+            i = ((13 - pd.to_datetime(cf.starting_date).month) // 3) + 1
+        elif gb_period == 'A':
+            i = 0
+
+        xtick_dict = {'A': 1,
+                      'Q': 4,
+                      'M': 12}
+
+        interval = xtick_dict[gb_period]
+
+        xticklabels = [''] * len(diff2.index)
+
+        xticklabels[i::interval] = \
+            [item.strftime('%Y') for item in diff2.index[i::interval]]
+
+        if gb_period in ['Q']:
+            ax.set_xticklabels(xticklabels, rotation=90, ha='right')
+        else:
+            ax.set_xticklabels(xticklabels, rotation=90)
+
+        for xmaj in xtick_locs:
+            try:
+                if i % interval == 0:
+                    ax.axvline(xtick_locs[i], ls='-', color='grey',
+                               lw=1, alpha=.2, zorder=7)
+                i += 1
+            except:
+                pass
+        if gb_period in ['Q', 'A']:
+            ax.axvline(xtick_locs[0], ls='-', color='grey',
+                       lw=1, alpha=.2, zorder=7)
+
+        yticks = np.arange(-yticks_lim, yticks_lim, ytick_interval)
+        ax.set_yticks(yticks)
+        plt.ylim(-v_crop, v_crop)
+        ymin, ymax = ax.get_ylim()
+        for i in yticks:
+            ax.axhline(i, ls='-', color='grey', lw=1, alpha=.2, zorder=7)
+
+        recs = []
+        job_labels = []
+        legend_font_size = 12
+        legend_position = 1.12
+        legend_title = 'job'
+
+        for i in diff2.columns:
+            recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                           fc=colors[i - 1],
+                                           alpha=job_alpha))
+            job_labels.append(cf.job_strs[i - 1])
+
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * legend_xadj, box.height])
+        ax.legend(recs, job_labels, bbox_to_anchor=(legend_position,
+                                                    legend_yadj),
+                  title=legend_title, fontsize=legend_font_size,
+                  ncol=1)
+
+        if annotate:
+            if gb_period in ['Q', 'M']:
+                ax.annotate('job count increase',
+                            xy=(50, v_crop - ytick_interval),
+                            xytext=(50, v_crop - ytick_interval), fontsize=14)
+                ax.annotate('job count decrease',
+                            xy=(50, -v_crop + ytick_interval),
+                            xytext=(50, -v_crop + ytick_interval), fontsize=14)
+
+        ax.axhline(color='grey', alpha=.7)
+        plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=8)
+        plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
+        plt.ylabel('change in job count', fontsize=16)
+        plt.xlabel('date', fontsize=16, labelpad=15)
+        title_string = cf.proposal_dict[p_text] + \
+            ' group ' + cf.eg_dict[eg] + \
+            ' job transfer, integrated vs standalone'
+        plt.title(title_string,
+                  fontsize=16, y=1.02)
+        fig.set_size_inches(xsize, ysize)
         plt.show()
