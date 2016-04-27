@@ -1458,7 +1458,7 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
         plt.show()
 
 
-def job_transfer(p_df, p_text, sa_df, eg,
+def job_transfer(p_df, p_text, comp_df, comp_df_text, eg,
                  measure='jnum', gb_period='M',
                  job_levels=cf.num_of_job_levels, colors=cf.color1,
                  custom_color=True, cm_name='Paired',
@@ -1469,20 +1469,22 @@ def job_transfer(p_df, p_text, sa_df, eg,
                  xsize=10, ysize=8):
 
     p_df = p_df[p_df.eg == eg][['date', measure]].copy()
-    sa_df = sa_df[sa_df.eg == eg][['date', measure]].copy()
+    comp_df = comp_df[comp_df.eg == eg][['date', measure]].copy()
 
     pg = pd.DataFrame(p_df.groupby(['date', measure]).size()
                       .unstack().fillna(0).resample(gb_period).mean())
-    sg = pd.DataFrame(sa_df.groupby(['date', measure]).size()
+    cg = pd.DataFrame(comp_df.groupby(['date', measure]).size()
                       .unstack().fillna(0).resample(gb_period).mean())
 
     for job_level in np.arange(1, cf.num_of_job_levels + 1):
-        if job_level not in sg:
-            sg[job_level] = 0
+        if job_level not in cg:
+            cg[job_level] = 0
+        if job_level not in pg:
+            pg[job_level] = 0
+    cg.sort_index(axis=1, inplace=True)
+    pg.sort_index(axis=1, inplace=True)
 
-    sg.sort_index(axis=1, inplace=True)
-
-    diff2 = pg - sg
+    diff2 = pg - cg
     abs_diff2 = np.absolute(diff2.values).astype(int)
     v_crop = (np.amax(np.add.reduce(abs_diff2, axis=1)) / 2) + 75
 
@@ -1574,10 +1576,12 @@ def job_transfer(p_df, p_text, sa_df, eg,
         plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
         plt.ylabel('change in job count', fontsize=16)
         plt.xlabel('date', fontsize=16, labelpad=15)
-        title_string = cf.proposal_dict[p_text] + \
-            ' group ' + cf.eg_dict[eg] + \
-            ' job transfer, integrated vs standalone'
+        title_string = 'GROUP ' + cf.eg_dict[eg] + \
+            ' Jobs Exchange' + '\n' + \
+            cf.proposal_dict[p_text] + \
+            ' compared to ' + cf.proposal_dict[comp_df_text]
         plt.title(title_string,
                   fontsize=16, y=1.02)
+
         fig.set_size_inches(xsize, ysize)
         plt.show()
