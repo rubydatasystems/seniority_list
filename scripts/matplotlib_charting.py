@@ -5,10 +5,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import colors
+from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 from ipywidgets import interactive, Button, widgets
-from IPython.display import display
+from IPython.display import display, Javascript
 import math
+from os import system
 
 import pandas as pd
 from pandas.tools.plotting import parallel_coordinates
@@ -1589,16 +1591,45 @@ def job_transfer(p_df, p_text, comp_df, comp_df_text, eg,
         plt.show()
 
 
-def editor(base_ds, compare_ds, measure, filter_measure,
-           filter_val, formatter, prop_order=True,
-           show_scatter=True, show_lin_reg=True,
-           show_mean=True, mean_len=50, eg_list=[1, 2, 3],
-           dot_size=15, lin_reg_order=15, ylimit=False, ylim=5,
-           width=22, height=14, bright_bg=False,
-           chart_style='whitegrid'):
+def editor(base_ds, compare_ds_text, prop_order=True,
+           # show_scatter=True, show_lin_reg=False,
+           show_mean=False, mean_len=80, eg_list=[1, 2, 3],
+           dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
+           width=17.5, height=10, strip_height=3.5, bright_bg=True,
+           chart_style='whitegrid', bg_clr='#fffff0'):
+
+    try:
+        compare_ds = pd.read_pickle('dill/' + compare_ds_text + '.pkl')
+    except:
+        compare_ds = pd.read_pickle('dill/ds1.pkl')
+
+    max_month = max(compare_ds.mnum)
+    persist = pd.read_pickle('dill/squeeze_vals.pkl')
+
+    chk_scatter = widgets.Checkbox(description='scatter',
+                                   value=bool(persist['scat_val'].value))
+    chk_fit = widgets.Checkbox(description='poly_fit',
+                               value=bool(persist['fit_val'].value))
+    chk_mean = widgets.Checkbox(description='mean',
+                                value=bool(persist['mean_val'].value))
+    drop_measure = widgets.Dropdown(options=['jobp', 'spcnt',
+                                             'lspcnt', 'snum', 'lnum',
+                                             'cat_order', 'mpay', 'cpay'],
+                                    value=persist['drop_msr'].value,
+                                    description='msr')
+    drop_filter = widgets.Dropdown(options=['age', 'mnum'],
+                                   value=persist['drop_filter'].value,
+                                   description='fltr')
+    int_val = widgets.IntText(min=0,
+                              max=max_month,
+                              value=persist['int_sel'].value,
+                              description='val')
+
+    measure = drop_measure.value
+    filter_measure = drop_filter.value
+    filter_val = int_val.value
 
     cols = [measure, 'new_order']
-
     df = base_ds[base_ds[filter_measure] == filter_val][[measure, 'eg']].copy()
     df.rename(columns={measure: measure + '_b'}, inplace=True)
 
@@ -1612,10 +1643,10 @@ def editor(base_ds, compare_ds, measure, filter_measure,
         compare_ds[filter_measure] == filter_val][cols].copy()
 
     to_join_ds.rename(columns={measure: measure + '_c',
-                               'new_order': 'idx_c'}, inplace=True)
+                               'new_order': 'proposal_order'}, inplace=True)
     df = df.join(to_join_ds)
-    x_limit = int(max(df.idx_c) // 100) * 100 + 100
-    df.sort_values(by='idx_c', inplace=True)
+    x_limit = int(max(df.proposal_order) // 100) * 100 + 100
+    df.sort_values(by='proposal_order', inplace=True)
     df['squeeze_order'] = np.arange(len(df))
     df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
     eg_sep_order = np.array(df.eg_sep_order)
@@ -1641,10 +1672,10 @@ def editor(base_ds, compare_ds, measure, filter_measure,
 
     with sns.axes_style(chart_style):
 
-        df.sort_values(by='idx_c', inplace=True)
+        df.sort_values(by='proposal_order', inplace=True)
 
         if prop_order:
-            xval = 'idx_c'
+            xval = 'proposal_order'
 
         else:
             xval = 'sep_eg_pcnt'
@@ -1652,21 +1683,21 @@ def editor(base_ds, compare_ds, measure, filter_measure,
         for eg in eg_list:
             data = df[df.eg == eg].copy()
 
-            if show_scatter:
+            if chk_scatter.value:
                 ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
                                color=cf.eg_colors[eg - 1], s=dot_size,
                                label=cf.eg_dict[eg],
                                ax=ax)
 
-            if show_mean:
+            if chk_mean.value:
                 data['ma'] = data[yval].rolling(mean_len).mean()
                 ax = data.plot(x=xval, y='ma', lw=5,
                                color=cf.mean_colors[eg - 1],
                                label=cf.eg_dict[eg],
                                alpha=.6, ax=ax)
 
-            if show_lin_reg:
-                if show_scatter:
+            if chk_fit.value:
+                if chk_scatter.value:
                     lr_colors = cf.lr_colors
                 else:
                     lr_colors = cf.lr_colors2
@@ -1686,39 +1717,50 @@ def editor(base_ds, compare_ds, measure, filter_measure,
             scale_lim = max(abs(ymin), ymax)
             plt.yticks(np.arange(-scale_lim, scale_lim + 1, 1))
             if ylimit:
-                plt.ylim(-5, 5)
+                plt.ylim(-ylim, ylim)
             else:
                 plt.ylim(-scale_lim, scale_lim)
+
+        if measure in ['cat_order', 'snum', 'lnum']:
+            ax.invert_yaxis()
 
         plt.gcf().set_size_inches(width, height)
         plt.title('Differential: ' + measure)
         plt.xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
+            formatter = FuncFormatter(f.to_percent)
             plt.gca().yaxis.set_major_formatter(formatter)
 
         if xval == 'sep_eg_pcnt':
             plt.xlim(xmax=1)
 
-        ax.axhline(0, c='m', ls='-', alpha=1, lw=2)
+        ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
         ax.invert_xaxis()
         if bright_bg:
-            ax.set_axis_bgcolor('#faf6eb')
+            # ax.set_axis_bgcolor('#faf6eb')
+            ax.set_axis_bgcolor(bg_clr)
 
         plt.close(fig)
 
-        v1line = ax.axvline(2, color='r', lw=3)
-        v2line = ax.axvline(200, color='c', lw=3)
+        v1line = ax.axvline(2, color='m', lw=2, ls='dashed')
+        v2line = ax.axvline(200, color='c', lw=2, ls='dashed')
         range_list = [0, 0]
 
-        persist = pd.read_pickle('dill/squeeze_vals.pkl')
-
         if prop_order:
-            junior_init = 12000
-            senior_init = 2500
+            try:
+                junior_init = persist['junior'].value
+                senior_init = persist['senior'].value
+            except:
+                junior_init = int(.8 * x_limit)
+                senior_init = int(.2 * x_limit)
         else:
-            junior_init = .8
-            senior_init = .2
+            try:
+                junior_init = persist['junior'].value
+                senior_init = persist['senior'].value
+            except:
+                junior_init = .8
+                senior_init = .2
 
         drop_eg_dict = {'1': 1, '2': 2, '3': 3}
         drop_dir_dict = {'u  >>': 'u', '<<  d': 'd'}
@@ -1726,15 +1768,15 @@ def editor(base_ds, compare_ds, measure, filter_measure,
 
         drop_eg = widgets.Dropdown(options=['1', '2', '3'],
                                    value=persist['drop_eg_val'].value,
-                                   description='eg:')
+                                   description='eg')
 
         drop_dir = widgets.Dropdown(options=['u  >>', '<<  d'],
                                     value=persist['drop_dir_val'].value,
-                                    description='dir:')
+                                    description='dir')
 
         drop_squeeze = widgets.Dropdown(options=['log', 'slide'],
                                         value=persist['drop_sq_val'].value,
-                                        description='sq_type:')
+                                        description='sq')
 
         slide_factor = widgets.IntSlider(value=persist['slide_fac_val'].value,
                                          min=1,
@@ -1779,6 +1821,8 @@ def editor(base_ds, compare_ds, measure, filter_measure,
             data_reorder['new_order'] = np.arange(len(data_reorder),
                                                   dtype='int')
 
+            fig, ax2 = plt.subplots(figsize=(width, strip_height))
+
             ax2 = sns.stripplot(x='new_order', y='eg',
                                 data=data_reorder, jitter=.5,
                                 orient='h', order=np.arange(1, 4, 1),
@@ -1786,36 +1830,69 @@ def editor(base_ds, compare_ds, measure, filter_measure,
                                 linewidth=0, split=True)
 
             if bright_bg:
-                ax2.set_axis_bgcolor('#fff5e5')
+                # ax2.set_axis_bgcolor('#fff5e5')
+                ax2.set_axis_bgcolor(bg_clr)
 
             plt.xticks(np.arange(0, len(data_reorder), 1000))
-            if measure in ['spcnt', 'lspcnt']:
+            if measure in ['spcnt', 'lspcnt', 'cpay']:
                 plt.ylabel('\n\neg\n')
             else:
                 plt.ylabel('eg\n')
             plt.xlim(len(data_reorder), 0)
-            plt.gcf().set_size_inches(width, 4)
             plt.show()
 
             data_reorder[['new_order']].to_pickle('dill/new_order.pkl')
+
+            junior_val = range_sel.children[0].value
+            senior_val = range_sel.children[1].value
+
             persist_df = pd.DataFrame({'drop_eg_val': drop_eg.value,
                                        'drop_dir_val': drop_dir.value,
                                        'drop_sq_val': drop_squeeze.value,
-                                       'slide_fac_val': slide_factor.value},
+                                       'slide_fac_val': slide_factor.value,
+                                       'scat_val': chk_scatter.value,
+                                       'fit_val': chk_fit.value,
+                                       'mean_val': chk_mean.value,
+                                       'drop_msr': drop_measure.value,
+                                       'drop_filter': drop_filter.value,
+                                       'int_sel': int_val.value,
+                                       'junior': junior_val,
+                                       'senior': senior_val},
                                       index=['value'])
 
             persist_df.to_pickle('dill/squeeze_vals.pkl')
 
-        if prop_order:
-            w = interactive(set_cursor, junior=(0, x_limit),
-                            senior=(0, x_limit))
-        else:
-            w = interactive(set_cursor, junior=(0, 1, .001),
-                            senior=(0, 1, .001))
+        def run_cell(ev):
+            system('python compute_measures.py df1')
+            display(Javascript('IPython.notebook.execute_cell()'))
 
-        button = Button(description='Squeeze', value=False)
+        def redraw(ev):
+            display(Javascript('IPython.notebook.execute_cell()'))
+
+        button_calc = Button(description="calculate",
+                             background_color='#99ddff')
+        button_calc.on_click(run_cell)
+
+        button_draw = Button(description="redraw",
+                             background_color='#dab3ff')
+        button_draw.on_click(redraw)
+        # display(button)
+
+        if prop_order:
+            range_sel = interactive(set_cursor, junior=(0, x_limit),
+                                    senior=(0, x_limit))
+        else:
+            range_sel = interactive(set_cursor, junior=(0, 1, .001),
+                                    senior=(0, 1, .001))
+
+        button = Button(description='squeeze',
+                        background_color='#b3ffd9')
         button.on_click(perform_squeeze)
 
-        vbox = widgets.VBox((drop_squeeze, drop_eg, drop_dir, slide_factor))
-        display(widgets.HBox((w, button, vbox)))
+        hbox1 = widgets.HBox((button, button_calc, button_draw))
+        vbox1 = widgets.VBox((slide_factor, hbox1, range_sel))
+        vbox2 = widgets.VBox((chk_scatter, chk_fit, chk_mean))
+        vbox3 = widgets.VBox((drop_squeeze, drop_eg, drop_dir))
+        vbox4 = widgets.VBox((drop_measure, drop_filter, int_val))
+        display(widgets.HBox((vbox1, vbox2, vbox3, vbox4)))
 
