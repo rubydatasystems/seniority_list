@@ -1405,7 +1405,8 @@ def to_percent(y, position):
 
 
 # SQUEEZE
-def squeeze_increment(data, L, H, eg, pack_factor, increment):
+def squeeze_increment(data, eg, senior_num, junior_num,
+                      increment, pack_factor=1):
     '''Move members of a selected eg (employee group) within
         a list according to an increment input (positive or negative)
         while retaining relative ordering within all eg groups.
@@ -1415,22 +1416,31 @@ pack_factor undeveloped at present...
 Inputs
     data
         dataframe with empkey as index which at
-         minimum includes idx and eg columns
+         minimum includes an order column and an eg column
     L and H
         indexes for the beginning and end of the list zone to be reordered
     increment
-        the amount to add or subrtract from the appropriate eg idx number
+        the amount to add or subrtract from the appropriate eg order number
          increment can be positive (move down list) or
          negative (move up list - toward zero)
 
-Selected eg idx numbers within the selected zone
+Selected eg order numbers within the selected zone
  (as a numpy array) are incremented - then
- the entire group idx numbers are reset within
+ the entire group order numbers are reset within
  the zone using scipy.stats.rankdata.
  The array is then assigned to a dataframe with empkeys as index.
 
 This function could be modified to return the original input array
 resorted with the new order ready to be resqueezed!'''
+
+    L = senior_num
+    H = junior_num
+
+    if H <= L:
+        return
+
+    if L < 0:
+        L = 0
 
     idx_arr = np.array(data.new_order).astype(int)
     eg_arr = np.array(data.eg).astype(int)
@@ -1447,7 +1457,7 @@ resorted with the new order ready to be resqueezed!'''
 
 
 # SQUEEZE_LOGRITHMIC
-def squeeze_logrithmic(data, eg, H, L,
+def squeeze_logrithmic(data, eg, senior_num, junior_num,
                        log_factor=1.5,
                        put_segment=1,
                        direction='d'):
@@ -1484,6 +1494,10 @@ Inputs:
             move up ("u", more senior) the list
             or down ("d", more junior) the list
     '''
+
+    H = junior_num
+    L = senior_num
+
     if put_segment <= 0:
         return
 

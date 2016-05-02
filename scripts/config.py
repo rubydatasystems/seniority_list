@@ -6,8 +6,7 @@ compute_with_job_changes = True
 discount_longev_for_fur = True
 lspcnt_calc_on_remaining_population = False
 
-edit_mode = False
-
+edit_mode = True
 # CONDITIONS
 apply_supc = True
 apply_east_cond = True

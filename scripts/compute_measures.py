@@ -21,8 +21,6 @@ try:
 except:
     output_name = 'ds_'
 
-dataset_path_string = (pre + output_name + suf)
-
 ds = pd.read_pickle(skeleton_path_string)
 
 df_proposal = pd.read_pickle(proposal_path_string)
@@ -68,9 +66,11 @@ jcnts_arr = f.make_jcnts(eg_counts)
 if cf.edit_mode:
     df_new_order = pd.read_pickle('dill/new_order.pkl')
     ds['new_order'] = df_new_order['new_order']
+    dataset_path_string = (pre + 'ds_edit' + suf)
 else:
     order_key = df_proposal.idx
     ds['new_order'] = order_key
+    dataset_path_string = (pre + output_name + suf)
 
 # sort the skeleton by month and proposed list order
 
