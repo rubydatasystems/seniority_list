@@ -5,7 +5,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import colors
+from matplotlib.ticker import FuncFormatter
+import matplotlib.patches as mpatches
+from ipywidgets import interactive, Button, widgets
+from IPython.display import display, Javascript
 import math
+from os import system
 
 import pandas as pd
 from pandas.tools.plotting import parallel_coordinates
@@ -17,17 +22,21 @@ import functions as f
 def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                                job_str_list,
                                proposal, proposal_dict, eg_dict, color_list,
-                               style='bar',
+                               style='bar', plot_differential=True,
                                custom_color=False, cm_name='Dark2', start=0.0,
                                stop=1.0, flip_x=False, flip_y=False,
                                rotate=False,
-                               normalize_yr_scale=False):
+                               normalize_yr_scale=False, year_clip=30,
+                               xsize=8, ysize=6):
     '''stacked bar or area chart presenting the time spent in the various
     job levels for quartiles of a selected employee group.
 
 inputs
-    ds
-        dataset to explore
+    prop_ds (dataframe)
+        proposal dataset to explore
+
+    sa_ds (dataframe)
+        standalone dataset
 
     job_levels
         the number of job levels in the model
@@ -43,7 +52,7 @@ inputs
             jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
 
     proposal
-        text name of the dataset, used as key in the proposal dict
+        text name of the (proposal) dataset, used as key in the proposal dict
 
     proposal_dict
         a dictionary of proposal text keys and corresponding proposal text
@@ -69,33 +78,52 @@ inputs
         'flip' the chart horizontally if True
 
     flip_y
-        'flip' the chart vertically if True'''
+        'flip' the chart vertically if True
+
+    rotate
+        transpose the chart output
+
+    normalize_yr_scale
+        set all output charts to have the same x axis range
+
+    yr_clip
+        max x axis value (years) if normalize_yr_scale set True
+    '''
 
     if 'new_order' in prop_ds.columns:
-        frame_all = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
-                             'new_order', 'doh', 'retdate']]
+        ds_sel_cols = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
+                               'new_order', 'doh', 'retdate']]
+        if plot_differential:
+            sa_ds['new_order'] = sa_ds['idx']
+            sa_sel_cols = sa_ds[['mnum', 'eg', 'jnum', 'empkey',
+                                 'new_order', 'doh', 'retdate']].copy()
+
     else:
         prop_ds['new_order'] = prop_ds['idx']
-        frame_all = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
-                             'new_order', 'doh', 'retdate']]
+        ds_sel_cols = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
+                               'new_order', 'doh', 'retdate']].copy()
+        plot_differential = False
 
-    # frame_all = frame_all[(frame_all.doh > '1989-07-01')]
-    frame_sort = frame_all[frame_all.mnum == 0]
-    egs = sorted(list(set(frame_all.eg)))
+    mnum0 = ds_sel_cols[ds_sel_cols.mnum == 0][[]]
+    mnum0['order'] = np.arange(len(mnum0)) + 1
+
+    # ds_sel_cols = ds_sel_cols[(ds_sel_cols.doh > '1989-07-01')]
+    egs = sorted(list(set(ds_sel_cols.eg)))
+    legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
+    ytick_fontsize = np.clip(int(ysize * 1.55), 9, 14)
 
     for eg in egs:
 
-        frame = frame_all[(frame_all.eg == eg) & (frame_all.jnum >= 1)]
+        ds_eg = ds_sel_cols[(ds_sel_cols.eg == eg) & (ds_sel_cols.jnum >= 1)]
 
-        job_counts_by_emp = frame.groupby(['empkey', 'jnum']).size()
+        job_counts_by_emp = ds_eg.groupby(['empkey', 'jnum']).size()
 
         months_in_jobs = job_counts_by_emp.unstack() \
             .fillna(0).sort_index(axis=1, ascending=True).astype(int)
 
-        months_in_jobs = months_in_jobs.join(frame_sort[['new_order']],
-                                             how='left')
-        months_in_jobs.sort_values(by='new_order', inplace=True)
-        months_in_jobs.pop('new_order')
+        months_in_jobs = months_in_jobs.join(mnum0[['order']], how='left')
+        months_in_jobs.sort_values(by='order', inplace=True)
+        months_in_jobs.pop('order')
 
         bin_lims = pd.qcut(np.arange(len(months_in_jobs)),
                            num_bins,
@@ -124,7 +152,57 @@ inputs
 
         quantile_yrs = quantile_mos / 12
 
-        if custom_color:  # dict color mapping to job level is lost...
+        if plot_differential:
+
+            sa_eg = sa_sel_cols[
+                (sa_sel_cols.eg == eg) & (sa_sel_cols.jnum >= 1)]
+
+            sa_job_counts_by_emp = sa_eg.groupby(['empkey', 'jnum']).size()
+
+            sa_months_in_jobs = sa_job_counts_by_emp.unstack() \
+                .fillna(0).sort_index(axis=1, ascending=True).astype(int)
+
+            sa_months_in_jobs = sa_months_in_jobs.join(
+                mnum0[['order']], how='left')
+            sa_months_in_jobs.sort_values(by='order', inplace=True)
+            sa_months_in_jobs.pop('order')
+
+            sa_bin_lims = pd.qcut(np.arange(len(sa_months_in_jobs)),
+                                  num_bins,
+                                  retbins=True,
+                                  labels=np.arange(num_bins) + 1)[1] \
+                .astype(int)
+
+            sa_result_arr = np.zeros(
+                (num_bins, len(sa_months_in_jobs.columns)))
+
+            for i in np.arange(num_bins):
+                sa_bin_avg = \
+                    np.array(sa_months_in_jobs
+                             [sa_bin_lims[i]:sa_bin_lims[i + 1]].mean())
+                sa_result_arr[i] = sa_bin_avg
+
+            sa_quantile_mos = pd.DataFrame(sa_result_arr,
+                                           columns=sa_months_in_jobs.columns,
+                                           index=np.arange(1, num_bins + 1))
+
+            sa_quantile_yrs = sa_quantile_mos / 12
+
+            for col in quantile_yrs:
+                if col not in sa_quantile_yrs:
+                    sa_quantile_yrs[col] = 0
+
+            sa_quantile_yrs.sort_index(axis=1, inplace=True)
+
+            sa_labels = ['Gain', 'Loss']
+            sa_colors = []
+            sa_cols = list(sa_quantile_yrs.columns)
+            for sa_col in sa_cols:
+                sa_labels.append(job_str_list[sa_col - 1])
+                sa_colors.append(color_list[sa_col - 1])
+
+        # dict color mapping to job level is currently lost...
+        if custom_color:
             num_of_colors = cf.num_of_job_levels + 1
             cm_subsection = np.linspace(start, stop, num_of_colors)
             colormap = eval('cm.' + cm_name)
@@ -133,7 +211,7 @@ inputs
         with sns.axes_style('darkgrid'):
 
             if style == 'area':
-                quantile_yrs.plot(kind='area', width=1,
+                quantile_yrs.plot(kind='area',
                                   stacked=True, color=colors)
             if style == 'bar':
                 if rotate:
@@ -143,40 +221,100 @@ inputs
                 quantile_yrs.plot(kind=kind, width=1,
                                   stacked=True, color=colors)
 
-            fig = plt.gca()
+            ax = plt.gca()
 
             if normalize_yr_scale:
-                plt.xlim(0, 30)
+                if rotate:
+                    plt.xlim(0, year_clip)
+                else:
+                    plt.ylim(ymax=year_clip)
 
-            if not flip_y:
-                fig.invert_yaxis()
+            if style == 'bar':
 
-            if rotate:
-                plt.xlabel('years')
-                plt.ylabel('quartiles')
-            else:
-                plt.ylabel('years')
-                plt.xlabel('quartiles')
+                if not flip_y:
+                    ax.invert_yaxis()
+
+                if rotate:
+                    plt.xlabel('years')
+                    plt.ylabel('quartiles')
+                else:
+                    plt.ylabel('years')
+                    plt.xlabel('quartiles')
+                    plt.xticks(rotation='horizontal')
 
             if flip_x:
-                fig.invert_xaxis()
-                if rotate:
-                    loc = 2
-                else:
-                    loc = 4
-            else:
-                if rotate:
-                    loc = 1
-                else:
-                    loc = 3
+                ax.invert_xaxis()
 
             plt.suptitle(proposal_dict[proposal] + ', GROUP ' + eg_dict[eg],
                          fontsize=20, y=1.02)
             plt.title('years in position, ' + str(num_bins) + '-quantiles',
                       y=1.02)
-            plt.legend((labels), loc=loc)
-            # plt.ylim(30, 0)
+
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax.legend((labels), loc='center left', bbox_to_anchor=(1, 0.5),
+                      fontsize=legend_font_size)
+            plt.yticks(fontsize=ytick_fontsize)
+            fig = plt.gcf()
+            fig.set_size_inches(xsize, ysize)
             plt.show()
+
+            if plot_differential and style == 'bar':
+
+                diff = quantile_yrs - sa_quantile_yrs
+
+                if style == 'area':
+                    diff.plot(kind='area',
+                              stacked=True, color=colors)
+                if style == 'bar':
+                    if rotate:
+                        kind = 'barh'
+                    else:
+                        kind = 'bar'
+                    diff.plot(kind=kind, width=1,
+                              stacked=True, color=colors)
+
+                ax = plt.gca()
+
+                if rotate:
+                    plt.xlabel('years')
+                    plt.ylabel('quartiles')
+                    if normalize_yr_scale:
+                        plt.xlim(year_clip / -3, year_clip / 3)
+                    if not flip_y:
+                        ax.invert_yaxis()
+                    x_min, x_max = plt.xlim()
+                    plt.axvspan(0, x_max, facecolor='g', alpha=0.15)
+                    plt.axvspan(0, x_min, facecolor='r', alpha=0.15)
+                else:
+                    plt.ylabel('years')
+                    plt.xlabel('quartiles')
+                    if normalize_yr_scale:
+                        plt.ylim(year_clip / -3, year_clip / 3)
+                    if flip_y:
+                        ax.invert_yaxis()
+                    ymin, ymax = plt.ylim()
+                    plt.axhspan(0, ymax, facecolor='g', alpha=0.15)
+                    plt.axhspan(0, ymin, facecolor='r', alpha=0.15)
+                    ax.invert_xaxis()
+                    plt.xticks(rotation='horizontal')
+
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+                ax.legend(
+                    (sa_labels), loc='center left', bbox_to_anchor=(1, 0.5),
+                    fontsize=legend_font_size)
+
+                plt.suptitle(proposal_dict[proposal] +
+                             ', GROUP ' + eg_dict[eg],
+                             fontsize=20, y=1.02)
+                plt.title('years differential vs standalone, ' +
+                          str(num_bins) + '-quantiles',
+                          y=1.02)
+                plt.yticks(fontsize=ytick_fontsize)
+                fig = plt.gcf()
+                fig.set_size_inches(xsize, ysize)
+                plt.show()
 
 
 def age_vs_spcnt(df, eg_list, mnum, color_list,
@@ -263,7 +401,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
                          proposal, proposal_dict,
                          job_levels, colors, formatter, mnum=0,
                          scatter=False, exclude_fur=False,
-                         full_pcnt_xscale=False, anon=cf.anon):
+                         full_pcnt_xscale=False):
 
     frame = df[(df.mnum == mnum)]
 
@@ -327,14 +465,10 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
 
     plt.legend(loc=4)
 
-    if anon:
-        plt.title(measure.upper() +
-                  ' ordered by ' + xax + ' - ' +
-                  'Proposal' + ' - Month: ' + str(mnum), y=1.02)
-    else:
-        plt.title(measure.upper() +
-                  ' ordered by ' + xax + ' - ' +
-                  proposal_dict[proposal] + ' - Month: ' + str(mnum), y=1.02)
+    plt.title(measure.upper() +
+              ' ordered by ' + xax + ' - ' +
+              proposal_dict[proposal] + ' - Month: ' + str(mnum), y=1.02)
+
     plt.show()
 
 
@@ -765,13 +899,14 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
     plt.show()
 
 
-def differential_scatter(sa_ds, proposal_ds_list,
+def differential_scatter(base_ds, compare_ds_list,
                          measure, filter_measure,
                          filter_val, formatter, prop_order=True,
                          show_scatter=True, show_lin_reg=True,
                          show_mean=True, mean_len=50, eg_list=[1, 2, 3],
                          dot_size=15, lin_reg_order=15, ylimit=False, ylim=5,
-                         width=22, height=14, bright_bg=False):
+                         width=22, height=14, bright_bg=False,
+                         chart_style='whitegrid'):
 
     cols = [measure, 'new_order']
 
@@ -782,7 +917,7 @@ def differential_scatter(sa_ds, proposal_ds_list,
     #     p_egs_and_order = prop_ds[prop_ds[filter_measure] == filter_val][
     #         ['eg', 'idx']]
 
-    df = sa_ds[sa_ds[filter_measure] == filter_val][[measure, 'eg']].copy()
+    df = base_ds[base_ds[filter_measure] == filter_val][[measure, 'eg']].copy()
     df.rename(columns={measure: measure + '_s'}, inplace=True)
 
     yval_list = ['avs', 'evs', 'wvs']
@@ -796,7 +931,7 @@ def differential_scatter(sa_ds, proposal_ds_list,
                   'wvs': 'order3'}
 
     i = 1
-    for ds in proposal_ds_list:
+    for ds in compare_ds_list:
         ds = ds[ds[filter_measure] == filter_val][cols].copy()
         ds.rename(columns={measure: measure + '_' + str(i),
                            'new_order': 'order' + str(i)}, inplace=True)
@@ -827,7 +962,7 @@ def differential_scatter(sa_ds, proposal_ds_list,
         df['evs'] = df[measure + '_2'] - df[measure + '_s']
         df['wvs'] = df[measure + '_3'] - df[measure + '_s']
 
-    with sns.axes_style('darkgrid'):
+    with sns.axes_style(chart_style):
         for yval in yval_list:
             df.sort_values(by=order_dict[yval], inplace=True)
 
@@ -858,8 +993,12 @@ def differential_scatter(sa_ds, proposal_ds_list,
                     plt.xlim(0, x_limit)
 
                 if show_lin_reg:
+                    if show_scatter:
+                        lr_colors = cf.lr_colors
+                    else:
+                        lr_colors = cf.lr_colors2
                     sns.regplot(x=xval, y=yval, data=data,
-                                color=cf.lr_colors[eg - 1],
+                                color=lr_colors[eg - 1],
                                 label=cf.eg_dict[eg],
                                 scatter=False, truncate=True, ci=50,
                                 order=lin_reg_order,
@@ -1161,3 +1300,599 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors, cols=200,
         plt.gca().spines['left'].set_visible(True)
         plt.gca().spines['right'].set_visible(True)
         plt.show()
+
+
+def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
+                             clip=True, year_clip=2035, kind='area',
+                             quartile_ticks=False,
+                             custom_color=True, cm_name='Set1',
+                             quartile_alpha=.75, grid_alpha=.5,
+                             custom_start=0, custom_finish=.75,
+                             xsize=10, ysize=8, alt_bg_color=False,
+                             bg_color='#faf6eb'):
+
+    if custom_color:
+        cm_subsection = np.linspace(custom_start, custom_finish, bins)
+        colormap = eval('cm.' + cm_name)
+        quartile_colors = [colormap(x) for x in cm_subsection]
+    else:
+        quartile_colors = cf.color1
+
+    if clip:
+        eg_df = df[(df.eg == eg) & (df.date.dt.year <= year_clip)]
+    else:
+        eg_df = df[df.eg == eg]
+
+    eg_df = eg_df[['date', 'empkey', measure]]
+    eg_df['year'] = eg_df.date.dt.year
+
+    bin_lims = np.linspace(0, 1, num=bins + 1, endpoint=True, retstep=False)
+    years = np.unique(eg_df.year)
+
+    result_arr = np.zeros((years.size, bin_lims.size - 1))
+
+    if measure in ['spcnt', 'lspcnt']:
+        filler = 1
+    else:
+        filler = 0
+
+    grouped = eg_df.groupby(['year', 'empkey'])[measure].mean().reset_index()[
+        ['year', measure]].fillna(filler)
+
+    i = 0
+    denom = len(grouped[grouped.year == min(eg_df.year)])
+
+    for year in years:
+        this_year = grouped[grouped.year == year][measure]
+        these_bins = pd.cut(this_year, bin_lims)
+        these_counts = this_year.groupby(these_bins).count()
+        these_pcnts = these_counts / denom
+        result_arr[i, :] = these_pcnts
+        i += 1
+
+    frm = pd.DataFrame(result_arr, columns=np.arange(1, bins + 1), index=years)
+
+    with sns.axes_style('white'):
+
+        if custom_color:
+            cm_subsection = np.linspace(custom_start, custom_finish, bins)
+            colormap = eval('cm.' + cm_name)
+            quartile_colors = [colormap(x) for x in cm_subsection]
+        else:
+            quartile_colors = cf.color1
+
+        step = 1 / bins
+        offset = step / 2
+        legend_pos_adj = 0
+        quartiles = np.arange(1, bins + 1)
+
+        ymajor_ticks = np.arange(offset, 1, step)
+        yminor_ticks = np.arange(0, 1, step)
+
+        xmajor_ticks = np.arange(min(df.date.dt.year), year_clip, 1)
+
+        if kind == 'area':
+            frm.plot(kind=kind, linewidth=1, stacked=True,
+                     color=quartile_colors, alpha=quartile_alpha)
+        elif kind == 'bar':
+            frm.plot(kind=kind, width=1, stacked=True,
+                     color=quartile_colors, alpha=quartile_alpha)
+
+        ax = plt.gca()
+        plt.ylim(0, 1)
+
+        if quartile_ticks:
+
+            if kind == 'area':
+                ax.set_xticks(xmajor_ticks, minor=True)
+            ax.set_yticks(ymajor_ticks)
+            ax.set_yticks(yminor_ticks, minor=True)
+            ax.invert_yaxis()
+            plt.ylabel('original quartile')
+
+            if bins > 20:
+                plt.gca().legend_ = None
+            if bins < 41:
+
+                if kind != 'area':
+                    ax.grid(which='major', color='grey',
+                            ls='dotted', alpha=grid_alpha)
+                else:
+                    ax.grid(which='minor', color='grey', alpha=grid_alpha)
+                ax.yaxis.set(ticklabels=np.arange(1, bins + 1))
+            else:
+
+                ax.grid(which='minor', color='grey', alpha=0.1)
+                plt.tick_params(axis='y', which='both', left='off',
+                                right='off', labelleft='off')
+
+            legend_labels = quartiles
+            legend_title = 'result quartile'
+
+        else:
+            ax.set_yticks(ymajor_ticks + offset)
+
+            if kind == 'area':
+                ax.set_xticks(xmajor_ticks, minor=True)
+                ax.grid(which='both', color='grey', alpha=grid_alpha)
+            else:
+                ax.grid(which='major', color='grey',
+                        ls='dotted', alpha=grid_alpha)
+
+            ax.invert_yaxis()
+            plt.ylabel('original percentage')
+            plt.xlabel('year')
+            plt.gca().yaxis.set_major_formatter(formatter)
+            legend_labels = ['{percent:.1f}'
+                             .format(percent=((quart * step) - step) * 100) +
+                             ' - ' +
+                             '{percent:.1%}'.format(percent=quart * step)
+                             for quart in quartiles]
+            legend_title = 'result_pcnt'
+            legend_pos_adj = .1
+
+        if alt_bg_color:
+            ax.set_axis_bgcolor(bg_color)
+
+        plt.title('<group name> quartile change over time',
+                  fontsize=16, y=1.02)
+
+        quartiles = np.arange(1, bins + 1)
+
+        recs = []
+        patch_alpha = min(quartile_alpha + .1, 1)
+        legend_font_size = np.clip(int(bins / 1.65), 12, 14)
+        legend_cols = int(bins / 30) + 1
+        legend_position = 1 + (legend_cols * .17) + legend_pos_adj
+
+        for i in np.arange(bins, dtype='int'):
+            recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                           fc=quartile_colors[i],
+                                           alpha=patch_alpha))
+
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
+        ax.legend(recs, legend_labels, bbox_to_anchor=(legend_position, 1),
+                  title=legend_title, fontsize=legend_font_size,
+                  ncol=legend_cols)
+
+        fig = plt.gcf()
+        fig.set_size_inches(xsize, ysize)
+        fig.tight_layout()
+        plt.show()
+
+
+def job_transfer(p_df, p_text, comp_df, comp_df_text, eg,
+                 measure='jnum', gb_period='M',
+                 job_levels=cf.num_of_job_levels, colors=cf.color1,
+                 custom_color=True, cm_name='Paired',
+                 start=0, stop=.95, job_alpha=1, chart_style='white',
+                 start_date=cf.starting_date, yticks_lim=5000,
+                 ytick_interval=100, legend_xadj=1.62,
+                 legend_yadj=.78, annotate=False,
+                 xsize=10, ysize=8):
+
+    p_df = p_df[p_df.eg == eg][['date', measure]].copy()
+    comp_df = comp_df[comp_df.eg == eg][['date', measure]].copy()
+
+    pg = pd.DataFrame(p_df.groupby(['date', measure]).size()
+                      .unstack().fillna(0).resample(gb_period).mean())
+    cg = pd.DataFrame(comp_df.groupby(['date', measure]).size()
+                      .unstack().fillna(0).resample(gb_period).mean())
+
+    for job_level in np.arange(1, cf.num_of_job_levels + 1):
+        if job_level not in cg:
+            cg[job_level] = 0
+        if job_level not in pg:
+            pg[job_level] = 0
+    cg.sort_index(axis=1, inplace=True)
+    pg.sort_index(axis=1, inplace=True)
+
+    diff2 = pg - cg
+    abs_diff2 = np.absolute(diff2.values).astype(int)
+    v_crop = (np.amax(np.add.reduce(abs_diff2, axis=1)) / 2) + 75
+
+    if custom_color:
+        num_of_colors = job_levels + 1
+        cm_subsection = np.linspace(start, stop, num_of_colors)
+        colormap = eval('cm.' + cm_name)
+        colors = [colormap(x) for x in cm_subsection]
+
+    with sns.axes_style(chart_style):
+        ax = diff2.plot(kind='bar', width=1, linewidth=0,
+                        color=colors, stacked=True, alpha=job_alpha)
+        fig = plt.gcf()
+
+        xtick_locs = ax.xaxis.get_majorticklocs()
+
+        if gb_period == 'M':
+            i = 13 - pd.to_datetime(cf.starting_date).month
+        elif gb_period == 'Q':
+            i = ((13 - pd.to_datetime(cf.starting_date).month) // 3) + 1
+        elif gb_period == 'A':
+            i = 0
+
+        xtick_dict = {'A': 1,
+                      'Q': 4,
+                      'M': 12}
+
+        interval = xtick_dict[gb_period]
+
+        xticklabels = [''] * len(diff2.index)
+
+        xticklabels[i::interval] = \
+            [item.strftime('%Y') for item in diff2.index[i::interval]]
+
+        if gb_period in ['Q']:
+            ax.set_xticklabels(xticklabels, rotation=90, ha='right')
+        else:
+            ax.set_xticklabels(xticklabels, rotation=90)
+
+        for xmaj in xtick_locs:
+            try:
+                if i % interval == 0:
+                    ax.axvline(xtick_locs[i], ls='-', color='grey',
+                               lw=1, alpha=.2, zorder=7)
+                i += 1
+            except:
+                pass
+        if gb_period in ['Q', 'A']:
+            ax.axvline(xtick_locs[0], ls='-', color='grey',
+                       lw=1, alpha=.2, zorder=7)
+
+        yticks = np.arange(-yticks_lim, yticks_lim, ytick_interval)
+        ax.set_yticks(yticks)
+        plt.ylim(-v_crop, v_crop)
+        ymin, ymax = ax.get_ylim()
+        for i in yticks:
+            ax.axhline(i, ls='-', color='grey', lw=1, alpha=.2, zorder=7)
+
+        recs = []
+        job_labels = []
+        legend_font_size = 12
+        legend_position = 1.12
+        legend_title = 'job'
+
+        for i in diff2.columns:
+            recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                           fc=colors[i - 1],
+                                           alpha=job_alpha))
+            job_labels.append(cf.job_strs[i - 1])
+
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * legend_xadj, box.height])
+        ax.legend(recs, job_labels, bbox_to_anchor=(legend_position,
+                                                    legend_yadj),
+                  title=legend_title, fontsize=legend_font_size,
+                  ncol=1)
+
+        if annotate:
+            if gb_period in ['Q', 'M']:
+                ax.annotate('job count increase',
+                            xy=(50, v_crop - ytick_interval),
+                            xytext=(50, v_crop - ytick_interval), fontsize=14)
+                ax.annotate('job count decrease',
+                            xy=(50, -v_crop + ytick_interval),
+                            xytext=(50, -v_crop + ytick_interval), fontsize=14)
+
+        ax.axhline(color='grey', alpha=.7)
+        plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=8)
+        plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
+        plt.ylabel('change in job count', fontsize=16)
+        plt.xlabel('date', fontsize=16, labelpad=15)
+        title_string = 'GROUP ' + cf.eg_dict[eg] + \
+            ' Jobs Exchange' + '\n' + \
+            cf.proposal_dict[p_text] + \
+            ' compared to ' + cf.proposal_dict[comp_df_text]
+        plt.title(title_string,
+                  fontsize=16, y=1.02)
+
+        fig.set_size_inches(xsize, ysize)
+        plt.show()
+
+
+def editor(base_ds, compare_ds_text, prop_order=True,
+           # show_scatter=True, show_lin_reg=False,
+           show_mean=False, mean_len=80, eg_list=[1, 2, 3],
+           dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
+           width=17.5, height=10, strip_height=3.5, bright_bg=True,
+           chart_style='whitegrid', bg_clr='#fffff0'):
+
+    try:
+        compare_ds = pd.read_pickle('dill/' + compare_ds_text + '.pkl')
+    except:
+        compare_ds = pd.read_pickle('dill/ds1.pkl')
+
+    max_month = max(compare_ds.mnum)
+    persist = pd.read_pickle('dill/squeeze_vals.pkl')
+
+    chk_scatter = widgets.Checkbox(description='scatter',
+                                   value=bool(persist['scat_val'].value))
+    chk_fit = widgets.Checkbox(description='poly_fit',
+                               value=bool(persist['fit_val'].value))
+    chk_mean = widgets.Checkbox(description='mean',
+                                value=bool(persist['mean_val'].value))
+    drop_measure = widgets.Dropdown(options=['jobp', 'spcnt',
+                                             'lspcnt', 'snum', 'lnum',
+                                             'cat_order', 'mpay', 'cpay'],
+                                    value=persist['drop_msr'].value,
+                                    description='msr')
+    drop_filter = widgets.Dropdown(options=['age', 'mnum'],
+                                   value=persist['drop_filter'].value,
+                                   description='fltr')
+    int_val = widgets.IntText(min=0,
+                              max=max_month,
+                              value=persist['int_sel'].value,
+                              description='val')
+
+    measure = drop_measure.value
+    filter_measure = drop_filter.value
+    filter_val = int_val.value
+
+    cols = [measure, 'new_order']
+    df = base_ds[base_ds[filter_measure] == filter_val][[measure, 'eg']].copy()
+    df.rename(columns={measure: measure + '_b'}, inplace=True)
+
+    yval = 'differential'
+
+    # for stripplot and squeeze:
+    data_reorder = compare_ds[compare_ds.mnum == 0][['eg']].copy()
+    data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int)
+
+    to_join_ds = compare_ds[
+        compare_ds[filter_measure] == filter_val][cols].copy()
+
+    to_join_ds.rename(columns={measure: measure + '_c',
+                               'new_order': 'proposal_order'}, inplace=True)
+    df = df.join(to_join_ds)
+    x_limit = int(max(df.proposal_order) // 100) * 100 + 100
+    df.sort_values(by='proposal_order', inplace=True)
+    df['squeeze_order'] = np.arange(len(df))
+    df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
+    eg_sep_order = np.array(df.eg_sep_order)
+    eg_arr = np.array(df.eg)
+    eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
+    unique_egs = np.unique(df.eg)
+    denoms = np.zeros(eg_arr.size)
+
+    for eg in unique_egs:
+        np.put(denoms, np.where(eg_arr == eg)[0], eg_denom_dict[eg])
+
+    df['sep_eg_pcnt'] = eg_sep_order / denoms
+
+    if measure in ['spcnt', 'lspcnt', 'snum', 'lnum', 'cat_order',
+                   'jobp', 'jnum']:
+
+        df[yval] = df[measure + '_b'] - df[measure + '_c']
+
+    else:
+        df[yval] = df[measure + '_c'] - df[measure + '_b']
+
+    fig, ax = plt.subplots(figsize=(width, height))
+
+    with sns.axes_style(chart_style):
+
+        df.sort_values(by='proposal_order', inplace=True)
+
+        if prop_order:
+            xval = 'proposal_order'
+
+        else:
+            xval = 'sep_eg_pcnt'
+
+        for eg in eg_list:
+            data = df[df.eg == eg].copy()
+
+            if chk_scatter.value:
+                ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
+                               color=cf.eg_colors[eg - 1], s=dot_size,
+                               label=cf.eg_dict[eg],
+                               ax=ax)
+
+            if chk_mean.value:
+                data['ma'] = data[yval].rolling(mean_len).mean()
+                ax = data.plot(x=xval, y='ma', lw=5,
+                               color=cf.mean_colors[eg - 1],
+                               label=cf.eg_dict[eg],
+                               alpha=.6, ax=ax)
+
+            if chk_fit.value:
+                if chk_scatter.value:
+                    lr_colors = cf.lr_colors
+                else:
+                    lr_colors = cf.lr_colors2
+                ax = sns.regplot(x=xval, y=yval, data=data,
+                                 color=lr_colors[eg - 1],
+                                 label=cf.eg_dict[eg],
+                                 scatter=False, truncate=True, ci=50,
+                                 order=lin_reg_order,
+                                 line_kws={'lw': 20,
+                                           'alpha': .4},
+                                 ax=ax)
+        plt.xlim(0, x_limit)
+
+        if measure == 'jobp':
+            ymin = math.floor(min(df[yval]))
+            ymax = math.ceil(max(df[yval]))
+            scale_lim = max(abs(ymin), ymax)
+            plt.yticks(np.arange(-scale_lim, scale_lim + 1, 1))
+            if ylimit:
+                plt.ylim(-ylim, ylim)
+            else:
+                plt.ylim(-scale_lim, scale_lim)
+
+        if measure in ['cat_order', 'snum', 'lnum']:
+            ax.invert_yaxis()
+
+        plt.gcf().set_size_inches(width, height)
+        plt.title('Differential: ' + measure)
+        plt.xlim(xmin=0)
+
+        if measure in ['spcnt', 'lspcnt']:
+            formatter = FuncFormatter(f.to_percent)
+            plt.gca().yaxis.set_major_formatter(formatter)
+
+        if xval == 'sep_eg_pcnt':
+            plt.xlim(xmax=1)
+
+        ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
+        ax.invert_xaxis()
+        if bright_bg:
+            # ax.set_axis_bgcolor('#faf6eb')
+            ax.set_axis_bgcolor(bg_clr)
+
+        plt.close(fig)
+
+        v1line = ax.axvline(2, color='m', lw=2, ls='dashed')
+        v2line = ax.axvline(200, color='c', lw=2, ls='dashed')
+        range_list = [0, 0]
+
+        if prop_order:
+            try:
+                junior_init = persist['junior'].value
+                senior_init = persist['senior'].value
+            except:
+                junior_init = int(.8 * x_limit)
+                senior_init = int(.2 * x_limit)
+        else:
+            try:
+                junior_init = persist['junior'].value
+                senior_init = persist['senior'].value
+            except:
+                junior_init = .8
+                senior_init = .2
+
+        drop_eg_dict = {'1': 1, '2': 2, '3': 3}
+        drop_dir_dict = {'u  >>': 'u', '<<  d': 'd'}
+        incr_dir_dict = {'u  >>': -1, '<<  d': 1}
+
+        drop_eg = widgets.Dropdown(options=['1', '2', '3'],
+                                   value=persist['drop_eg_val'].value,
+                                   description='eg')
+
+        drop_dir = widgets.Dropdown(options=['u  >>', '<<  d'],
+                                    value=persist['drop_dir_val'].value,
+                                    description='dir')
+
+        drop_squeeze = widgets.Dropdown(options=['log', 'slide'],
+                                        value=persist['drop_sq_val'].value,
+                                        description='sq')
+
+        slide_factor = widgets.IntSlider(value=persist['slide_fac_val'].value,
+                                         min=1,
+                                         max=400,
+                                         step=1,
+                                         description='factor')
+
+        def set_cursor(junior=junior_init, senior=senior_init,):
+            v1line.set_xdata((junior, junior))
+            v2line.set_xdata((senior, senior))
+            range_list[0] = junior
+            range_list[1] = senior
+            display(fig)
+
+        def perform_squeeze(b):
+
+            jval = v1line.get_xdata()[0]
+            sval = v2line.get_xdata()[0]
+
+            direction = drop_dir_dict[drop_dir.value]
+            factor = slide_factor.value * .005
+            incr_dir_correction = incr_dir_dict[drop_dir.value]
+            increment = slide_factor.value * incr_dir_correction
+
+            squeeze_eg = drop_eg_dict[drop_eg.value]
+
+            if drop_squeeze.value == 'log':
+                squeezer = f.squeeze_logrithmic(data_reorder,
+                                                squeeze_eg,
+                                                sval, jval,
+                                                direction=direction,
+                                                put_segment=1,
+                                                log_factor=factor)
+            if drop_squeeze.value == 'slide':
+                squeezer = f.squeeze_increment(data_reorder,
+                                               squeeze_eg,
+                                               sval, jval,
+                                               increment=increment)
+
+            data_reorder['new_order'] = squeezer
+            data_reorder.sort_values('new_order', inplace=True)
+            data_reorder['new_order'] = np.arange(len(data_reorder),
+                                                  dtype='int')
+
+            fig, ax2 = plt.subplots(figsize=(width, strip_height))
+
+            ax2 = sns.stripplot(x='new_order', y='eg',
+                                data=data_reorder, jitter=.5,
+                                orient='h', order=np.arange(1, 4, 1),
+                                palette=cf.eg_colors, size=3,
+                                linewidth=0, split=True)
+
+            if bright_bg:
+                # ax2.set_axis_bgcolor('#fff5e5')
+                ax2.set_axis_bgcolor(bg_clr)
+
+            plt.xticks(np.arange(0, len(data_reorder), 1000))
+            if measure in ['spcnt', 'lspcnt', 'cpay']:
+                plt.ylabel('\n\neg\n')
+            else:
+                plt.ylabel('eg\n')
+            plt.xlim(len(data_reorder), 0)
+            plt.show()
+
+            data_reorder[['new_order']].to_pickle('dill/new_order.pkl')
+
+            junior_val = range_sel.children[0].value
+            senior_val = range_sel.children[1].value
+
+            persist_df = pd.DataFrame({'drop_eg_val': drop_eg.value,
+                                       'drop_dir_val': drop_dir.value,
+                                       'drop_sq_val': drop_squeeze.value,
+                                       'slide_fac_val': slide_factor.value,
+                                       'scat_val': chk_scatter.value,
+                                       'fit_val': chk_fit.value,
+                                       'mean_val': chk_mean.value,
+                                       'drop_msr': drop_measure.value,
+                                       'drop_filter': drop_filter.value,
+                                       'int_sel': int_val.value,
+                                       'junior': junior_val,
+                                       'senior': senior_val},
+                                      index=['value'])
+
+            persist_df.to_pickle('dill/squeeze_vals.pkl')
+
+        def run_cell(ev):
+            system('python compute_measures.py df1')
+            display(Javascript('IPython.notebook.execute_cell()'))
+
+        def redraw(ev):
+            display(Javascript('IPython.notebook.execute_cell()'))
+
+        button_calc = Button(description="calculate",
+                             background_color='#99ddff')
+        button_calc.on_click(run_cell)
+
+        button_draw = Button(description="redraw",
+                             background_color='#dab3ff')
+        button_draw.on_click(redraw)
+        # display(button)
+
+        if prop_order:
+            range_sel = interactive(set_cursor, junior=(0, x_limit),
+                                    senior=(0, x_limit))
+        else:
+            range_sel = interactive(set_cursor, junior=(0, 1, .001),
+                                    senior=(0, 1, .001))
+
+        button = Button(description='squeeze',
+                        background_color='#b3ffd9')
+        button.on_click(perform_squeeze)
+
+        hbox1 = widgets.HBox((button, button_calc, button_draw))
+        vbox1 = widgets.VBox((slide_factor, hbox1, range_sel))
+        vbox2 = widgets.VBox((chk_scatter, chk_fit, chk_mean))
+        vbox3 = widgets.VBox((drop_squeeze, drop_eg, drop_dir))
+        vbox4 = widgets.VBox((drop_measure, drop_filter, int_val))
+        display(widgets.HBox((vbox1, vbox2, vbox3, vbox4)))
+
