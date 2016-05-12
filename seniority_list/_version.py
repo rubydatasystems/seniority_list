@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Copyright 2016 Bob Davison
+Copyright 2016 Ruby Data Systems, Inc.
 
 This file is part of the seniority_list library.
 
@@ -18,4 +18,4 @@ the seniority_list library. If not, see http://www.gnu.org/licenses/.
 """
 
 # Keep your version number updated here each time you make a release
-__version__ = '0.1.0'
+__version__ = '0.15'

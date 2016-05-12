@@ -13,7 +13,7 @@ setup(
     name='seniority_list',
     version=package_version,
     author='Bob Davison',
-    author_email='b2002@fastmail.net',
+    author_email='rubydatasystems@fastmail.net',
     packages=find_packages(),
     url='https://github.com/rubydatasystems/seniority_list',
     license='GNU/GPLv3',
@@ -26,7 +26,7 @@ seniority_list is an analytical tool used when seniority-based workgroups merge
 
 Contact
 =============
-If you have any questions or comments about seniority_list, please feel free to contact us via e-mail: b2002@fastmail.net
+If you have any questions or comments about seniority_list, please feel free to contact us via e-mail: rubydatasystems@fastmail.net
 
 This project is hosted at https://github.com/rubydatasystems/seniority_list
 ''',
@@ -41,5 +41,5 @@ This project is hosted at https://github.com/rubydatasystems/seniority_list
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    keywords=['workgroup merging', 'seniority'],
+    keywords=['workgroups', 'seniority', 'list', 'merge', 'merger', 'pilots'],
 )
