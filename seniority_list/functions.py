@@ -1395,7 +1395,7 @@ def to_percent(y, position):
     Ignores the passed in position variable.
     This has the effect of scaling the default
     tick locations.'''
-    s = str(np.round(100 * y, 0))
+    s = str(np.round(100 * y, 0).astype(int))
 
     # The percent symbol needs to be escaped in latex
     if matplotlib.rcParams['text.usetex'] is True:
