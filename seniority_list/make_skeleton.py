@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# produces a dataframe with information for each employee that is not
-# dependent on the ORDER of the list...
-# some column(s) are dependent on config variables, such as
-# pay raise beyond the contract last year
-# this type of variable affects the employee group equally
+'''produces a dataframe with information for each employee that is not
+dependent on the ORDER of the list...
+some column(s) are dependent on config variables, such as
+pay raise beyond the contract last year.'''
 
 import pandas as pd
 import numpy as np
@@ -134,7 +133,7 @@ df_dates = pd.DataFrame(pd.date_range(cf.starting_date,
 
 # This is an input for the contract_pay_and_year_and_raise function
 
-date_series = list(df_dates['date'])
+date_series = pd.to_datetime(list(df_dates['date']))
 
 # this function produces a 2-column array.
 # First column is the year value of the date list passed as an input.
@@ -143,8 +142,12 @@ date_series = list(df_dates['date'])
 
 year_and_scale = \
     f.contract_pay_year_and_raise(date_series,
+                                  exception=True,
                                   future_raise=cf.pay_raise,
-                                  annual_raise=cf.annual_pcnt_raise)
+                                  date_exception='2014-12-31',
+                                  year_additive=.1,
+                                  annual_raise=cf.annual_pcnt_raise,
+                                  last_contract_year=2019.0)
 
 df_dates['year'] = year_and_scale[0]
 
