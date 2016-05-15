@@ -351,7 +351,6 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
 def age_vs_spcnt(df, eg_list, mnum, color_list,
                  eg_dict, proposal_text, proposal_dict,
                  formatter, xsize=10, ysize=8, chart_example=False):
-
     '''scatter plot with age on x axis and list percentage on y axis.
     note: input df may be prefiltered to plot focus attributes, i.e.
     filter to include only employees at a certain job level, hired
@@ -430,7 +429,6 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                           color_list, job_str_list, proposal,
                           proposal_dict, formatter,
                           chart_example=False):
-
     '''select example individual employees and plot career measure
     from selected dataset attribute, i.e. list percentage, career
     earnings, job level, etc.
@@ -1825,7 +1823,6 @@ def editor(base_ds, compare_ds_text, prop_order=True,
            dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
            width=17.5, height=10, strip_height=3.5, bright_bg=True,
            chart_style='whitegrid', bg_clr='#fffff0'):
-
     '''compare specific proposal attributes and interactively adjust
     list order.  may be used to minimize distortions.  utilizes ipywidgets.
 
@@ -2187,7 +2184,6 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                                 plot_scatter=True, s=20, a=.7, lw=0,
                                 width=12, height=12,
                                 chart_example=False):
-
     '''num input options:
                    {1: 'amer_with_twa',
                     2: 'east',
@@ -2264,9 +2260,9 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
         else:
             ax1 = df.set_index(xax, drop=True)[measure].plot(label=label,
                                                              color=cdict[num])
-            print('Ignore the vertical lines.  \
-                  Look right to left within each job level \
-                  for each group\'s participation')
+            print('''Ignore the vertical lines.
+                  Look right to left within each job level
+                  for each group\'s participation''')
         plt.title(grp_dict[num] + ' job disbursement - ' +
                   proposal_dict[proposal] + ' month=' + str(mnum), y=1.02)
 
@@ -2310,9 +2306,9 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                          drop=True)[measure].plot(label='west',
                                                   color='#FF6600', alpha=a,
                                                   ax=ax1)
-            print('Ignore the vertical lines.  \
+            print('''Ignore the vertical lines.  \
                   Look right to left within each job \
-                  level for each group\'s participation')
+                  level for each group\'s participation''')
 
         if chart_example:
             plt.title('job disbursement - ' +
@@ -2397,3 +2393,86 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
     plt.gcf().set_size_inches(width, height)
     plt.show()
 
+
+def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
+               formatter, gb_period, year_clip=2042,
+               show_range=False, show_mean=True, normalize_y=False,
+               ysize=6, xsize=6):
+
+    '''Plot a range of differential attributes or a differential
+    average over time.  Individual employee groups and proposals may
+    be selected.  Each chart indicates the results for one group with
+    color bands or average lines indicating the results for that group
+    under different proposals.  This is different than the usual method
+    of different groups being plotted on the same chart.
+    '''
+
+    eg_colors = {1: 'k', 2: 'b', 3: 'r'}
+    clrs = []
+    for prop in proposals_to_plot:
+        clrs.append(eg_colors[prop])
+    cmap = colors.ListedColormap(clrs)
+    cols = ['date']
+    compare_list = []
+
+    sa_ds['eg_order'] = sa_ds.groupby('eg').cumcount()
+    sa_ds.sort_values(['eg', 'eg_order'], inplace=True)
+    sa_ds = sa_ds[sa_ds.date.dt.year <= year_clip][
+        ['eg', 'date', measure]].copy()
+
+    i = 0
+    col_list = []
+    for ds in ds_list:
+        ds['eg_order'] = ds.groupby('eg').cumcount()
+        ds.sort_values(['eg', 'eg_order'], inplace=True)
+        ds_list[i] = ds[ds.date.dt.year <= year_clip][
+            ['eg', 'date', measure]].copy()
+        ds_list[i].rename(columns={measure: measure + str(i + 1)},
+                          inplace=True)
+        col_list.append(measure + str(i + 1))
+        i += 1
+
+    i = 0
+    for ds in ds_list:
+        col = col_list[i]
+        sa_ds[col] = ds[col]
+        sa_ds[col + '_'] = sa_ds[col] - sa_ds[measure]
+        i += 1
+
+    i = 0
+    for proposal in proposals_to_plot:
+        compare_list.append(measure + str(proposal) + '_')
+        i += 1
+    cols.extend(compare_list)
+
+    for eg in eg_list:
+        if show_range:
+            with sns.axes_style('white'):
+                ax1 = sa_ds[sa_ds.eg == eg][cols].set_index('date') \
+                    .plot(cmap=cmap, alpha=.22)
+                plt.grid(lw=1, ls='--', c='grey', alpha=.25)
+                if show_mean:
+                    ax1.legend_ = None
+                    plt.draw()
+        if show_mean:
+            if show_range:
+                sa_ds[sa_ds.eg == eg][cols].set_index('date') \
+                    .resample('Q').mean().plot(cmap=cmap, ax=ax1)
+            else:
+                with sns.axes_style('darkgrid'):
+                    sa_ds[sa_ds.eg == eg][cols].set_index('date') \
+                        .resample('Q').mean().plot(cmap=cmap)
+
+        if measure in ['spcnt', 'lspcnt', 'jobp', 'jnum']:
+            plt.gca().invert_yaxis()
+
+        plt.title('Employee Group ' + str(eg) + ' ' +
+                  measure + ' differential')
+        plt.axhline(c='m', lw=2, ls='--')
+        plt.gcf().set_size_inches(xsize, ysize)
+        if measure in ['spcnt', 'lspcnt']:
+            plt.gca().yaxis.set_major_formatter(formatter)
+            if normalize_y:
+                plt.ylim(.5, -.5)
+            plt.yticks = np.arange(.5, -.55, .05)
+        plt.show()

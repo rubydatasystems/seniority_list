@@ -13,17 +13,18 @@ script, proposal_name = argv
 pre, suf = 'dill/', '.pkl'
 
 skeleton_path_string = (pre + 'skel' + suf)
-proposal_path_string = (pre + proposal_name + suf)
+proposal_order_string = (pre + proposal_name + suf)
 stand_path_string = (pre + 'stand' + suf)
 
 try:
-    output_name = proposal_name.replace('f', 's')
+    output_name = proposal_name.replace('p', 'ds')
 except:
     output_name = 'ds_'
 
 ds = pd.read_pickle(skeleton_path_string)
 
-df_proposal = pd.read_pickle(proposal_path_string)
+df_order = pd.read_pickle(proposal_order_string)
+df_proposal = pd.read_pickle(pre + 'master' + suf)
 
 start_date = pd.to_datetime(cf.starting_date)
 
@@ -68,7 +69,7 @@ if cf.edit_mode:
     ds['new_order'] = df_new_order['new_order']
     dataset_path_string = (pre + 'ds_edit' + suf)
 else:
-    order_key = df_proposal.idx
+    order_key = df_order.idx
     ds['new_order'] = order_key
     dataset_path_string = (pre + output_name + suf)
 
@@ -305,6 +306,7 @@ if cf.compute_pay_measures:
         ds['non_fur'] = 1 - ds.fur
 
         non_fur = np.array(ds.groupby('empkey')['non_fur'].cumsum())
+        ds.pop('non_fur')
         starting_mlong = np.array(ds.s_lmonths)
         cum_active_months = non_fur + starting_mlong
         ds['mlong'] = cum_active_months
