@@ -47,6 +47,16 @@ for eg in eg_set:
     final = pd.concat([final, eg_df])
 
 final = final.sort_values(['idx', 'eg_order'])
-final['final'] = np.arange(len(final)).astype(int) + 1
+final['snum'] = np.arange(len(final)).astype(int) + 1
 
 final.to_pickle('dill/final.pkl')
+
+final.set_index('snum', drop=True, inplace=True)
+
+writer = pd.ExcelWriter('excel/final.xlsx',
+                        engine='xlsxwriter',
+                        datetime_format='yyyy-mm-dd',
+                        date_format='yyyy-mm-dd')
+
+final.to_excel(writer, sheet_name='final')
+writer.save()
