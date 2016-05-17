@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-'''orders a master dataframe containing all employees according to a
-proposed list dataframe containing only active employees, "attaching" the
-inactive employees to active employees within the same employee group.  The
-inactives may be attached to same group active employees just senior or
-just junior to them within the overall combined list'''
+'''merge and order a master dataframe containing all employees with a
+proposed list dataframe which may contain all employees or only active
+employees.  If the proposed list only contains active employees, the
+'fill_style' argument determines whether the inactive employees will be
+placed within the combined list next to same employee group
+active employee just senior or just junior to them.'''
 
 import pandas as pd
 import numpy as np
