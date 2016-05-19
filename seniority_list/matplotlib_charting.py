@@ -650,32 +650,20 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
     plt.show()
 
 
-def age_kde_dist(df, mnum=0, eg=None, chart_example=False):
+def age_kde_dist(df, color_list, eg_dict,
+                 mnum=0, chart_example=False):
 
     frame = df[df.mnum == mnum]
-
-    if not eg:
-        eg = [1, 2, 3]
-
-    eg_dict = {1: 'amer',
-               2: 'east',
-               3: 'west'}
+    eg_set = np.unique(frame.eg)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
     ax.plot(sharex=True, figsize=(10, 8))
 
-    for x in eg:
+    for x in eg_set:
         try:
-            if x == 1:
-                color = 'k'
-            elif x == 2:
-                color = 'b'
-            elif x == 3:
-                color = '#e65c00'
-            else:
-                color = 'g'
+            color = color_list[x - 1]
 
             if chart_example:
                 sns.kdeplot(frame[frame.eg == x].age,
@@ -836,30 +824,22 @@ def eg_diff_boxplot(df_list, formatter, measure='spcnt',
 
 # DISTRIBUTION WITHIN JOB LEVEL (NBNF effect)
 def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
-                                       eg_colors, band_colors, bg_alpha=.12,
+                                       eg_colors, band_colors, jobs_dict,
+                                       eg_dict, bg_alpha=.12,
                                        adjust_y_axis=False,
                                        chart_example=False):
 
     fur_lvl = job_levels + 1
     if job_levels == 16:
         adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0, 0, -50, 50, 75, 0, 0, 0, 0]
-        jobs_dict = {1: 'Capt G4 B', 2: 'Capt G4 R', 3: 'Capt G3 B',
-                     4: 'Capt G2 B', 5: 'Capt G3 R', 6: 'Capt G2 R',
-                     7: 'F/O  G4 B', 8: 'F/O  G4 R', 9: 'F/O  G3 B',
-                     10: 'F/O  G2 B', 11: 'Capt G1 B', 12: 'F/O  G3 R',
-                     13: 'F/O  G2 R', 14: 'Capt G1 R', 15: 'F/O  G1 B',
-                     16: 'F/O  G1 R', 17: 'FUR'}
 
     if job_levels == 8:
         adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]
-        jobs_dict = {1: 'Capt G4', 2: 'Capt G3', 3: 'Capt G2', 4: 'F/O  G4',
-                     5: 'F/O  G3', 6: 'F/O  G2', 7: 'Capt G1', 8: 'F/O  G1',
-                     9: 'FUR'}
-
-    eg_dict = {1: 'AMER', 2: 'EAST', 3: 'WEST', 4: 'Standalone'}
 
     df = df[['mnum', 'cat_order', 'jnum', 'eg']].copy()
     data = df[df.mnum == mnum]
+    eg_set = np.unique(data.eg)
+    max_eg_plus_one = max(eg_set) + 1
 
     adjust_y_axis = False
     if adjust_y_axis:
@@ -879,7 +859,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
     with sns.axes_style('white'):
         fig, ax1 = plt.subplots()
         ax1 = sns.stripplot(y='cat_order', x='eg', data=data, jitter=.5,
-                            order=np.arange(1, 4),
+                            order=np.arange(1, max_eg_plus_one),
                             palette=eg_colors, size=3,
                             linewidth=0, split=True)
 
@@ -1086,9 +1066,9 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
 
 def differential_scatter(base_ds, compare_ds_list,
                          measure, filter_measure,
-                         filter_val, formatter, prop_order=True,
+                         filter_val, eg_list, formatter, prop_order=True,
                          show_scatter=True, show_lin_reg=True,
-                         show_mean=True, mean_len=50, eg_list=[1, 2, 3],
+                         show_mean=True, mean_len=50,
                          dot_size=15, lin_reg_order=15, ylimit=False, ylim=5,
                          width=22, height=14, bright_bg=False,
                          chart_style='whitegrid', chart_example=False):
@@ -1128,10 +1108,10 @@ def differential_scatter(base_ds, compare_ds_list,
     eg_sep_order = np.array(df.eg_sep_order)
     eg_arr = np.array(df.eg)
     eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
-    unique_egs = np.unique(df.eg)
+    eg_set = np.unique(df.eg)
     denoms = np.zeros(eg_arr.size)
 
-    for eg in unique_egs:
+    for eg in eg_set:
         np.put(denoms, np.where(eg_arr == eg)[0], eg_denom_dict[eg])
 
     df['sep_eg_pcnt'] = eg_sep_order / denoms
@@ -1444,6 +1424,10 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
                   job_only=False, jnum=1, cell_border=True, border_color='.5',
                   xsize=14, ysize=12, chart_example=False):
 
+    '''currently will plot egs, fur, jnums, sg
+    TODO: modify to plot additional measures, including graduated coloring
+    '''
+
     data = prop[prop.mnum == mnum]
     rows = int(len(prop[prop.mnum == 0]) / cols) + 1
     heat_data = np.zeros(cols * rows)
@@ -1452,12 +1436,7 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
 
     if ('jnum' in measure_list) and (not job_only):
         i = 0
-        if cf.num_of_job_levels == 16:
-            cmap_colors = cf.paired_colors16
-        elif cf.num_of_job_levels == 8:
-            cmap_colors = cf.paired_colors8
-        else:
-            cmap_colors = jnum_colors
+        cmap_colors = jnum_colors
 
     if job_only:
 
@@ -1819,7 +1798,7 @@ def job_transfer(p_df, p_text, comp_df, comp_df_text, eg, colors,
 
 
 def editor(base_ds, compare_ds_text, prop_order=True,
-           mean_len=80, eg_list=[1, 2, 3],
+           mean_len=80,
            dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
            width=17.5, height=10, strip_height=3.5, bright_bg=True,
            chart_style='whitegrid', bg_clr='#fffff0'):
@@ -1918,6 +1897,8 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     # for stripplot and squeeze:
     data_reorder = compare_ds[compare_ds.mnum == 0][['eg']].copy()
     data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int)
+    # for drop_eg selection widget:
+    drop_eg_options = list(np.unique(data_reorder.eg).astype(str))
 
     to_join_ds = compare_ds[
         compare_ds[filter_measure] == filter_val][cols].copy()
@@ -1932,10 +1913,11 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     eg_sep_order = np.array(df.eg_sep_order)
     eg_arr = np.array(df.eg)
     eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
-    unique_egs = np.unique(df.eg)
+    eg_set = np.unique(df.eg)
+    max_eg_plus_one = max(eg_set) + 1
     denoms = np.zeros(eg_arr.size)
 
-    for eg in unique_egs:
+    for eg in eg_set:
         np.put(denoms, np.where(eg_arr == eg)[0], eg_denom_dict[eg])
 
     df['sep_eg_pcnt'] = eg_sep_order / denoms
@@ -1960,7 +1942,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
         else:
             xval = 'sep_eg_pcnt'
 
-        for eg in eg_list:
+        for eg in eg_set:
             data = df[df.eg == eg].copy()
 
             if chk_scatter.value:
@@ -2046,7 +2028,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
         drop_dir_dict = {'u  >>': 'u', '<<  d': 'd'}
         incr_dir_dict = {'u  >>': -1, '<<  d': 1}
 
-        drop_eg = widgets.Dropdown(options=['1', '2', '3'],
+        drop_eg = widgets.Dropdown(options=drop_eg_options,
                                    value=persist['drop_eg_val'].value,
                                    description='eg')
 
@@ -2105,7 +2087,9 @@ def editor(base_ds, compare_ds_text, prop_order=True,
 
             ax2 = sns.stripplot(x='new_order', y='eg',
                                 data=data_reorder, jitter=.5,
-                                orient='h', order=np.arange(1, 4, 1),
+                                orient='h', order=np.arange(1,
+                                                            max_eg_plus_one,
+                                                            1),
                                 palette=cf.eg_colors, size=3,
                                 linewidth=0, split=True)
 
@@ -2123,9 +2107,12 @@ def editor(base_ds, compare_ds_text, prop_order=True,
 
             data_reorder[['new_order']].to_pickle('dill/new_order.pkl')
 
-            junior_val = range_sel.children[0].value
-            senior_val = range_sel.children[1].value
+            # junior_val = range_sel.children[0].value
+            # senior_val = range_sel.children[1].value
 
+            store_vals()
+
+        def store_vals():
             persist_df = pd.DataFrame({'drop_eg_val': drop_eg.value,
                                        'drop_dir_val': drop_dir.value,
                                        'drop_sq_val': drop_squeeze.value,
@@ -2136,24 +2123,25 @@ def editor(base_ds, compare_ds_text, prop_order=True,
                                        'drop_msr': drop_measure.value,
                                        'drop_filter': drop_filter.value,
                                        'int_sel': int_val.value,
-                                       'junior': junior_val,
-                                       'senior': senior_val},
+                                       'junior': range_sel.children[0].value,
+                                       'senior': range_sel.children[1].value},
                                       index=['value'])
 
             persist_df.to_pickle('dill/squeeze_vals.pkl')
 
         def run_cell(ev):
-            system('python compute_measures.py df1')
+            system('python compute_measures.py p1')
             display(Javascript('IPython.notebook.execute_cell()'))
 
         def redraw(ev):
+            store_vals()
             display(Javascript('IPython.notebook.execute_cell()'))
 
         button_calc = Button(description="calculate",
                              background_color='#99ddff')
         button_calc.on_click(run_cell)
 
-        button_draw = Button(description="redraw",
+        button_draw = Button(description="draw",
                              background_color='#dab3ff')
         button_draw.on_click(redraw)
         # display(button)
@@ -2185,12 +2173,14 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                                 width=12, height=12,
                                 chart_example=False):
     '''num input options:
-                   {1: 'amer_with_twa',
+                   {1: 'eg1_with_sg',
                     2: 'east',
                     3: 'west',
-                    4: 'amer_no_twa',
-                    5: 'twa_only'
+                    4: 'eg1_no_sg',
+                    5: 'sg_only'
                     }
+
+    sg refers to special group - a group with special job rights
     '''
 
     max_count = df.groupby('mnum').size().max()
@@ -2221,11 +2211,11 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
 
     if single_eg:
         num = 1
-        grp_dict = {1: 'amer_with_twa',
+        grp_dict = {1: 'eg1_with_sg',
                     2: 'east',
                     3: 'west',
-                    4: 'amer_no_twa',
-                    5: 'twa_only'
+                    4: 'eg1_no_sg',
+                    5: 'sg_only'
                     }
 
         cdict = {1: 'black',
@@ -2236,11 +2226,11 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                  }
 
         if num == 5:
-            df = df[(df.eg == 1) & (df.twa == 1)]
-            label = 'twa_only'
+            df = df[(df.eg == 1) & (df.sg == 1)]
+            label = 'sg_only'
         elif num == 4:
-            df = df[(df.eg == 1) & (df.twa == 0)]
-            label = 'amer_no_twa'
+            df = df[(df.eg == 1) & (df.sg == 0)]
+            label = 'eg1_no_sg'
         elif num == 2:
             df = df[df.eg == 2]
             label = 'east'
@@ -2249,7 +2239,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
             label = 'west'
         elif num == 1:
             df = df[df.eg == 1]
-            label = 'amer_with_twa'
+            label = 'eg1_with_sg'
 
         if exclude_fur:
             df = df[df.fur == 0]
@@ -2271,17 +2261,17 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
         if exclude_fur:
             df = df[df.fur == 0]
 
-        d1 = df[(df.eg == 1) & (df.twa == 1)]
-        d2 = df[(df.eg == 1) & (df.twa == 0)]
+        d1 = df[(df.eg == 1) & (df.sg == 1)]
+        d2 = df[(df.eg == 1) & (df.sg == 0)]
         d3 = df[df.eg == 2]
         d4 = df[df.eg == 3]
 
         if plot_scatter:
             ax1 = d1.plot(x=xax, y=measure, kind='scatter',
-                          label='amer_twa_only', color='#5cd65c',
+                          label='eg1_sg_only', color='#5cd65c',
                           alpha=a, s=s, linewidth=lw)
             d2.plot(x=xax, y=measure, kind='scatter',
-                    label='amer_no_twa', color='black',
+                    label='eg1_no_sg', color='black',
                     alpha=a, s=s, linewidth=lw, ax=ax1)
             d3.plot(x=xax, y=measure, kind='scatter',
                     label='east', color='blue',
@@ -2292,10 +2282,10 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
 
         else:
             ax1 = d1.set_index(xax,
-                               drop=True)[measure].plot(label='amer_twa_only',
+                               drop=True)[measure].plot(label='eg1_sg_only',
                                                         color='green', alpha=a)
             d2.set_index(xax,
-                         drop=True)[measure].plot(label='amer_no_twa',
+                         drop=True)[measure].plot(label='eg1_no_sg',
                                                   color='black', alpha=a,
                                                   ax=ax1)
             d3.set_index(xax,

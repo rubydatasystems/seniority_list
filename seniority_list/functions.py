@@ -410,21 +410,21 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr, eg_arr,
 
 # MAKE AMER_STOVEPIPE_JOBS_WITH_SUP_C
 # (Stovepipe with internal condition stovepiped, SHORT_FORM)
-def make_amer_stovepipe_short_supc(job_list, tw_codes,
-                                   tw_rights, fur_codes):
+def make_amer_stovepipe_short_supc(job_list, sg_codes,
+                                   sg_rights, fur_codes):
     '''Creates a 'stovepipe' job assignment within a single eg (american)
         which also includes a condition of certain job counts allocated
-        to an eg subgroup, marked by a code array (tw_codes).
+        to an eg subgroup, marked by a code array (sg_codes).
 
     Inputs
         job_list
             list of job counts for eg, like [23,34,0,54,...]
-        tw_codes
+        sg_codes
             ndarray
             eg group members entitled to job condition
             (marked with 1, others marked 0)
             length of this eg population
-        tw_rights
+        sg_rights
             list of lists from config file including job numbers and
             job counts for condition.
             Columns 2 and 3 are extracted for use.
@@ -440,31 +440,31 @@ def make_amer_stovepipe_short_supc(job_list, tw_codes,
      combined with other eg lists to form an integrated original
      job assignment list.
      '''
-    o_job = np.zeros(tw_codes.size)
+    o_job = np.zeros(sg_codes.size)
     this_count = 0
     job = 0
-    twa_jobs_and_counts = [
-        np.array(tw_rights)[:, 1],
-        np.array(tw_rights)[:, 2]]
+    sg_jobs_and_counts = [
+        np.array(sg_rights)[:, 1],
+        np.array(sg_rights)[:, 2]]
 
     for i in job_list:
 
         job += 1
 
-        if job in twa_jobs_and_counts[0]:
+        if job in sg_jobs_and_counts[0]:
 
-            twa_allotment = twa_jobs_and_counts[1][this_count]
+            sg_allotment = sg_jobs_and_counts[1][this_count]
 
             np.put(o_job,
-                   np.where((tw_codes == 1) &
+                   np.where((sg_codes == 1) &
                             (o_job == 0) &
                             (fur_codes == 0))[0]
-                   [:twa_allotment],
+                   [:sg_allotment],
                    job)
 
             np.put(o_job,
                    np.where((o_job == 0) & (fur_codes == 0))[0]
-                   [:(i - twa_allotment)],
+                   [:(i - sg_allotment)],
                    job)
 
             this_count += 1
@@ -481,11 +481,11 @@ def make_amer_stovepipe_short_supc(job_list, tw_codes,
 def make_amer_standalone_long_supc(lower, upper,
                                    df_align,
                                    amer_job_counts,
-                                   tw_job_nums,
-                                   tw_dict, tw_months):
+                                   sg_job_nums,
+                                   sg_dict, sg_months):
     '''Creates a 'stovepipe' job assignment within a single eg (american)
         which also includes a condition of certain job counts allocated
-        to an eg subgroup, marked by a code array (tw_codes).  Does not
+        to an eg subgroup, marked by a code array (sg_codes).  Does not
         account for any job changes or furlough recall.
 
     Inputs
@@ -498,16 +498,16 @@ def make_amer_standalone_long_supc(lower, upper,
             indexed dataframe to be used with align function.
               allows monthly result to be passed to next month
               with data alignment.
-              Also includes twa and fur code data for processing.
+              Also includes sg and fur code data for processing.
         amer_job_counts
             either an array of lists (job_changes=True) or
               a single list of job counts (job_changes=False)
-        tw_job_nums
+        sg_job_nums
             job levels included within amer supc condition
-        tw_dict
+        sg_dict
             dictionary
-            twa job to allotment dictionary
-        tw_months
+            sg job to allotment dictionary
+        sg_months
             list of month numbers when the condition is in effect
 
     The subset group will have proirity assignment for the first n jobs
@@ -523,10 +523,10 @@ def make_amer_standalone_long_supc(lower, upper,
     fur_level = cf.num_of_job_levels + 1
 
     fur_arr = np.array(df_align.fur, dtype=int)
-    tw_arr = np.array(df_align.twa, dtype=int)
-    long_assign_column = np.zeros(tw_arr.size, dtype=int)
+    sg_arr = np.array(df_align.sg, dtype=int)
+    long_assign_column = np.zeros(sg_arr.size, dtype=int)
 
-    long_supc = np.zeros(tw_arr.size, dtype=int)
+    long_supc = np.zeros(sg_arr.size, dtype=int)
     long_df = df_align[[]]
 
     for month in np.arange(num_of_months):
@@ -537,7 +537,7 @@ def make_amer_standalone_long_supc(lower, upper,
         assign_range = long_assign_column[L:U]
         long_range = long_supc[L:U]
         fur_range = fur_arr[L:U]
-        twa_range = tw_arr[L:U]
+        sg_range = sg_arr[L:U]
 
         job = 0
 
@@ -547,14 +547,14 @@ def make_amer_standalone_long_supc(lower, upper,
 
             if count > 0:
 
-                if (job in tw_job_nums) and (month in tw_months):
+                if (job in sg_job_nums) and (month in sg_months):
 
-                    twa_allotment = tw_dict[job]
-                    # assign to unassigned, non-furloughed twa emps...
+                    sg_allotment = sg_dict[job]
+                    # assign to unassigned, non-furloughed sg emps...
                     np.put(assign_range,
-                           np.where((twa_range == 1) &
+                           np.where((sg_range == 1) &
                                     (assign_range == 0) &
-                                    (fur_range == 0))[0][:twa_allotment],
+                                    (fur_range == 0))[0][:sg_allotment],
                            job)
 
                     remaining = count - np.sum(assign_range == job)
@@ -911,7 +911,7 @@ def assign_jobs_nbnf_job_changes(df_align,
     num_of_job_levels = cf.num_of_job_levels
     orig = np.array(df_align.orig_job)
     eg_data = np.array(df_align.eg)
-    twa_ident = np.array(df_align.twa)
+    sg_ident = np.array(df_align.sg)
     fur_data = np.array(df_align.fur)
 
     # job assignment result array/column
@@ -928,17 +928,17 @@ def assign_jobs_nbnf_job_changes(df_align,
 
     if cf.apply_supc:
 
-        twa_rights = np.array(cf.twa_rights)
+        sg_rights = np.array(cf.sg_rights)
 
-        twa_jobs = np.transpose(twa_rights)[1]
-        sup_c_counts = np.transpose(twa_rights)[2]
-        twa_dict = dict(zip(twa_jobs, sup_c_counts))
+        sg_jobs = np.transpose(sg_rights)[1]
+        sup_c_counts = np.transpose(sg_rights)[2]
+        sg_dict = dict(zip(sg_jobs, sup_c_counts))
 
-        # calc twa sup c condition month range and concat
-        twa_month_range = np.arange(np.min(twa_rights[:, 3]),
-                                    np.max(twa_rights[:, 4]))
+        # calc sg sup c condition month range and concat
+        sg_month_range = np.arange(np.min(sg_rights[:, 3]),
+                                    np.max(sg_rights[:, 4]))
         job_change_months = np.concatenate((job_change_months,
-                                            twa_month_range))
+                                            sg_month_range))
 
     # calc amer grp4 condition month range and concat to
     # job_change_months
@@ -981,7 +981,7 @@ def assign_jobs_nbnf_job_changes(df_align,
         job_count_range = long_count_column[L:U]
         fur_range = fur_data[L:U]
         eg_range = eg_data[L:U]
-        twa_range = twa_ident[L:U]
+        sg_range = sg_ident[L:U]
 
         # use numpy arrays for job assignment process for each month
         # use pandas for data alignment 'job position forwarding'
@@ -1007,14 +1007,14 @@ def assign_jobs_nbnf_job_changes(df_align,
 
                 if cf.apply_supc:
 
-                    if month in twa_month_range and job in twa_jobs:
+                    if month in sg_month_range and job in sg_jobs:
 
-                        # assign SupC condition jobs to TWA employees
-                        twa_jobs_avail = min(twa_dict[job], this_job_count)
+                        # assign SupC condition jobs to sg employees
+                        sg_jobs_avail = min(sg_dict[job], this_job_count)
                         np.put(assign_range,
                                np.where((assign_range == 0) &
-                                        (twa_range == 1) &
-                                        (fur_range == 0))[0][:twa_jobs_avail],
+                                        (sg_range == 1) &
+                                        (fur_range == 0))[0][:sg_jobs_avail],
                                job)
 
                 # **AMR GRP4 condition**
@@ -2764,7 +2764,7 @@ def assign_standalone_job_changes(df_align,
      to furloughees unless furlough_return option is selected.
     '''
     num_of_job_levels = cf.num_of_job_levels
-    twa_ident = np.array(df_align.twa)
+    sg_ident = np.array(df_align.sg)
     fur_data = np.array(df_align.fur)
 
     # job assignment result array/column
@@ -2779,17 +2779,17 @@ def assign_standalone_job_changes(df_align,
 
     if cf.apply_supc:
 
-        twa_rights = np.array(cf.twa_rights)
+        sg_rights = np.array(cf.sg_rights)
 
-        twa_jobs = np.transpose(twa_rights)[1]
-        sup_c_counts = np.transpose(twa_rights)[2]
-        twa_dict = dict(zip(twa_jobs, sup_c_counts))
+        sg_jobs = np.transpose(sg_rights)[1]
+        sup_c_counts = np.transpose(sg_rights)[2]
+        sg_dict = dict(zip(sg_jobs, sup_c_counts))
 
-        # calc twa sup c condition month range and concat
-        twa_month_range = np.arange(np.min(twa_rights[:, 3]),
-                                    np.max(twa_rights[:, 4]))
+        # calc sg sup c condition month range and concat
+        sg_month_range = np.arange(np.min(sg_rights[:, 3]),
+                                    np.max(sg_rights[:, 4]))
         job_change_months = np.concatenate((job_change_months,
-                                            twa_month_range))
+                                            sg_month_range))
 
     if fur_return:
 
@@ -2809,7 +2809,7 @@ def assign_standalone_job_changes(df_align,
         assign_range = long_assign_column[L:U]
         job_count_range = long_count_column[L:U]
         fur_range = fur_data[L:U]
-        twa_range = twa_ident[L:U]
+        sg_range = sg_ident[L:U]
 
         # use numpy arrays for job assignment process for each month
         # use pandas for data alignment 'job position forwarding'
@@ -2837,14 +2837,14 @@ def assign_standalone_job_changes(df_align,
 
                 if cf.apply_supc:
 
-                    if month in twa_month_range and job in twa_jobs:
+                    if month in sg_month_range and job in sg_jobs:
 
-                        # assign SupC condition jobs to TWA employees
-                        twa_jobs_avail = min(twa_dict[job], this_job_count)
+                        # assign SupC condition jobs to sg employees
+                        sg_jobs_avail = min(sg_dict[job], this_job_count)
                         np.put(assign_range,
                                np.where((assign_range == 0) &
-                                        (twa_range == 1) &
-                                        (fur_range == 0))[0][:twa_jobs_avail],
+                                        (sg_range == 1) &
+                                        (fur_range == 0))[0][:sg_jobs_avail],
                                job)
 
             # TODO, code speedup...

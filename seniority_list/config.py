@@ -49,7 +49,7 @@ add_doh_col = True
 add_ldate_col = True
 add_lname_col = True
 add_line_col = True
-add_twa_col = True
+add_sg_col = True
 
 # PAY RELATED (skeleton):
 
@@ -132,14 +132,14 @@ if num_of_job_levels == 8:
         amr_g4_cond = [eg1_cr1, eg1_cr4]
 
     if apply_supc:
-        # eg1 twa sup cc award
+        # eg1 sg sup cc award
         # sequence = [eg, jnum, start_month, end_month]
-        eg1_twa2 = [1, 2, 86, 0, 67]
-        eg1_twa3 = [1, 3, 260, 0, 67]
-        eg1_twa5 = [1, 5, 86, 0, 67]
-        eg1_twa6 = [1, 6, 260, 0, 67]
+        eg1_sg2 = [1, 2, 86, 0, 67]
+        eg1_sg3 = [1, 3, 260, 0, 67]
+        eg1_sg5 = [1, 5, 86, 0, 67]
+        eg1_sg6 = [1, 6, 260, 0, 67]
 
-        twa_rights = [eg1_twa2, eg1_twa3, eg1_twa5, eg1_twa6]
+        sg_rights = [eg1_sg2, eg1_sg3, eg1_sg5, eg1_sg6]
 
     if apply_east_cond:
         # eg2 group 4 C&R
@@ -189,14 +189,14 @@ if num_of_job_levels == 16:
         amr_g4_cond = [eg1_cr1, eg1_cr2, eg1_cr7, eg1_cr8]
 
     if apply_supc:
-        # eg1 twa sup cc award (all reserve...)
+        # eg1 sg sup cc award (all reserve...)
         # sequence = [eg, jnum, start_month, end_month]
-        eg1_twa5 = [1, 5, 86, 0, 67]
-        eg1_twa6 = [1, 6, 260, 0, 67]
-        eg1_twa12 = [1, 12, 86, 0, 67]
-        eg1_twa13 = [1, 13, 260, 0, 67]
+        eg1_sg5 = [1, 5, 86, 0, 67]
+        eg1_sg6 = [1, 6, 260, 0, 67]
+        eg1_sg12 = [1, 12, 86, 0, 67]
+        eg1_sg13 = [1, 13, 260, 0, 67]
 
-        twa_rights = [eg1_twa5, eg1_twa6, eg1_twa12, eg1_twa13]
+        sg_rights = [eg1_sg5, eg1_sg6, eg1_sg12, eg1_sg13]
 
     if apply_east_cond:
         # eg2 group 4 C&R (split block and reserve...):
@@ -241,6 +241,7 @@ if num_of_job_levels == 16:
 ############################################
 
 eg_dict = {1: 'A', 2: 'E', 3: 'W', 4: 'S'}
+eg_dict_verbose = {1: 'AMER', 2: 'EAST', 3: 'WEST', 4: 'Standalone'}
 proposal_dict = {'ds1': 'APSIC PROPOSAL', 'ds2': 'EAST PROPOSAL',
                  'ds3': 'WEST PROPOSAL', 'ds4': 'Standalone Data'}
 
@@ -250,11 +251,20 @@ if num_of_job_levels == 16:
                 'Capt G3 R', 'Capt G2 R', 'F/O  G4 B', 'F/O  G4 R',
                 'F/O  G3 B', 'F/O  G2 B', 'Capt G1 B', 'F/O  G3 R',
                 'F/O  G2 R', 'Capt G1 R', 'F/O  G1 B', 'F/O  G1 R', 'FUR']
+    jobs_dict = {1: 'Capt G4 B', 2: 'Capt G4 R', 3: 'Capt G3 B',
+                 4: 'Capt G2 B', 5: 'Capt G3 R', 6: 'Capt G2 R',
+                 7: 'F/O  G4 B', 8: 'F/O  G4 R', 9: 'F/O  G3 B',
+                 10: 'F/O  G2 B', 11: 'Capt G1 B', 12: 'F/O  G3 R',
+                 13: 'F/O  G2 R', 14: 'Capt G1 R', 15: 'F/O  G1 B',
+                 16: 'F/O  G1 R', 17: 'FUR'}
 
 if num_of_job_levels == 8:
 
     job_strs = ['Capt G4', 'Capt G3', 'Capt G2', 'F/O  G4', 'F/O  G3',
                 'F/O  G2', 'Capt G1', 'F/O  G1', 'FUR']
+    jobs_dict = {1: 'Capt G4', 2: 'Capt G3', 3: 'Capt G2', 4: 'F/O  G4',
+                 5: 'F/O  G3', 6: 'F/O  G2', 7: 'Capt G1', 8: 'F/O  G1',
+                 9: 'FUR'}
 
 # colors
 
@@ -263,7 +273,7 @@ if num_of_job_levels == 8:
 eg_colors = ["#505050", "#0081ff", "#ff6600", '#CC00FF']
 lr_colors = ['#00b300', '#0086b3', '#cc5200']
 lr_colors2 = ['grey', '#0086b3', '#cc5200']
-mean_colors = ['#66ff33', '#00ffff', '#ff66ff']
+mean_colors = ['#4d4d4d', '#3399ff', '#ff8000']
 row_colors = ['#ffffe6', '#404040', '#3399ff', '#ff8000', '#00cc44',
               '#b800e6', '#ff0000', '#996633', '#ff99ff']
 

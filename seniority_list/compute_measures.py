@@ -62,7 +62,8 @@ jcnts_arr = f.make_jcnts(eg_counts)
 # ORDER the skeleton df
 # df_skel can initially be in any order.
 # use the empkey index (contains duplicates) to align
-# the idx (order) column from the proposed list to the skeleton
+# the idx (order) column from the proposed list or the
+# new_order column from an edited list to the skeleton
 
 if cf.edit_mode:
     df_new_order = pd.read_pickle('dill/new_order.pkl')
@@ -86,10 +87,10 @@ if cf.apply_supc:
 
     eg2_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][1])
     eg3_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][2])
-    tw = np.array(df_proposal[df_proposal.eg == 1]['twa'])
+    sg = np.array(df_proposal[df_proposal.eg == 1]['sg'])
     amer_fur = np.array(df_proposal[df_proposal.eg == 1]['fur'])
     eg1_ojob_array = f.make_amer_stovepipe_short_supc(
-        jcnts_arr[0][0], tw, cf.twa_rights, amer_fur)
+        jcnts_arr[0][0], sg, cf.sg_rights, amer_fur)
 
     eg1_supc_stove = np.take(eg1_ojob_array, np.where(amer_fur == 0)[0])
 
@@ -202,7 +203,7 @@ if cf.compute_with_job_changes:
     job_change_months = f.get_job_change_months(j_changes)
     reduction_months = f.get_job_reduction_months(j_changes)
 
-    df_align = ds[['eg', 'twa', 'fur', 'orig_job']].copy()
+    df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 
     jobs_and_counts = f.assign_jobs_nbnf_job_changes(df_align, np_low_limits,
                                                      cumulative, all_months,

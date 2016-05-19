@@ -13,28 +13,25 @@ import config as cf
 
 from sys import argv
 
-script, input_proposal = argv
+script, input_list = argv
 
-# read prepared dataset - proper column headers, column formats...
-
+# read prepared list dataframe - proper column headers, column formats...
+# normally this would be master.pkl, order-independent, concatenated list data
 pre, suf = 'dill/', '.pkl'
+list_path_string = (pre + input_list + suf)
+df_list = pd.read_pickle(list_path_string)
 
-proposal_path_string = (pre + input_proposal + suf)
 output_name = 'skel'
 skel_path_string = (pre + output_name + suf)
 
-df_proposal = pd.read_pickle(proposal_path_string)
-
-start_date = pd.to_datetime(cf.starting_date)
-
 # only include pilots that are not retired prior to the starting_month
-df_proposal = df_proposal[
-    df_proposal.retdate >= start_date - pd.DateOffset(months=1)]
+start_date = pd.to_datetime(cf.starting_date)
+df_list = df_list[
+    df_list.retdate >= start_date - pd.DateOffset(months=1)]
 
 # include furloughees by default
-df = df_proposal[(df_proposal.line == 1) | (df_proposal.fur == 1)].copy()
-
-df_proposal = []
+df = df_list[(df_list.line == 1) | (df_list.fur == 1)].copy()
+df_list = []
 
 # MNUM*
 # calculate the number of career months for each employee (short_form)
@@ -189,8 +186,8 @@ if cf.add_lname_col:
     skel['lname'] = df.lname
 if cf.add_line_col:
     skel['line'] = df.line
-if cf.add_twa_col:
-    skel['twa'] = df.twa
+if cf.add_sg_col:
+    skel['sg'] = df.sg
 
 if not cf.actives_only:
     skel['fur'] = df.fur

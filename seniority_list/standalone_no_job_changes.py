@@ -19,7 +19,6 @@ ds = pd.read_pickle(skeleton_path_string)
 num_of_job_levels = cf.num_of_job_levels
 fur_counts = cf.furlough_count
 num_of_months = np.unique(ds.mnum).size
-start_month = 0
 
 # if cf.actives_only:
 #     ds = ds[ds.fur == 0].copy()
@@ -48,9 +47,6 @@ table = f.job_gain_loss_table(num_of_months,
                               j_changes,
                               standalone=True)
 
-job_change_months = f.get_job_change_months(j_changes)
-job_reduction_months = f.get_job_reduction_months(j_changes)
-
 # jcnts_list = [jcnts_arr[0][0], jcnts_arr[0][1], jcnts_arr[0][2]]
 # sort the skeleton by employee group, month, and index
 # (preserves each group's list order)
@@ -78,57 +74,46 @@ for i in range(len(ds_list)):
     jcnts = jcnts_arr[0][i]
     # jcnts = np.take(jcnts, np.where(jcnts != 0)[0])
     short_len = len(short_ds_list[i])
+    fur_count = fur_counts[i]
+    fur_codes = np.array(df_long.fur)
 
     # ORIG_JOB*
 
     cmonths_this_ds = f.career_months_df_in(df_short)
     this_ds_nonret_each_month = f.count_per_month(cmonths_this_ds)
-    uppers = this_ds_nonret_each_month.cumsum()
-    lowers = f.make_lower_slice_limits(uppers)
+    upper = this_ds_nonret_each_month.cumsum()
+    lower = f.make_lower_slice_limits(upper)
     all_months = np.sum(this_ds_nonret_each_month)
 
     this_table = table[0][i]
-    this_month_counts = table[1][i]
-    df_align = df_long[['sg', 'fur']]
-    fur_codes = np.array(df_align.fur)
 
-    # if i == 0 and cf.apply_supc:  # i == 0 >> eg1 from skeleton
+    if i == 0 and cf.apply_supc:  # i == 0 >> eg1 from skeleton
 
-    #     sg_rights = np.array(cf.sg_rights)
-    #     sg_jobs = np.transpose(sg_rights)[1]
-    #     sup_c_counts = np.transpose(sg_rights)[2]
-    #     sg_dict = dict(zip(sg_jobs, sup_c_counts))
+        sg_rights = np.array(cf.sg_rights)
+        sg_jobs = np.transpose(sg_rights)[1]
+        sup_c_counts = np.transpose(sg_rights)[2]
+        sg_dict = dict(zip(sg_jobs, sup_c_counts))
 
-    #     # calc sg sup c condition month range and concat
-    #     sg_month_range = np.arange(np.min(sg_rights[:, 3]),
-    #                                 np.max(sg_rights[:, 4]))
+        # calc sg sup c condition month range and concat
+        sg_month_range = np.arange(np.min(sg_rights[:, 3]),
+                                    np.max(sg_rights[:, 4]))
 
-    #     sg_codes = np.array(df_long.sg)
+        sg_codes = np.array(df_long.sg)
 
-    if cf.compute_with_job_changes:
+        df_align = df_long[['sg', 'fur']]
 
-        results = f.assign_standalone_job_changes(df_align,
-                                                  lowers,
-                                                  uppers,
-                                                  all_months,
-                                                  this_table,
-                                                  this_month_counts,
-                                                  this_ds_nonret_each_month,
-                                                  job_change_months,
-                                                  job_reduction_months,
-                                                  start_month,
-                                                  i,
-                                                  fur_return=cf.recall)
+        amer_job_counts = jcnts_arr[0][0]
 
-        jnums = results[0]
-        count_col = results[1]
-        held = results[2]
-        fur = results[3]
-        orig_jobs = results[4]
-        # HELD JOB
-        df_long['held'] = held
-        # JOB_COUNT
-        df_long['job_count'] = count_col
+        supc = f.make_amer_standalone_long_supc(lower,
+                                                upper,
+                                                df_align,
+                                                amer_job_counts,
+                                                sg_jobs,
+                                                sg_dict,
+                                                sg_month_range)
+
+        orig_jobs = supc[1]
+        jnums = supc[0]
 
     else:
 
@@ -139,9 +124,6 @@ for i in range(len(ds_list)):
                                                    orig_jobs,
                                                    fur_codes,
                                                    num_of_job_levels)
-        # JOB_COUNT
-        fur_count = fur_counts[i]
-        df_long['job_count'] = f.put_map(jnums, jcnts, fur_count).astype(int)
 
     df_short['orig_job'] = orig_jobs
 
@@ -156,46 +138,40 @@ for i in range(len(ds_list)):
 
     df_long['jnum'] = jnums
 
-    # LNUM, LSPCNT (includes fur)
+    # LIST, LSPCNT (includes fur)
 
-    df_long['lnum'] = f.create_snum_array(jnums, this_ds_nonret_each_month)
+    df_long['list'] = f.create_snum_array(jnums, this_ds_nonret_each_month)
 
-    df_long['lspcnt'] = df_long['lnum'] / max(df_long.lnum)
+    df_long['lspcnt'] = df_long['list'] / max(df_long.list)
 
     # SNUM, SPCNT (excludes fur)
 
     df_long['snum'], df_long['spcnt'] = \
         f.snum_and_spcnt(np.array(df_long.jnum),
                          num_of_job_levels,
-                         lowers,
-                         uppers,
-                         this_month_counts,
+                         lower,
+                         upper,
                          all_months)
 
     # RANK in JOB
 
     df_long['rank_in_job'] = df_long.groupby(['mnum', 'jnum']).cumcount() + 1
 
-    # jobp
+    # JOB_COUNT*
 
-    df_long['jobp'] = (df_long['rank_in_job'] /
-                       df_long['job_count']) + (df_long['jnum'] - .0001)
+    jnums = np.array(df_long.jnum)
+
+    # JOB_COUNT
+
+    df_long['job_count'] = f.put_map(jnums, jcnts, fur_count).astype(int)
+
+    # NJOBP
+
+    df_long['njobp'] = (df_long['rank_in_job'] /
+                        df_long['job_count']) + (df_long['jnum'] - .0001)
 
     # PAY - merge with pay table - provides monthly pay
     if cf.compute_pay_measures:
-
-        if cf.discount_longev_for_fur:
-            # flip ones and zeros...
-            df_long['non_fur'] = 1 - fur
-            df_long['fur'] = fur
-
-            non_fur = np.array(df_long.groupby('empkey')['non_fur'].cumsum())
-            starting_mlong = np.array(df_long.s_lmonths)
-            cum_active_months = non_fur + starting_mlong
-
-            df_long['scale'] = np.clip((cum_active_months / 12) + 1,
-                                       1, 12).astype(int)
-            df_long.pop('non_fur')
 
         df_pt_index = pd.DataFrame(
             index=(df_long['scale'] * 100) + df_long['jnum'] +
