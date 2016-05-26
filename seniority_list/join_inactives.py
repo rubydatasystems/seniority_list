@@ -1,27 +1,39 @@
 # -*- coding: utf-8 -*-
 
-'''merge and order a master dataframe containing all employees with a
-proposed list dataframe which may contain all employees or only active
-employees.  If the proposed list only contains active employees, the
-'fill_style' argument determines whether the inactive employees will be
-placed within the combined list next to same employee group
-active employee just senior or just junior to them.'''
+'''Merge and order a master dataframe containing all employees (including
+inactive employees), with a proposed list dataframe which may contain all
+employees or only active (and optionally furloughed) employees.
+
+If the proposed list ordering does not contain the inactive employees, the
+'fill_style' argument determines where the inactive employees will be
+placed within the combined list relative to their same employee group
+active cohorts, just senior to the closest junior cohort or just junior to
+closest senior cohort.
+
+Writes results to a pickle file and an Excel file.
+
+example jupyter notebook usage:
+    %run join_inactives.py master p1 final bfill
+'''
 
 import pandas as pd
 import numpy as np
+import config as cf
 
 from sys import argv
 
-script, input_order_df, fill_style = argv
+script, master_name, proposed_order_df, output_name, fill_style = argv
 
 pre, suf = 'dill/', '.pkl'
+xlpre, xlsuf = 'reports/', '.xlsx'
 
-master_name = 'master'
-output_name = 'final'
+if cf.sample_mode:
+    output_name = cf.sample_prefix + output_name
+
 
 master_path_string = (pre + master_name + suf)
-order_path_string = (pre + input_order_df + suf)
-final_path_string = (pre + output_name + suf)
+order_path_string = (pre + proposed_order_df + suf)
+write_xl_path = (xlpre + output_name + xlsuf)
 
 df_master = pd.read_pickle(master_path_string)
 df_order = pd.read_pickle(order_path_string)
@@ -43,18 +55,19 @@ for eg in eg_set:
 
     if fill_style == 'bfill':
         eg_df.iloc[-1, eg_df.columns.get_loc('idx')] = eg_df.idx.max()
-        eg_df.idx = eg_df.idx.fillna(method='bfill').astype(int)
+        eg_df.idx = eg_df.idx.fillna(method='bfill')  # .astype(int)
 
     final = pd.concat([final, eg_df])
 
 final = final.sort_values(['idx', 'eg_order'])
 final['snum'] = np.arange(len(final)).astype(int) + 1
+final.pop('idx')
 
-final.to_pickle('dill/final.pkl')
+final.to_pickle('dill/' + output_name + '.pkl')
 
 final.set_index('snum', drop=True, inplace=True)
 
-writer = pd.ExcelWriter('excel/final.xlsx',
+writer = pd.ExcelWriter(write_xl_path,
                         engine='xlsxwriter',
                         datetime_format='yyyy-mm-dd',
                         date_format='yyyy-mm-dd')

@@ -28,7 +28,8 @@ created by editor tool:
      squeeze_vals.pkl,
      new_order.pkl
 
-
+example usage in jupyter notebook:
+    %run build_files.py master_sample
 '''
 
 import pandas as pd
@@ -38,7 +39,12 @@ import functions as f
 import config as cf
 
 # MASTER FILE:
-master = pd.read_excel('excel/master.xlsx')
+if cf.sample_mode:
+    sample_prefix = cf.sample_prefix
+    master = pd.read_excel('sample_data/' + sample_prefix + 'master.xlsx')
+else:
+    master = pd.read_excel('excel/master.xlsx')
+
 master.set_index('empkey', drop=False, inplace=True)
 master.to_pickle('dill/master.pkl')
 
@@ -63,7 +69,11 @@ actives.to_pickle('dill/active_each_month.pkl')
 # list orderings on separate worksheets
 # The worksheet tab names are important for the function
 # The pickle files will be named like the worbook sheet names
-xl = pd.ExcelFile('excel/proposals.xlsx')
+if cf.sample_mode:
+    xl = pd.ExcelFile('sample_data/' + sample_prefix + 'proposals.xlsx')
+else:
+    xl = pd.ExcelFile('excel/proposals.xlsx')
+
 sheets = xl.sheet_names
 for ws in sheets:
     try:

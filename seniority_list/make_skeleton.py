@@ -13,13 +13,13 @@ import config as cf
 
 from sys import argv
 
-script, input_list = argv
+script, master_list = argv
 
 # read prepared list dataframe - proper column headers, column formats...
 # normally this would be master.pkl, order-independent, concatenated list data
 pre, suf = 'dill/', '.pkl'
-list_path_string = (pre + input_list + suf)
-df_list = pd.read_pickle(list_path_string)
+master_path = (pre + master_list + suf)
+df_list = pd.read_pickle(master_path)
 
 output_name = 'skel'
 skel_path_string = (pre + output_name + suf)

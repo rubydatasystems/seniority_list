@@ -24,30 +24,30 @@ except:
 ds = pd.read_pickle(skeleton_path_string)
 
 df_order = pd.read_pickle(proposal_order_string)
-df_proposal = pd.read_pickle(pre + 'master' + suf)
+df_master = pd.read_pickle(pre + 'master' + suf)
 
 start_date = pd.to_datetime(cf.starting_date)
 
 # # only include pilots that are not retired prior to the starting_month
-# df_proposal = df_proposal[
-#     df_proposal.retdate > start_date - pd.DateOffset(months=1)]
+# df_master = df_master[
+#     df_master.retdate > start_date - pd.DateOffset(months=1)]
 
 if cf.actives_only:
-    df_proposal = df_proposal[df_proposal.line == 1].copy()
+    df_master = df_master[df_master.line == 1].copy()
     ds = ds[ds.fur == 0].copy()
 else:
-    df_proposal = df_proposal[
-        (df_proposal.line == 1) | (df_proposal.fur == 1)].copy()
+    df_master = df_master[
+        (df_master.line == 1) | (df_master.fur == 1)].copy()
 
-population = len(df_proposal)
+population = len(df_master)
 num_of_job_levels = cf.num_of_job_levels
 lspcnt_calc = cf.lspcnt_calc_on_remaining_population
 
 if num_of_job_levels == 16:
-    eg_counts = f.convert_jcnts_to16(cf.eg_counts,
-                                     cf.intl_blk_pcnt,
-                                     cf.dom_blk_pcnt)
-    j_changes = f.convert_job_changes_to16(cf.j_changes, cf.jd)
+    eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
+                                            cf.intl_blk_pcnt,
+                                            cf.dom_blk_pcnt)
+    j_changes = f.convert_job_changes_to_enhanced(cf.j_changes, cf.jd)
 else:
     eg_counts = cf.eg_counts
     j_changes = cf.j_changes
@@ -80,15 +80,15 @@ ds.sort_values(['mnum', 'new_order'], inplace=True)
 
 # ORIG_JOB*
 
-eg_sequence = np.array(df_proposal.eg)
-fur_sequence = np.array(df_proposal.fur)
+eg_sequence = np.array(df_master.eg)
+fur_sequence = np.array(df_master.fur)
 
 if cf.apply_supc:
 
     eg2_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][1])
     eg3_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][2])
-    sg = np.array(df_proposal[df_proposal.eg == 1]['sg'])
-    amer_fur = np.array(df_proposal[df_proposal.eg == 1]['fur'])
+    sg = np.array(df_master[df_master.eg == 1]['sg'])
+    amer_fur = np.array(df_master[df_master.eg == 1]['fur'])
     eg1_ojob_array = f.make_amer_stovepipe_short_supc(
         jcnts_arr[0][0], sg, cf.sg_rights, amer_fur)
 
@@ -109,13 +109,13 @@ else:
 # insert stovepipe job result into new column of proposal (month_form)
 # this indexes the jobs with empkeys (orig_jobs is an ndarray only)
 
-df_proposal['orig_job'] = orig_jobs
+df_master['orig_job'] = orig_jobs
 
 # ASSIGN JOBS - flush and no flush option*
 
 # cmonths - career length in months for each employee.
 #   length is equal to number of employees
-cmonths = f.career_months_df_in(df_proposal)
+cmonths = f.career_months_df_in(df_master)
 
 # nonret_each_month: count of non-retired employees remaining
 # in each month until no more remain -
@@ -188,7 +188,7 @@ else:
     # ORIG_JOB
     # transfer proposal stovepipe jobs (month_form) to long_form via index
     # (empkey) alignment...
-    ds['orig_job'] = df_proposal['orig_job']
+    ds['orig_job'] = df_master['orig_job']
 
 # grab long_form indexed stovepipe jobs (int)
 orig = np.array(ds['orig_job'])

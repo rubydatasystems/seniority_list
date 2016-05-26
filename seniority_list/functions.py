@@ -936,13 +936,13 @@ def assign_jobs_nbnf_job_changes(df_align,
 
         # calc sg sup c condition month range and concat
         sg_month_range = np.arange(np.min(sg_rights[:, 3]),
-                                    np.max(sg_rights[:, 4]))
+                                   np.max(sg_rights[:, 4]))
         job_change_months = np.concatenate((job_change_months,
                                             sg_month_range))
 
     # calc amer grp4 condition month range and concat to
     # job_change_months
-    if proposal_name_text == 'df1' and cf.apply_amer_cond:
+    if proposal_name_text == 'p1' and cf.apply_amer_cond:
         amer_cond = np.array(cf.amr_g4_cond)
         amer_jobs = np.transpose(amer_cond)[1]
         amer_cond_ratio_month = amer_cond[0][2]
@@ -952,7 +952,7 @@ def assign_jobs_nbnf_job_changes(df_align,
                                             amr_month_range))
 
         # calc east grp4 condition month range and concat
-    if proposal_name_text == 'df2' and cf.apply_east_cond:
+    if proposal_name_text == 'p2' and cf.apply_east_cond:
         east_cond = np.array(cf.east_g4_cond)
         east_jobs = np.transpose(east_cond)[1]
         east_cond_start_month = east_cond[0][3]
@@ -1018,7 +1018,7 @@ def assign_jobs_nbnf_job_changes(df_align,
                                job)
 
                 # **AMR GRP4 condition**
-                if proposal_name_text == 'df1' and cf.apply_amer_cond:
+                if proposal_name_text == 'p1' and cf.apply_amer_cond:
                     # TODO refactor cond_dict below so it only runs once...
                     # instead of 8 or 16 times...
                     if month == amer_cond_ratio_month and job == 1:
@@ -1038,7 +1038,7 @@ def assign_jobs_nbnf_job_changes(df_align,
                                                          fur_range)
 
                 # **EAST GRP4 condition**
-                if proposal_name_text == 'df2' and cf.apply_east_cond:
+                if proposal_name_text == 'p2' and cf.apply_east_cond:
 
                     if month in east_month_range and job in east_jobs:
 
@@ -2251,7 +2251,7 @@ def distribute_vacancies_by_weights(available, eg_counts, weights):
 
 
 # To 8 (job levels) from 16 (job_levels)
-def eliminate_block_and_reserve(j):
+def convert_enhanced_to_basic(j):
     '''Convert blockholder and reserve job levels(16) to
     group job counts (CA and FO counts, total of 8 counts
     for the 4 groups)
@@ -2575,7 +2575,7 @@ def job_gain_loss_table(months, job_levels, init_job_counts,
     return job_table.astype(int), monthly_job_totals.astype(int)
 
 
-def convert_job_changes_to16(j_changes, job_dict):
+def convert_job_changes_to_enhanced(j_changes, job_dict):
     '''Converts job changes based on an 8-level model into a 16-level
     list of job changes using a job dictionary and blk percentages.
     This function allows all job changes to be made at the group level
@@ -2624,8 +2624,8 @@ def convert_job_changes_to16(j_changes, job_dict):
     return k
 
 
-# To 16 (job levels) from 8 (job_levels)
-def convert_jcnts_to16(eg_cnts, blk_int_pcnt, blk_dom_pcnt):
+# To 16 (job levels) from 8 (job levels)
+def convert_jcnts_to_enhanced(eg_cnts, blk_int_pcnt, blk_dom_pcnt):
     '''Convert job groups to include blockholder and reserve levels.
     Order is by compensation (precalculated).
 
@@ -2673,7 +2673,7 @@ def convert_jcnts_to16(eg_cnts, blk_int_pcnt, blk_dom_pcnt):
         k16 = j[7] - k15
 
         temp = list([k1, k2, k3, k4, k5, k6, k7, k8,
-                    k9, k10, k11, k12, k13, k14, k15, k16])
+                     k9, k10, k11, k12, k13, k14, k15, k16])
         k.append(temp)
 
     return k
@@ -2732,9 +2732,9 @@ def assign_standalone_job_changes(df_align,
             months in which the number of jobs is decreased (list).
             from the get_job_reduction_months function
         proposal_name_text
-            text of proposal file name without the extension
+            text of proposal order file name without the extension
              This should be the command line input 'input_proposal'
-             if file name of proposal is df3.pkl, proposal_name_text = 'df3'
+             if file name of proposal is p3.pkl, proposal_name_text = 'p3'
 
         furlough_return option -
             allows call to function XXX TODO...
@@ -2787,7 +2787,7 @@ def assign_standalone_job_changes(df_align,
 
         # calc sg sup c condition month range and concat
         sg_month_range = np.arange(np.min(sg_rights[:, 3]),
-                                    np.max(sg_rights[:, 4]))
+                                   np.max(sg_rights[:, 4]))
         job_change_months = np.concatenate((job_change_months,
                                             sg_month_range))
 
@@ -2901,3 +2901,38 @@ def assign_standalone_job_changes(df_align,
 
     return long_assign_column.astype(int), long_count_column.astype(int), \
         held_jobs.astype(int), fur_data.astype(int), orig_jobs.astype(int)
+
+
+def print_config_selections():
+    '''grab config file data settings and put it in a dataframe
+    '''
+    config_dict = {'lspcnt_calc_on_remaining_population':
+                   cf.lspcnt_calc_on_remaining_population,
+                   'edit_mode': cf.edit_mode,
+                   'sample_mode': cf.sample_mode,
+                   'enhanced_jobs': cf.enhanced_jobs,
+                   'apply_supc': cf.apply_supc,
+                   'apply_east_cond': cf.apply_east_cond,
+                   'apply_amer_cond': cf.apply_amer_cond,
+                   'starting_date': cf.starting_date,
+                   'delayed_implementation': cf.delayed_implementation,
+                   'intl_blk_pcnt': cf.intl_blk_pcnt,
+                   'dom_blk_pcnt': cf.dom_blk_pcnt,
+                   'implementation_date': cf.implementation_date,
+                   'no_bump': cf.no_bump,
+                   'recall': cf.recall,
+                   'actives_only': cf.actives_only,
+                   'pay_raise': cf.pay_raise,
+                   'annual_pcnt_raise': cf.annual_pcnt_raise,
+                   'top_of_scale': cf.top_of_scale,
+                   'compute_job_category_order': cf.compute_job_category_order,
+                   'compute_pay_measures': cf.compute_pay_measures,
+                   'num_of_job_levels': cf.num_of_job_levels}
+
+    settings = pd.DataFrame(config_dict, index=['setting']).stack()
+    df = pd.DataFrame(settings, columns=['setting'])
+    df.index = df.index.droplevel(0)
+    df.index.name = 'option'
+
+    return df
+

@@ -30,11 +30,13 @@ num_of_months = np.unique(ds.mnum).size
 #                                       cf.eg2_job_count,
 #                                       cf.eg3_job_count)
 
-if num_of_job_levels == 16:
-    eg_counts = f.convert_jcnts_to16(cf.eg_counts,
-                                     cf.intl_blk_pcnt,
-                                     cf.dom_blk_pcnt)
-    j_changes = f.convert_job_changes_to16(cf.j_changes, cf.jd)
+# below currently assumes 8 to 16 job level conversion
+# TODO: make conversion function generic
+if cf.enhanced_jobs:
+    eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
+                                            cf.intl_blk_pcnt,
+                                            cf.dom_blk_pcnt)
+    j_changes = f.convert_job_changes_to_enhanced(cf.j_changes, cf.jd)
 else:
     eg_counts = cf.eg_counts
     j_changes = cf.j_changes
@@ -96,7 +98,7 @@ for i in range(len(ds_list)):
 
         # calc sg sup c condition month range and concat
         sg_month_range = np.arange(np.min(sg_rights[:, 3]),
-                                    np.max(sg_rights[:, 4]))
+                                   np.max(sg_rights[:, 4]))
 
         sg_codes = np.array(df_long.sg)
 
@@ -177,9 +179,9 @@ for i in range(len(ds_list)):
             index=(df_long['scale'] * 100) + df_long['jnum'] +
             (df_long['year'] * 100000))
 
-        if num_of_job_levels == 8:
+        if not cf.enhanced_jobs:
             df_pt = pd.read_pickle('dill/idx_pay_table_no_rsv_with_fur.pkl')
-        if num_of_job_levels == 16:
+        if cf.enhanced_jobs:
             df_pt = pd.read_pickle('dill/idx_pay_table_with_rsv_with_fur.pkl')
 
         df_pt_index['monthly'] = df_pt['monthly']

@@ -700,16 +700,31 @@ def eg_diff_boxplot(df_list, formatter, measure='spcnt',
     xsize, ysize
         plot size in inches'''
 
-    yval_dict = {'s_a': 'AASIC PROPOSAL vs. standalone ' + measure.upper(),
-                 's_e': 'EAST PROPOSAL vs. standalone ' + measure.upper(),
-                 's_w': 'WEST PROPOSAL vs. standalone ' + measure.upper(),
-                 'a_e': 'EAST vs. AASIC ' + measure.upper(),
-                 'a_w': 'WEST vs. AASIC ' + measure.upper(),
-                 'e_a': 'AASIC vs. EAST ' + measure.upper(),
-                 'e_w': 'WEST vs. EAST ' + measure.upper(),
-                 'w_a': 'AASIC vs. WEST ' + measure.upper(),
-                 'w_e': 'EAST vs. WEST ' + measure.upper(),
-                 }
+    if cf.sample_mode:
+        yval_dict = {'s_a': 'Group 1 PROPOSAL vs. standalone ' +
+                     measure.upper(),
+                     's_e': 'Group 2 PROPOSAL vs. standalone ' +
+                     measure.upper(),
+                     's_w': 'Group 3 PROPOSAL vs. standalone ' +
+                     measure.upper(),
+                     'a_e': 'Group 2 vs. Group 1 ' + measure.upper(),
+                     'a_w': 'Group 3 vs. Group 1 ' + measure.upper(),
+                     'e_a': 'Group 1 vs. Group 2 ' + measure.upper(),
+                     'e_w': 'Group 3 vs. Group 2 ' + measure.upper(),
+                     'w_a': 'Group 1 vs. Group 3 ' + measure.upper(),
+                     'w_e': 'Group 2 vs. Group 3 ' + measure.upper(),
+                     }
+    else:
+        yval_dict = {'s_a': 'AASIC vs. standalone ' + measure.upper(),
+                     's_e': 'EAST PROPOSAL vs. standalone ' + measure.upper(),
+                     's_w': 'WEST PROPOSAL vs. standalone ' + measure.upper(),
+                     'a_e': 'EAST vs. AASIC ' + measure.upper(),
+                     'a_w': 'WEST vs. AASIC ' + measure.upper(),
+                     'e_a': 'AASIC vs. EAST ' + measure.upper(),
+                     'e_w': 'WEST vs. EAST ' + measure.upper(),
+                     'w_a': 'AASIC vs. WEST ' + measure.upper(),
+                     'w_e': 'EAST vs. WEST ' + measure.upper(),
+                     }
 
     chart_pad = {'jnum': .3,
                  'jobp': .3,
@@ -935,10 +950,10 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
     through_date = pd.to_datetime(through_date)
     fur_lvl = job_levels + 1
     if job_levels == 16:
-        j_changes = f.convert_job_changes_to16(job_change_lists, cf.jd)
-        eg_counts = f.convert_jcnts_to16(job_counts,
-                                         cf.intl_blk_pcnt,
-                                         cf.dom_blk_pcnt)
+        j_changes = f.convert_job_changes_to_enhanced(job_change_lists, cf.jd)
+        eg_counts = f.convert_jcnts_to_enhanced(job_counts,
+                                                cf.intl_blk_pcnt,
+                                                cf.dom_blk_pcnt)
         # for adjusting secondary y label positioning
         adjust = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -75, 50, 0, -160, -40, 120, 0]
         jobs_dict = {1: 'Capt G4 B', 2: 'Capt G4 R', 3: 'Capt G3 B',
@@ -1423,7 +1438,6 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
                   jnum_colors, cols=200,
                   job_only=False, jnum=1, cell_border=True, border_color='.5',
                   xsize=14, ysize=12, chart_example=False):
-
     '''currently will plot egs, fur, jnums, sg
     TODO: modify to plot additional measures, including graduated coloring
     '''
@@ -2191,9 +2205,10 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
         sns.set_style('white')
 
         if job_levels == 16:
-            eg_counts = f.convert_jcnts_to16(cf.eg_counts, cf.intl_blk_pcnt,
-                                             cf.dom_blk_pcnt)
-            j_changes = f.convert_job_changes_to16(cf.j_changes, cf.jd)
+            eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
+                                                    cf.intl_blk_pcnt,
+                                                    cf.dom_blk_pcnt)
+            j_changes = f.convert_job_changes_to_enhanced(cf.j_changes, cf.jd)
 
         if job_levels == 8:
             eg_counts = cf.eg_counts
@@ -2212,8 +2227,8 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
     if single_eg:
         num = 1
         grp_dict = {1: 'eg1_with_sg',
-                    2: 'east',
-                    3: 'west',
+                    2: 'eg2',
+                    3: 'eg3',
                     4: 'eg1_no_sg',
                     5: 'sg_only'
                     }
@@ -2233,10 +2248,10 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
             label = 'eg1_no_sg'
         elif num == 2:
             df = df[df.eg == 2]
-            label = 'east'
+            label = 'eg2'
         elif num == 3:
             df = df[df.eg == 3]
-            label = 'west'
+            label = 'eg3'
         elif num == 1:
             df = df[df.eg == 1]
             label = 'eg1_with_sg'
@@ -2274,10 +2289,10 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                     label='eg1_no_sg', color='black',
                     alpha=a, s=s, linewidth=lw, ax=ax1)
             d3.plot(x=xax, y=measure, kind='scatter',
-                    label='east', color='blue',
+                    label='eg2', color='blue',
                     alpha=a, s=s, linewidth=lw, ax=ax1)
             d4.plot(x=xax, y=measure, kind='scatter',
-                    label='west', c='#FF6600',
+                    label='eg3', c='#FF6600',
                     alpha=a, s=s, linewidth=lw, ax=ax1)
 
         else:
@@ -2289,11 +2304,11 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                                                   color='black', alpha=a,
                                                   ax=ax1)
             d3.set_index(xax,
-                         drop=True)[measure].plot(label='east',
+                         drop=True)[measure].plot(label='eg2',
                                                   color='blue', alpha=a,
                                                   ax=ax1)
             d4.set_index(xax,
-                         drop=True)[measure].plot(label='west',
+                         drop=True)[measure].plot(label='eg3',
                                                   color='#FF6600', alpha=a,
                                                   ax=ax1)
             print('''Ignore the vertical lines.  \
@@ -2388,7 +2403,6 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
                formatter, gb_period, year_clip=2042,
                show_range=False, show_mean=True, normalize_y=False,
                ysize=6, xsize=6):
-
     '''Plot a range of differential attributes or a differential
     average over time.  Individual employee groups and proposals may
     be selected.  Each chart indicates the results for one group with
