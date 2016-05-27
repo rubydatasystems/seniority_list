@@ -323,12 +323,12 @@ if cf.compute_pay_measures:
     df_pt_index = pd.DataFrame(
         index=(ds['scale'] * 100) + ds['jnum'] + (ds['year'] * 100000))
 
-    if num_of_job_levels == 8:
+    if cf.enhanced_jobs:
         df_pt = pd.read_pickle(
-            'dill/idx_pay_table_no_rsv_with_fur.pkl')
-    if num_of_job_levels == 16:
+            'dill/pay_table_enhanced_with_fur_indexed.pkl')
+    else:
         df_pt = pd.read_pickle(
-            'dill/idx_pay_table_with_rsv_with_fur.pkl')
+            'dill/pay_table_basic_with_fur_indexed.pkl')
 
     # 'data-align' small indexed pay_table to long_form df:
     df_pt_index['monthly'] = df_pt['monthly']

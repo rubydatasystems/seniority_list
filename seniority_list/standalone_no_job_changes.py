@@ -179,10 +179,12 @@ for i in range(len(ds_list)):
             index=(df_long['scale'] * 100) + df_long['jnum'] +
             (df_long['year'] * 100000))
 
-        if not cf.enhanced_jobs:
-            df_pt = pd.read_pickle('dill/idx_pay_table_no_rsv_with_fur.pkl')
         if cf.enhanced_jobs:
-            df_pt = pd.read_pickle('dill/idx_pay_table_with_rsv_with_fur.pkl')
+            df_pt = pd.read_pickle(
+                'dill/pay_table_enhanced_with_fur_indexed.pkl')
+        else:
+            df_pt = pd.read_pickle(
+                'dill/pay_table_basic_with_fur_indexed.pkl')
 
         df_pt_index['monthly'] = df_pt['monthly']
 

@@ -2285,6 +2285,9 @@ def make_pay_table(wb_address, rates_sheetname, hours_sheetname):
     compensation.  Index is a combination of contract year and
     pay year longevity and job level (jnum).
 
+    Note:  this is a manual pay_table creation function - there is a
+    make_pay_tables_from_excel script that is normally used...
+
     Inputs
 
         wb_address (string)
