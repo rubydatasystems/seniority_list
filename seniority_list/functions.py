@@ -2939,3 +2939,10 @@ def print_config_selections():
 
     return df
 
+
+def max_of_nested_lists(nested_list):
+    max_list = []
+    for lst in nested_list:
+        x = max(lst)
+        max_list.append(x)
+    return max(max_list)

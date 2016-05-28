@@ -43,7 +43,7 @@ population = len(df_master)
 num_of_job_levels = cf.num_of_job_levels
 lspcnt_calc = cf.lspcnt_calc_on_remaining_population
 
-if num_of_job_levels == 16:
+if cf.enhanced_jobs:
     eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
                                             cf.intl_blk_pcnt,
                                             cf.dom_blk_pcnt)

@@ -12,7 +12,7 @@ sample_mode = False
 if sample_mode:
     sample_prefix = 'sample3_'
 
-enhanced_jobs = False
+enhanced_jobs = True
 # number of job levels for model excluding furlough
 if enhanced_jobs:
     num_of_job_levels = 16
