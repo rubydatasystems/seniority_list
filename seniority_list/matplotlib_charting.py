@@ -111,8 +111,8 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
     # ds_sel_cols = ds_sel_cols[(ds_sel_cols.doh > '1989-07-01')]
     egs = sorted(list(set(ds_sel_cols.eg)))
     legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
-    ytick_fontsize = np.clip(int(ysize * 1.55), 9, 14)
-
+    ytick_fontsize = (np.clip(int(ysize * 1.55), 9, 14))
+    #ytick_fontsize = 14
     for eg in egs:
 
         ds_eg = ds_sel_cols[(ds_sel_cols.eg == eg) & (ds_sel_cols.jnum >= 1)]
@@ -276,7 +276,9 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
             ax.legend((labels), loc='center left',
                       bbox_to_anchor=(1, 0.5),
                       fontsize=legend_font_size)
-            plt.yticks(fontsize=ytick_fontsize)
+            #plt.yticks(fontsize=14)
+            #plt.yticks(fontsize=ytick_fontsize)
+            plt.tick_params(axis='y', labelsize=ytick_fontsize)
             fig = plt.gcf()
             fig.set_size_inches(xsize, ysize)
             plt.show()
@@ -342,7 +344,8 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                 plt.title('years differential vs standalone, ' +
                           str(num_bins) + '-quantiles',
                           y=1.02)
-                plt.yticks(fontsize=ytick_fontsize)
+                #plt.yticks(fontsize=ytick_fontsize)
+                plt.tick_params(axis='y', labelsize=ytick_fontsize)
                 fig = plt.gcf()
                 fig.set_size_inches(xsize, ysize)
                 plt.show()
@@ -406,7 +409,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
     plt.xlim(25, 65)
     plt.tight_layout()
     plt.gca().yaxis.set_major_formatter(formatter)
-    plt.yticks(np.arange(0, 1.05, .05))
+    plt.yticks = (np.arange(0, 1.05, .05))
     if chart_example:
         plt.title('Proposal 1' +
                   ' - age vs seniority percentage' +
@@ -498,10 +501,10 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         fig.invert_yaxis()
     if measure in ['lspcnt', 'spcnt']:
         plt.gca().yaxis.set_major_formatter(formatter)
-        plt.yticks(np.arange(0, 1.05, .05))
+        plt.yticks = (np.arange(0, 1.05, .05))
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
-        plt.yticks(np.arange(0, job_levels + 2, 1))
+        plt.yticks = (np.arange(0, job_levels + 2, 1))
         plt.ylim(job_levels + 1.5, 0.5)
 
         yticks = fig.get_yticks().tolist()
@@ -562,14 +565,14 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
         fig.invert_yaxis()
     if measure in ['spcnt', 'lspcnt']:
         fig.yaxis.set_major_formatter(formatter)
-        plt.yticks(np.arange(0, 1.05, .05))
+        plt.yticks = (np.arange(0, 1.05, .05))
     if xax in ['spcnt', 'lspcnt']:
         fig.xaxis.set_major_formatter(formatter)
         plt.xticks(np.arange(0, 1.1, .1))
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
-        plt.yticks(np.arange(0, job_levels + 2, 1))
+        plt.yticks = (np.arange(0, job_levels + 2, 1))
         plt.ylim(job_levels + 2, 0.5)
 
         yticks = fig.get_yticks().tolist()
@@ -645,7 +648,7 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
         fig.invert_yaxis()
         if measure in ['spcnt', 'lspcnt']:
             fig.yaxis.set_major_formatter(formatter)
-            plt.yticks(np.arange(0, 1.05, .05))
+            plt.yticks = (np.arange(0, 1.05, .05))
             plt.ylim(1.04, -.04)
     plt.show()
 
@@ -841,6 +844,7 @@ def eg_diff_boxplot(df_list, formatter, measure='spcnt',
 def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
                                        eg_colors, band_colors, jobs_dict,
                                        eg_dict, bg_alpha=.12,
+                                       show_rsv_lvl=True,
                                        adjust_y_axis=False,
                                        chart_example=False):
 
@@ -878,7 +882,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
                             palette=eg_colors, size=3,
                             linewidth=0, split=True)
 
-        plt.yticks(np.arange(0, 15000, 1000))
+        plt.yticks = (np.arange(0, ((len(df) + 1000) % 1000) * 1000, 1000))
         plt.ylim(y_count, 0)
 
     i = 0
@@ -886,8 +890,9 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
         ax1.axhline(job_zone, c='magenta', ls='-', alpha=1, lw=.8)
         ax1.axhspan(cnts[i], cnts[i + 1], facecolor=band_colors[i],
                     alpha=bg_alpha,)
-        rsv_lvl = (round((cnts[i + 1] - cnts[i]) * blk_pcnt)) + cnts[i]
-        ax1.axhline(rsv_lvl, c='#66ff99', ls='--', alpha=1, lw=1)
+        if show_rsv_lvl:
+            rsv_lvl = (round((cnts[i + 1] - cnts[i]) * blk_pcnt)) + cnts[i]
+            ax1.axhline(rsv_lvl, c='#66ff99', ls='--', alpha=1, lw=1)
         i += 1
 
     i = 0
@@ -1196,7 +1201,7 @@ def differential_scatter(base_ds, compare_ds_list,
                 ymin = math.floor(min(df[yval]))
                 ymax = math.ceil(max(df[yval]))
                 scale_lim = max(abs(ymin), ymax)
-                plt.yticks(np.arange(-scale_lim, scale_lim + 1, 1))
+                plt.yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
                 if ylimit:
                     plt.ylim(-5, 5)
                 else:
@@ -1512,7 +1517,8 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
 
         plt.gcf().set_size_inches(xsize, ysize)
         plt.xticks([])
-        plt.yticks(fontsize=min(ysize - 6, 10))
+        plt.tick_params(axis='y', labelsize=min(ysize - 6, 10))
+        #plt.yticks(fontsize=min(ysize - 6, 10))
         plt.ylabel(str(cols) + ' per row', fontsize=12)
         plt.title(title, fontsize=18, y=1.01)
         plt.gca().spines['top'].set_visible(True)
@@ -1991,7 +1997,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
             ymin = math.floor(min(df[yval]))
             ymax = math.ceil(max(df[yval]))
             scale_lim = max(abs(ymin), ymax)
-            plt.yticks(np.arange(-scale_lim, scale_lim + 1, 1))
+            plt.yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
             if ylimit:
                 plt.ylim(-ylim, ylim)
             else:
@@ -2372,7 +2378,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
             ax1.grid(ls='dashed', lw=.5)
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
-        plt.yticks(np.arange(0, job_levels + 2, 1))
+        plt.yticks = (np.arange(0, job_levels + 2, 1))
         plt.ylim(job_levels + 2, 0.5)
 
         yticks = fig.get_yticks().tolist()
@@ -2413,27 +2419,42 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
 
     eg_colors = {1: 'k', 2: 'b', 3: 'r'}
     clrs = []
+
     for prop in proposals_to_plot:
         clrs.append(eg_colors[prop])
     cmap = colors.ListedColormap(clrs)
     cols = ['date']
     compare_list = []
 
-    sa_ds['eg_order'] = sa_ds.groupby('eg').cumcount()
-    sa_ds.sort_values(['eg', 'eg_order'], inplace=True)
     sa_ds = sa_ds[sa_ds.date.dt.year <= year_clip][
-        ['eg', 'date', measure]].copy()
+        ['mnum', 'eg', 'date', measure]].copy()
+    sa_ds['eg_order'] = sa_ds.groupby(['mnum', 'eg']).cumcount()
+    sa_ds.sort_values(['mnum', 'eg', 'eg_order'], inplace=True)
+    sa_ds.pop('eg_order')
+    sa_ds.reset_index(inplace=True)
+    sa_ds.set_index(['mnum', 'empkey'], drop=True, inplace=True)
 
     i = 0
     col_list = []
     for ds in ds_list:
-        ds['eg_order'] = ds.groupby('eg').cumcount()
-        ds.sort_values(['eg', 'eg_order'], inplace=True)
-        ds_list[i] = ds[ds.date.dt.year <= year_clip][
-            ['eg', 'date', measure]].copy()
-        ds_list[i].rename(columns={measure: measure + str(i + 1)},
-                          inplace=True)
-        col_list.append(measure + str(i + 1))
+        col_name = measure + str(i + 1)
+        ds = ds[ds.date.dt.year <= year_clip][['mnum', 'eg',
+                                               'date', measure]].copy()
+        ds['eg_order'] = ds.groupby(['mnum', 'eg']).cumcount()
+        ds.sort_values(['mnum', 'eg', 'eg_order'], inplace=True)
+        ds.pop('eg_order')
+        ds.reset_index(inplace=True)
+        ds.set_index(['mnum', 'empkey'], drop=True, inplace=True)
+        ds.rename(columns={measure: col_name}, inplace=True)
+        ds_list[i] = ds
+
+        # ds['eg_order'] = ds.groupby('eg').cumcount()
+        # ds.sort_values(['eg', 'eg_order'], inplace=True)
+        # ds_list[i] = ds[ds.date.dt.year <= float(year_clip)][
+        #     ['eg', 'date', measure]].copy()
+        # ds_list[i].rename(columns={measure: col_name},
+        #                   inplace=True)
+        col_list.append(col_name)
         i += 1
 
     i = 0
@@ -2447,6 +2468,7 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
     for proposal in proposals_to_plot:
         compare_list.append(measure + str(proposal) + '_')
         i += 1
+
     cols.extend(compare_list)
 
     for eg in eg_list:

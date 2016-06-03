@@ -194,7 +194,7 @@ for i in range(len(ds_list)):
             cum_active_months = non_fur + starting_mlong
 
             df_long['scale'] = np.clip((cum_active_months / 12) + 1,
-                                       1, 12).astype(int)
+                                       1, cf.top_of_scale).astype(int)
             df_long.pop('non_fur')
 
         df_pt_index = pd.DataFrame(

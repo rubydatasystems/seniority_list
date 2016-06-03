@@ -16,9 +16,11 @@ skeleton_path_string = (pre + 'skel' + suf)
 proposal_order_string = (pre + proposal_name + suf)
 stand_path_string = (pre + 'stand' + suf)
 
-try:
+if proposal_name != 'hybrid':
     output_name = proposal_name.replace('p', 'ds')
-except:
+elif proposal_name == 'hybrid':
+    output_name = 'dsh'
+else:
     output_name = 'ds_'
 
 ds = pd.read_pickle(skeleton_path_string)
@@ -312,7 +314,8 @@ if cf.compute_pay_measures:
         cum_active_months = non_fur + starting_mlong
         ds['mlong'] = cum_active_months
         ds['ylong'] = ds['mlong'] / 12
-        ds['scale'] = np.clip((cum_active_months / 12) + 1, 1, 12).astype(int)
+        ds['scale'] = np.clip((cum_active_months / 12) + 1, 1,
+                              cf.top_of_scale).astype(int)
 
     # make a new long_form dataframe and assign a combination of
     # pay-related ds columns from large dataset as its index...

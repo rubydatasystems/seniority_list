@@ -2946,3 +2946,4 @@ def max_of_nested_lists(nested_list):
         x = max(lst)
         max_list.append(x)
     return max(max_list)
+
