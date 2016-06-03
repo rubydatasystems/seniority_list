@@ -2941,6 +2941,8 @@ def print_config_selections():
 
 
 def max_of_nested_lists(nested_list):
+    '''
+    '''
     max_list = []
     for lst in nested_list:
         x = max(lst)

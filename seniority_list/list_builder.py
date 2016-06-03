@@ -86,6 +86,7 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
     return df
 
 
+
 def prepare_master_list(name_int_demo=False):
 
     '''Add attribute columns to master list which can be used as factors

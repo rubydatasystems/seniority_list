@@ -10,6 +10,7 @@ from sys import argv
 
 script, proposal_name = argv
 
+
 pre, suf = 'dill/', '.pkl'
 
 skeleton_path_string = (pre + 'skel' + suf)

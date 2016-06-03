@@ -840,6 +840,7 @@ def eg_diff_boxplot(df_list, formatter, measure='spcnt',
         plt.show()
 
 
+#
 # DISTRIBUTION WITHIN JOB LEVEL (NBNF effect)
 def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
                                        eg_colors, band_colors, jobs_dict,
