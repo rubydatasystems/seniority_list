@@ -6,18 +6,21 @@ weighting and sorting methods.
 
 Typical workflow:
 
-sort_eg_attributes - sort date-type attributes by employee group to form a
-chronological order within each group.  (also works with any other attribute
-if needed).  Typical date columns to prepare in this manner would be doh and
-ldate.
-
 prepare_master_list - add columns to master list which can be used as hybrid
 list factors.  These columns are longevity, job, and percentage related.
 
 build_list - select, apply weighting, organize and sort a "hybrid" list.
 
-Note: the sort_and_rank is a helper function for the build_list function but
-may be used independently as well.
+Note: the sort_eg_attributes and sort_and_rank functions are helper functions
+which may be used as standalone functions as well.
+
+sort_eg_attributes - normally used within the prepare_master_list function.
+Sort date-type attributes by employee group to form a chronological order
+within each group without disturbing other columns order.  (also works with
+any other attribute if needed).  Typical date columns to prepare in this
+manner would be doh and ldate.
+
+The sort_and_rank is a helper function for the build_list function.
 
 '''
 
@@ -28,69 +31,13 @@ import config as cf
 import functions as f
 
 
-def sort_eg_attributes(df, attributes=['doh', 'ldate'],
-                       reverse_list=[0, 0], add_columns=False):
-    '''Sort master list attribute columns by employee group in preparation
-    for list construction.  The overall master list structure and order is
-    unaffected, only the selected attribute columns are sorted (normally
-    date-related columns such as doh or ldate)
-
-    inputs
-
-        df
-            The master data dataframe (does not need to be sorted)
-
-        attributes
-            columns to sort by eg (inplace)
-
-        reverse_list
-            If an attribute is to be sorted in reverse order (descending),
-            use a '1' in the list position corresponding to the position of
-            the attribute within the attributes input
-
-        add_columns
-            If True, an additional column for each sorted attribute will be
-            added to the resultant dataframe, with the suffix '_sort' added
-            to it.
-    '''
-    date_cols = []
-    for col in df:
-        if (df[col]).dtype == 'datetime64[ns]':
-            date_cols.append(col)
-    df = df.sort_values(['eg', 'eg_number'])
-    egs = np.array(df.eg)
-    i = 0
-    for measure in attributes:
-        data = np.array(df[measure])
-        for eg in np.unique(df.eg):
-            measure_slice = data[egs == eg]
-            measure_slice_index = np.where(egs == eg)[0]
-            measure_slice_sorted = np.sort(measure_slice, axis=0)
-            if reverse_list[i]:
-                measure_slice_invert = measure_slice_sorted[::-1]
-                measure_slice_sorted = measure_slice_invert
-            measure_col = np.empty_like(data)
-            measure_col[measure_slice_index] = measure_slice_sorted
-
-        if add_columns:
-            col_name = measure + '_sort'
-        else:
-            col_name = measure
-
-        df[col_name] = measure_col
-
-        if measure in date_cols:
-            df[col_name] = pd.to_datetime(df[col_name].dt.date)
-        i += 1
-
-    return df
-
-
-
-def prepare_master_list(name_int_demo=False):
+def prepare_master_list(name_int_demo=False, pre_sort=True):
 
     '''Add attribute columns to master list which can be used as factors
     to construct a list ordering.
+
+    Employee groups must be listed in seniority order in relation to employees
+    from the same group.  Order between groups is uninmportant at this step.
 
     New columns added: ['age', 's_lmonths', 'jnum', 'job_count', 'rank_in_job',
     'jobp', 'eg_number', 'eg_spcnt']
@@ -111,6 +58,9 @@ def prepare_master_list(name_int_demo=False):
         master_ = pd.read_pickle('sample_data/' + sample_prefix + 'master.pkl')
     else:
         master_ = pd.read_pickle('dill/master.pkl')
+
+    if pre_sort:
+        sort_eg_attributes(master_)
 
     master = master_[(master_.line == 1) | (master_.fur == 1)].copy()
 
@@ -188,7 +138,7 @@ def prepare_master_list(name_int_demo=False):
 
 
 def build_list(df, measure_list, weight_list, show_weightings=False,
-               absolute=True, return_df=False,
+               absolute=True, return_df=False, hide_rank_cols=True,
                invert=False, include_inactives=False, include_fur=True,
                cut=False, qcut=False, remove_retired=True):
     '''Construct a "hybrid" list ordering.
@@ -198,27 +148,103 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
     of the priority assigned amoung the attributes.  The attribute values
     from the employee groups may be evenly ratioed together or combined
     on an absolute basis where the actual values determine the positioning.
+
+    The output is the resultant dataframe and also a list order is written to
+    disk as 'dill/hybrid.pkl'.
     '''
     df = df.copy()
     df['hybrid'] = 0
     for i in np.arange(len(measure_list)):
-        measure_list[i] = measure_list[i] + '_rank'
+
         if show_weightings:
+            sort_and_rank(df, measure_list[i])
             df[measure_list[i] + '_wgt'] = \
-                df[measure_list[i]] * weight_list[i]
+                df[measure_list[i] + 'rank'] * weight_list[i]
             df['hybrid'] += df[measure_list[i] + '_wgt']
         else:
-            hybrid = np.array(df[measure_list[i]] * weight_list[i])
+            sort_and_rank(df, measure_list[i])
+            hybrid = np.array(df[measure_list[i] + '_rank'] * weight_list[i])
             df['hybrid'] += hybrid
 
-    df = sort_and_rank(df, 'hybrid', tiebreaker1='ldate', tiebreaker2='age',
-                       reverse=False)
-    df['idx'] = np.arange(len(df), dtype=int) + 1
+    df = sort_and_rank(df, 'hybrid')
+    if hide_rank_cols:
+        for measure in measure_list:
+            df.pop(measure + '_rank')
+        df['idx'] = df.hybrid_rank
+        df.pop('hybrid_rank')
+    else:
+        df['idx'] = np.arange(len(df), dtype=int) + 1
     df.set_index('empkey', drop=True, inplace=True)
     df[['idx']].to_pickle('dill/hybrid.pkl')
 
     if return_df:
+        cols = df.columns.tolist()
+        cols.insert(0, cols.pop(cols.index('idx')))
+        df = df.reindex(columns=cols)
         return df
+
+
+def sort_eg_attributes(df, attributes=['doh', 'ldate'],
+                       reverse_list=[0, 0], add_columns=False):
+    '''Sort master list attribute columns by employee group in preparation
+    for list construction.  The overall master list structure and order is
+    unaffected, only the selected attribute columns are sorted (normally
+    date-related columns such as doh or ldate)
+
+    inputs
+
+        df
+            The master data dataframe (does not need to be sorted)
+
+        attributes
+            columns to sort by eg (inplace)
+
+        reverse_list
+            If an attribute is to be sorted in reverse order (descending),
+            use a '1' in the list position corresponding to the position of
+            the attribute within the attributes input
+
+        add_columns
+            If True, an additional column for each sorted attribute will be
+            added to the resultant dataframe, with the suffix '_sort' added
+            to it.
+    '''
+    date_cols = []
+    for col in df:
+        if (df[col]).dtype == 'datetime64[ns]':
+            date_cols.append(col)
+    try:
+        df.sort_values(['eg', 'eg_number'], inplace=True)
+    except:
+        df.sort_values(['eg', 'eg_order'], inplace=True)
+
+    egs = np.array(df.eg)
+    i = 0
+    for measure in attributes:
+        data = np.array(df[measure])
+        measure_col = np.empty_like(data)
+        for eg in np.unique(df.eg):
+            measure_slice = data[egs == eg]
+            measure_slice_index = np.where(egs == eg)[0]
+            measure_slice_sorted = np.sort(measure_slice, axis=0)
+
+            if reverse_list[i]:
+                measure_slice_invert = measure_slice_sorted[::-1]
+                measure_slice_sorted = measure_slice_invert
+            np.put(measure_col, measure_slice_index, measure_slice_sorted)
+
+        if add_columns:
+            col_name = measure + '_sort'
+        else:
+            col_name = measure
+
+        df[col_name] = measure_col
+
+        if measure in date_cols:
+            df[col_name] = pd.to_datetime(df[col_name].dt.date)
+        i += 1
+
+    return df
 
 
 def sort_and_rank(df, col, tiebreaker1='ldate', tiebreaker2='age',
