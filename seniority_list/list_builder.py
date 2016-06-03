@@ -22,6 +22,11 @@ manner would be doh and ldate.
 
 The sort_and_rank is a helper function for the build_list function.
 
+The build_list function stores a pickle file that can then be used as an
+input to the compute_measures script.
+Example:
+%run compute_measures.py hybrid
+
 '''
 
 import pandas as pd
@@ -32,7 +37,6 @@ import functions as f
 
 
 def prepare_master_list(name_int_demo=False, pre_sort=True):
-
     '''Add attribute columns to master list which can be used as factors
     to construct a list ordering.
 
@@ -49,6 +53,12 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
             corresponding alpha-numeric percentage for constructing lists by
             last name.  This is a demo only to show that any attribute
             may be used as a list weighting factor.
+
+        pre_sort
+            sort the master data dataframe doh and ldate columns prior to
+            beginning any calculations.  This sort has no effect on the other
+            columns.  The s_lmonths coulumn will be calculated on the sorted
+            ldate data.
 
     Job-related attributes are referenced to job counts from the config file.
     '''
@@ -138,9 +148,7 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
 
 
 def build_list(df, measure_list, weight_list, show_weightings=False,
-               absolute=True, return_df=False, hide_rank_cols=True,
-               invert=False, include_inactives=False, include_fur=True,
-               cut=False, qcut=False, remove_retired=True):
+               return_df=False, hide_rank_cols=True):
     '''Construct a "hybrid" list ordering.
 
     Combine and sort various attributes according to variable multipliers to
@@ -151,7 +159,45 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
 
     The output is the resultant dataframe and also a list order is written to
     disk as 'dill/hybrid.pkl'.
+
+    input
+        df
+            the prepared dataframe output of the prepare_master_list function
+
+        measure_list
+            a list of attributes that form the basis of the final sorted list.
+            The employee groups will be combined, sorted, and numbered
+            according to these attributes one by one.  Each time the current
+            attribute numbered list is formed, a weighting is applied to that
+            order column.  The final result number will be the rank of the
+            cummulative total of the weighted attribute columns.
+
+        weight_list
+            a list of decimal weightings to apply to each corresponding
+            measure within the measure_list.  Normally the total of the
+            weight_list should be 1, but any numbers may be used as weightings
+            since the final result is a ranking of a cumulative total.
+
+        show_weightings
+            add columns to display the product of the weight/column
+            mutiplcation
+
+        return_df
+            option to return the new sorted hybrid dataframe as output.
+            Normally, the function produces a list ordering file which is
+            written to disk and used as an input by the compute measures
+            script.
+
+        hide_rank_cols
+            remove the attrubute rank columns from the dataframe unless
+            visual review is desired
     '''
+
+    # options todo:
+    #  , absolute=True,
+    # invert=False, include_inactives=False, include_fur=True,
+    # cut=False, qcut=False, remove_retired=True):
+
     df = df.copy()
     df['hybrid'] = 0
     for i in np.arange(len(measure_list)):
@@ -159,7 +205,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
         if show_weightings:
             sort_and_rank(df, measure_list[i])
             df[measure_list[i] + '_wgt'] = \
-                df[measure_list[i] + 'rank'] * weight_list[i]
+                df[measure_list[i] + '_rank'] * weight_list[i]
             df['hybrid'] += df[measure_list[i] + '_wgt']
         else:
             sort_and_rank(df, measure_list[i])
@@ -247,7 +293,7 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
     return df
 
 
-def sort_and_rank(df, col, tiebreaker1='ldate', tiebreaker2='age',
+def sort_and_rank(df, col, tiebreaker1='eg_spcnt', tiebreaker2='ldate',
                   reverse=False):
     '''Sort a datframe by a specified attribute and insert a column indicating
     the resultant ranking.  Tiebreaker inputs select columns to be used for
@@ -276,7 +322,7 @@ def sort_and_rank(df, col, tiebreaker1='ldate', tiebreaker2='age',
         df.sort_values([col, tiebreaker1, tiebreaker2],
                        inplace=True)
 
-    df[col + '_rank'] = np.arange(len(df), dtype=int) + 1
+    df[col + '_rank'] = np.arange(len(df), dtype=float) + 1
 
     return df
 

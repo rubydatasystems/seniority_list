@@ -266,8 +266,13 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
             if flip_x:
                 ax.invert_xaxis()
 
-            plt.suptitle(proposal_dict[proposal] + ', GROUP ' + eg_dict[eg],
-                         fontsize=20, y=1.02)
+            try:
+                plt.suptitle(proposal_dict[proposal] + ', GROUP ' +
+                             eg_dict[eg], fontsize=20, y=1.02)
+            except:
+                plt.suptitle('proposal' + ', GROUP ' + eg_dict[eg],
+                             fontsize=20, y=1.02)
+
             plt.title('years in position, ' + str(num_bins) + '-quantiles',
                       y=1.02)
 
@@ -276,8 +281,8 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
             ax.legend((labels), loc='center left',
                       bbox_to_anchor=(1, 0.5),
                       fontsize=legend_font_size)
-            #plt.yticks(fontsize=14)
-            #plt.yticks(fontsize=ytick_fontsize)
+            # plt.yticks(fontsize=14)
+            # plt.yticks(fontsize=ytick_fontsize)
             plt.tick_params(axis='y', labelsize=ytick_fontsize)
             fig = plt.gcf()
             fig.set_size_inches(xsize, ysize)
@@ -338,13 +343,18 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                         bbox_to_anchor=(1, 0.5),
                         fontsize=legend_font_size)
 
-                plt.suptitle(proposal_dict[proposal] +
-                             ', GROUP ' + eg_dict[eg],
-                             fontsize=20, y=1.02)
+                try:
+                    plt.suptitle(proposal_dict[proposal] +
+                                 ', GROUP ' + eg_dict[eg],
+                                 fontsize=20, y=1.02)
+                except:
+                    plt.suptitle('proposal' +
+                                 ', GROUP ' + eg_dict[eg],
+                                 fontsize=20, y=1.02)
                 plt.title('years differential vs standalone, ' +
                           str(num_bins) + '-quantiles',
                           y=1.02)
-                #plt.yticks(fontsize=ytick_fontsize)
+                # plt.yticks(fontsize=ytick_fontsize)
                 plt.tick_params(axis='y', labelsize=ytick_fontsize)
                 fig = plt.gcf()
                 fig.set_size_inches(xsize, ysize)
@@ -416,10 +426,16 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
                   ', month ' +
                   str(mnum), y=1.02)
     else:
-        plt.title(proposal_dict[proposal_text] +
-                  ' - age vs seniority percentage' +
-                  ', month ' +
-                  str(mnum), y=1.02)
+        try:
+            plt.title(proposal_dict[proposal_text] +
+                      ' - age vs seniority percentage' +
+                      ', month ' +
+                      str(mnum), y=1.02)
+        except:
+            plt.title('proposal' +
+                      ' - age vs seniority percentage' +
+                      ', month ' +
+                      str(mnum), y=1.02)
     plt.legend(loc=2)
     fig = plt.gcf()
     fig.set_size_inches(xsize, ysize)
@@ -523,7 +539,10 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     if chart_example:
         plt.title(measure + ' - ' + 'proposal 1', y=1.02)
     else:
-        plt.title(measure + ' - ' + proposal_dict[proposal], y=1.02)
+        try:
+            plt.title(measure + ' - ' + proposal_dict[proposal], y=1.02)
+        except:
+            plt.title(measure + ' - ' + 'proposal', y=1.02)
     plt.ylabel(measure)
     plt.legend(loc=4)
     plt.show()
@@ -608,9 +627,15 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
         if measure == 'ylong':
             plt.ylim(0, 40)
     else:
-        plt.title(measure.upper() +
-                  ' ordered by ' + xax + ' - ' +
-                  proposal_dict[proposal] + ' - Month: ' + str(mnum), y=1.02)
+        try:
+            plt.title(measure.upper() +
+                      ' ordered by ' + xax + ' - ' +
+                      proposal_dict[proposal] + ' - Month: ' + str(mnum),
+                      y=1.02)
+        except:
+            plt.title(measure.upper() +
+                      ' ordered by ' + xax + ' - ' +
+                      'proposal' + ' - Month: ' + str(mnum), y=1.02)
     plt.ylabel(measure)
     plt.xlabel(xax)
     plt.show()
@@ -638,9 +663,14 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
                   measure.upper() + ' Distribution - Month ' +
                   str(mnum), y=1.02)
     else:
-        plt.title(proposal_dict[proposal] + ' - ' +
-                  measure.upper() + ' Distribution - Month ' +
-                  str(mnum), y=1.02)
+        try:
+            plt.title(proposal_dict[proposal] + ' - ' +
+                      measure.upper() + ' Distribution - Month ' +
+                      str(mnum), y=1.02)
+        except:
+            plt.title('proposal' + ' - ' +
+                      measure.upper() + ' Distribution - Month ' +
+                      str(mnum), y=1.02)
     fig = plt.gca()
     if measure == 'age':
         plt.ylim(25, 70)
@@ -1807,12 +1837,21 @@ def job_transfer(p_df, p_text, comp_df, comp_df_text, eg, colors,
         plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
         plt.ylabel('change in job count', fontsize=16)
         plt.xlabel('date', fontsize=16, labelpad=15)
-        title_string = 'GROUP ' + cf.eg_dict[eg] + \
-            ' Jobs Exchange' + '\n' + \
-            cf.proposal_dict[p_text] + \
-            ' compared to ' + cf.proposal_dict[comp_df_text]
-        plt.title(title_string,
-                  fontsize=16, y=1.02)
+
+        try:
+            title_string = 'GROUP ' + cf.eg_dict[eg] + \
+                ' Jobs Exchange' + '\n' + \
+                cf.proposal_dict[p_text] + \
+                ' compared to ' + cf.proposal_dict[comp_df_text]
+            plt.title(title_string,
+                      fontsize=16, y=1.02)
+        except:
+            title_string = 'GROUP ' + cf.eg_dict[eg] + \
+                ' Jobs Exchange' + '\n' + \
+                p_text + \
+                ' compared to ' + comp_df_text
+            plt.title(title_string,
+                      fontsize=16, y=1.02)
 
         fig.set_size_inches(xsize, ysize)
         plt.show()
