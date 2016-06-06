@@ -34,6 +34,7 @@ import numpy as np
 
 import config as cf
 import functions as f
+import warnings
 
 
 def prepare_master_list(name_int_demo=False, pre_sort=True):
@@ -497,7 +498,7 @@ def find_row_orphans(base_df, compare_df, col,
         return base_loners, compare_loners
 
 
-def compare_dataframes(base, compare, return_orpahns=True,
+def compare_dataframes(base, compare, return_orphans=True,
                        ignore_case=True, print_info=False,
                        convert_np_timestamps=True):
     """
@@ -538,6 +539,8 @@ def compare_dataframes(base, compare, return_orpahns=True,
             this option will convert back to a date-only object for comparison.
 
     """
+    # warnings.filterwarnings('ignore', category=FutureWarning)
+
     try:
         assert ((isinstance(base, pd.DataFrame)) |
                 (isinstance(base, pd.Series))) and \
@@ -560,8 +563,8 @@ def compare_dataframes(base, compare, return_orpahns=True,
         print('comp length:', len(compare))
         print('common index count:', len(common_rows), '\n')
 
-    # ------------------------------------------------------------
-    if return_orpahns:
+    # orphans section---------------------------------------------------------
+    if return_orphans:
         base_orphans = list(base.index[~base.index.isin(compare.index)])
         compare_orphans = list(compare.index[~compare.index.isin(base.index)])
         base_col_name = 'base_orphans'
@@ -651,22 +654,25 @@ def compare_dataframes(base, compare, return_orpahns=True,
 
     zipped = []
     col_counts = []
-    for col in base:
-        base_np = np.array(base[col])
-        compare_np = np.array(compare[col])
-        row_ = np.where(base_np != compare_np)[0]
-        index_ = base.iloc[np.where(base_np != compare_np)[0]].index
-        col_ = np.array([col] * row_.size)
-        base_ = base_np[np.where(base_np != compare_np)]
-        compare_ = compare_np[np.where(base_np != compare_np)]
-        if (base[col]).dtype == 'datetime64[ns]' and convert_np_timestamps:
-            try:
-                base_ = base_.astype('M8[D]').astype('O')
-                compare_ = compare_.astype('M8[D]').astype('O')
-            except:
-                pass
-        zipped.extend(list(zip(row_, index_, col_, base_, compare_)))
-        col_counts.append(row_.size)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=FutureWarning)
+        for col in base:
+            base_np = np.array(base[col])
+            compare_np = np.array(compare[col])
+            unequal = np.not_equal(base_np, compare_np)
+            row_ = np.where(unequal)[0]
+            index_ = base.iloc[row_].index
+            col_ = np.array([col] * row_.size)
+            base_ = base_np[unequal]
+            compare_ = compare_np[unequal]
+            if (base[col]).dtype == 'datetime64[ns]' and convert_np_timestamps:
+                try:
+                    base_ = base_.astype('M8[D]').astype('O')
+                    compare_ = compare_.astype('M8[D]').astype('O')
+                except:
+                    pass
+            zipped.extend(list(zip(row_, index_, col_, base_, compare_)))
+            col_counts.append(row_.size)
 
     diffs = pd.DataFrame(
         zipped, columns=['row', 'index', 'column', 'base', 'compare'])
@@ -690,7 +696,7 @@ def compare_dataframes(base, compare, return_orpahns=True,
                   '\n')
 
     else:
-        if return_orpahns:
+        if return_orphans:
             return diffs, base_loners, compare_loners
         else:
             return diffs
