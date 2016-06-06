@@ -407,6 +407,11 @@ def find_row_orphans(base_df, compare_df, col,
 
     Returns separate dataframse with the series orphans.
 
+    Note:  If there are orphans found that have identical values, they will
+    both be reported. However, currently the routine will only find the first
+    corresponding index location found and report that location for
+    both orphans.
+
     inputs
 
         base_df
@@ -468,11 +473,11 @@ def find_row_orphans(base_df, compare_df, col,
             loc_list.append(df.index.get_loc(orphan))
         return loc_list
 
-    def find_val_locs(df, orphans):
+    def find_val_locs(df, orphans, col):
 
         loc_list = []
         for orphan in orphans:
-            if base_df[col].dtype == 'datetime64[ns]':
+            if df[col].dtype == 'datetime64[ns]':
                 loc_list.append(list(df[col]).index(pd.to_datetime(orphan)))
             else:
                 loc_list.append(list(df[col]).index(orphan))
@@ -482,7 +487,8 @@ def find_row_orphans(base_df, compare_df, col,
         if col == 'index':
             base_loners['index_loc'] = find_label_locs(base_df, base_orphans)
         else:
-            base_loners['index_loc'] = find_val_locs(base_df, base_orphans)
+            base_loners['index_loc'] = find_val_locs(base_df,
+                                                     base_orphans, col)
 
     if compare_orphans:
         if col == 'index':
@@ -490,7 +496,8 @@ def find_row_orphans(base_df, compare_df, col,
                                                           compare_orphans)
         else:
             compare_loners['index_loc'] = find_val_locs(compare_df,
-                                                        compare_orphans)
+                                                        compare_orphans,
+                                                        col)
 
     if print_output:
         print('BASE:\n', base_loners, '\nCOMPARE:\n', compare_loners)
@@ -539,8 +546,6 @@ def compare_dataframes(base, compare, return_orphans=True,
             this option will convert back to a date-only object for comparison.
 
     """
-    # warnings.filterwarnings('ignore', category=FutureWarning)
-
     try:
         assert ((isinstance(base, pd.DataFrame)) |
                 (isinstance(base, pd.Series))) and \
@@ -667,8 +672,8 @@ def compare_dataframes(base, compare, return_orphans=True,
             compare_ = compare_np[unequal]
             if (base[col]).dtype == 'datetime64[ns]' and convert_np_timestamps:
                 try:
-                    base_ = base_.astype('M8[D]').astype('O')
-                    compare_ = compare_.astype('M8[D]').astype('O')
+                    base_ = base_.astype('M8[D]')
+                    compare_ = compare_.astype('M8[D]')
                 except:
                     pass
             zipped.extend(list(zip(row_, index_, col_, base_, compare_)))
@@ -700,3 +705,56 @@ def compare_dataframes(base, compare, return_orphans=True,
             return diffs, base_loners, compare_loners
         else:
             return diffs
+
+
+# FIND LABEL LOCATIONS (index input)
+def find_index_locs(df, index_values):
+    '''Find the index location of an array-like input of index labels.
+
+    Returns a list containing the index location(s).
+
+    inputs
+
+        df
+            dataframe - the index_values input is a subset of the
+            dataframe index.
+
+        index_values
+            array-like collection of values which are a subset of the dataframe
+            index
+    '''
+
+    loc_list = []
+    for val in index_values:
+        loc_list.append(df.index.get_loc(val))
+    return loc_list
+
+
+# FIND SERIES VALUE INDEX LOCATIONS
+def find_series_locs(df, series_values, column_label):
+    '''Find the index location of an array-like input of series values.
+
+    Returns a list containing the index location(s).
+
+    inputs
+
+        df
+            dataframe - the series_values input is a subset of one of the
+            dataframe columns.
+
+        series_values
+            array-like collection of values which are a subset of one of
+            the dataframe columns (the column_lable input)
+
+        column_label
+            the series within the pandas dataframe containing the series_values
+    '''
+
+    loc_list = []
+    for val in series_values:
+        if df[column_label].dtype == 'datetime64[ns]':
+            loc_list.append(list(df[column_label]).index(pd.to_datetime(val)))
+        else:
+            loc_list.append(list(df[column_label]).index(val))
+    return loc_list
+
