@@ -395,3 +395,302 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
         name_percentages = name_percentages[:-2]
 
     return int_names, int_range, name_percentages
+
+
+def find_row_orphans(base_df, compare_df, col,
+                     ignore_case=True, print_output=False):
+    '''Given two columns (series) with the same column label in separate pandas
+    dataframes, return values which are unique to one or the other column,
+    not common to both series.
+    Will also work with dataframe indexes.
+
+    Returns separate dataframse with the series orphans.
+
+    inputs
+
+        base_df
+            first dataframe to compare
+
+        compare_df
+            second dataframe to compare
+
+        col
+            column label of the series to compare.
+            routine will compare the dataframe indexes with the
+            input of 'index'.
+
+        ignore_case
+            convert col to lowercase prior to comparison
+
+        print_output
+            print results instead of returning results
+    '''
+
+    col = col.lower()
+    base_df.columns = map(str.lower, base_df.columns)
+    compare_df.columns = map(str.lower, compare_df.columns)
+
+    if col == 'index':
+        base_series = base_df.index
+        compare_series = compare_df.index
+    else:
+        if (col not in base_df) or (col not in compare_df):
+            print(col + ' is not a column in both dataframes...')
+            return
+        else:
+            base_series = base_df[col]
+            compare_series = compare_df[col]
+
+    if ignore_case:
+        try:
+            base_series = base_series.str.lower()
+            compare_series = compare_series.str.lower()
+            base_df[col] = base_series
+            compare_df[col] = compare_series
+        except:
+            pass
+
+    base_orphans = list(base_series[~base_series.isin(compare_series)])
+    compare_orphans = list(compare_series[~compare_series.isin(base_series)])
+    base_col_name = 'base_orphans'
+    compare_col_name = 'compare_orphans'
+
+    base_loners = pd.DataFrame(base_orphans,
+                               columns=[base_col_name])
+    compare_loners = pd.DataFrame(compare_orphans,
+                                  columns=[compare_col_name])
+
+    def find_label_locs(df, orphans):
+
+        loc_list = []
+        for orphan in orphans:
+            loc_list.append(df.index.get_loc(orphan))
+        return loc_list
+
+    def find_val_locs(df, orphans):
+
+        loc_list = []
+        for orphan in orphans:
+            if base_df[col].dtype == 'datetime64[ns]':
+                loc_list.append(list(df[col]).index(pd.to_datetime(orphan)))
+            else:
+                loc_list.append(list(df[col]).index(orphan))
+        return loc_list
+
+    if base_orphans:
+        if col == 'index':
+            base_loners['index_loc'] = find_label_locs(base_df, base_orphans)
+        else:
+            base_loners['index_loc'] = find_val_locs(base_df, base_orphans)
+
+    if compare_orphans:
+        if col == 'index':
+            compare_loners['index_loc'] = find_label_locs(compare_df,
+                                                          compare_orphans)
+        else:
+            compare_loners['index_loc'] = find_val_locs(compare_df,
+                                                        compare_orphans)
+
+    if print_output:
+        print('BASE:\n', base_loners, '\nCOMPARE:\n', compare_loners)
+    else:
+        return base_loners, compare_loners
+
+
+def compare_dataframes(base, compare, return_orpahns=True,
+                       ignore_case=True, print_info=False,
+                       convert_np_timestamps=True):
+    """
+    Compare all common index and common column DataFrame values and
+    report if any value is not equal in a returned dataframe.
+
+    Values are compared only by index and column label, not order.
+    Therefore, the only values compared are within common index rows
+    and common columns.  The routine will report the common columns and
+    any unique index rows when the print_info option is selected (True).
+
+    Inputs are pandas dataframes and/or pandas series
+
+    inputs
+
+        base
+            baseline dataframe or series
+
+        compare
+            dataframe or series to compare against the baseline (base)
+
+        return_orphans
+            separately calculate and return the rows which are unique to
+            base and compare
+
+        ignore_case
+            convert the column labels and column data to be compared to
+            lowercase - this will avoid differences detected based on string
+            case
+
+        print_info
+            option to print out to console verbose statistical information
+            and the dataframe(s) instead of returning dataframe(s)
+
+        convert_np_timestamps
+            numpy returns datetime64 objects when the source is a datetime
+            date-only object.
+            this option will convert back to a date-only object for comparison.
+
+    """
+    try:
+        assert ((isinstance(base, pd.DataFrame)) |
+                (isinstance(base, pd.Series))) and \
+            ((isinstance(compare, pd.DataFrame)) |
+             (isinstance(compare, pd.Series)))
+    except:
+        print('Routine aborted. Inputs must be a pandas dataframe or series.')
+        return
+
+    if isinstance(base, pd.Series):
+        base = pd.DataFrame(base)
+    if isinstance(compare, pd.Series):
+        compare = pd.DataFrame(compare)
+
+    common_rows = list(base.index[base.index.isin(compare.index)])
+
+    if print_info:
+        print('\nROW AND INDEX INFORMATION:\n')
+        print('base length:', len(base))
+        print('comp length:', len(compare))
+        print('common index count:', len(common_rows), '\n')
+
+    # ------------------------------------------------------------
+    if return_orpahns:
+        base_orphans = list(base.index[~base.index.isin(compare.index)])
+        compare_orphans = list(compare.index[~compare.index.isin(base.index)])
+        base_col_name = 'base_orphans'
+        compare_col_name = 'compare_orphans'
+
+        base_loners = pd.DataFrame(base_orphans,
+                                   columns=[base_col_name])
+        compare_loners = pd.DataFrame(compare_orphans,
+                                      columns=[compare_col_name])
+
+        def find_label_locs(df, orphans):
+
+            loc_list = []
+            for orphan in orphans:
+                loc_list.append(df.index.get_loc(orphan))
+            return loc_list
+
+        if base_orphans:
+            base_loners['index_loc'] = find_label_locs(base, base_orphans)
+            if print_info:
+                print('BASE LONERS (rows, by index):')
+                print(base_loners, '\n')
+        else:
+            if print_info:
+                print('''There are no unique index rows in the base input vs.
+                      the compare input.\n''')
+
+        if compare_orphans:
+            compare_loners['index_loc'] = find_label_locs(compare,
+                                                          compare_orphans)
+            if print_info:
+                print('COMPARE LONERS (rows, by index):')
+                print(compare_loners, '\n')
+        else:
+            if print_info:
+                print('''There are no unique index rows in the compare input
+                      vs. the base input.\n''')
+    # -----------------------------------------------------------------------
+
+    base = base.loc[common_rows]
+    compare = compare.loc[common_rows]
+
+    unequal_cols = []
+    equal_cols = []
+
+    if ignore_case:
+        base.columns = map(str.lower, base.columns)
+        compare.columns = map(str.lower, compare.columns)
+
+    common_cols = list(base.columns[base.columns.isin(compare.columns)])
+    base_only_cols = list(base.columns[~base.columns.isin(compare.columns)])
+    comp_only_cols = list(compare.columns[~compare.columns.isin(base.columns)])
+
+    if print_info:
+        same_col_list = []
+        print('\nCOMMON COLUMN equivalency:\n')
+    for col in common_cols:
+        if ignore_case:
+            try:
+                base[col] = base[col].str.lower()
+                compare[col] = compare[col].str.lower()
+            except:
+                pass
+        same_col = base[col].sort_index().equals(compare[col].sort_index())
+        if print_info:
+            same_col_list.append(same_col)
+        if not same_col:
+            unequal_cols.append(col)
+        else:
+            equal_cols.append(col)
+
+    base = base[unequal_cols]
+    compare = compare[unequal_cols]
+
+    if print_info:
+        same_col_df = pd.DataFrame(list(zip(common_cols, same_col_list)),
+                                   columns=['common_col', 'equivalent'])
+        same_col_df.sort_values(['equivalent', 'common_col'], inplace=True)
+        same_col_df.reset_index(drop=True, inplace=True)
+        print(same_col_df, '\n')
+        print('\nCOLUMN INFORMATION:')
+        print('\ncommon columns:\n', common_cols)
+        print('\ncommon and equal columns:\n', equal_cols)
+        print('\ncommon but unequal columns:\n', unequal_cols)
+        print('\ncols only in base:\n', base_only_cols)
+        print('\ncols only in compare:\n', comp_only_cols, '\n')
+
+    zipped = []
+    col_counts = []
+    for col in base:
+        base_np = np.array(base[col])
+        compare_np = np.array(compare[col])
+        row_ = np.where(base_np != compare_np)[0]
+        index_ = base.iloc[np.where(base_np != compare_np)[0]].index
+        col_ = np.array([col] * row_.size)
+        base_ = base_np[np.where(base_np != compare_np)]
+        compare_ = compare_np[np.where(base_np != compare_np)]
+        if (base[col]).dtype == 'datetime64[ns]' and convert_np_timestamps:
+            try:
+                base_ = base_.astype('M8[D]').astype('O')
+                compare_ = compare_.astype('M8[D]').astype('O')
+            except:
+                pass
+        zipped.extend(list(zip(row_, index_, col_, base_, compare_)))
+        col_counts.append(row_.size)
+
+    diffs = pd.DataFrame(
+        zipped, columns=['row', 'index', 'column', 'base', 'compare'])
+    diffs.sort_values('row', inplace=True)
+    diffs.reset_index(drop=True, inplace=True)
+
+    if print_info:
+        print('\nDIFFERENTIAL DATAFRAME:\n')
+        print(diffs)
+        print('\nSUMMARY:\n')
+        print('''{!r} total differences found in
+              common rows and columns\n'''.format(len(zipped)))
+
+        if len(zipped) == 0:
+            print('''Comparison complete, dataframes are
+                  equivalent. \nIndex and Column order may be different\n''')
+        else:
+            print('Breakdown by column:\n',
+                  pd.DataFrame(list(zip(base.columns, col_counts)),
+                               columns=['column', 'diff_count']),
+                  '\n')
+
+    else:
+        if return_orpahns:
+            return diffs, base_loners, compare_loners
+        else:
+            return diffs
