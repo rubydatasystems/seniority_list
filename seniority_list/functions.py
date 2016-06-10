@@ -1238,7 +1238,7 @@ def create_snum_array(jobs_held, monthly_population_counts):
     Returns ndarray for use in seniority number (snum) column.
     '''
     seq_nums = np.arange(1, monthly_population_counts[0] + 1)
-
+    # TODO consider np.sum vs sum below (is input always np array?)
     long_snum_array = np.zeros(sum(monthly_population_counts))
     tcount = 0
 
@@ -1296,13 +1296,15 @@ def create_snum_and_spcnt_arrays(jnums, job_level_count,
     fur_level = job_level_count + 1
     seq_nums = np.arange(1, monthly_population_counts[0] + 1)
 
-    # both arrays below are long_form (approx 1.6 million rows)
-    long_snum_array = np.zeros(sum(monthly_population_counts))
-    long_denom_array = np.zeros(sum(monthly_population_counts))
-    long_list_array = np.zeros(sum(monthly_population_counts))
-    long_lspcnt_array = np.zeros(sum(monthly_population_counts))
-    long_lspcnt_denom = np.zeros(sum(monthly_population_counts))
-    long_spcnt_array = np.zeros(sum(monthly_population_counts))
+    # TODO consider np.sum if monthly_population_counts is always np array
+    monthly_population = sum(monthly_population_counts)
+
+    long_snum_array = np.zeros(monthly_population)
+    long_denom_array = np.zeros(monthly_population)
+    long_list_array = np.zeros(monthly_population)
+    long_lspcnt_array = np.zeros(monthly_population)
+    long_lspcnt_denom = np.zeros(monthly_population)
+    long_spcnt_array = np.zeros(monthly_population)
 
     L = 0
 
@@ -1659,7 +1661,7 @@ def make_decile_bands(num_bands):
     cutter = (num_bands * 2) + 1
     cuts = np.round(np.linspace(0, 1, cutter) * 100, 2)
     width = 100 / num_bands
-    strider = sum(cuts < 10)
+    strider = np.sum(cuts < 10)
     lower = list(cuts[strider - 1::strider])
     upper = list(cuts[1::strider])
     upper.append(100)
@@ -1891,7 +1893,7 @@ def assign_range_with_east_grp4_cond(job, this_job_count,
         available, eg_counts, weights).astype(int)
 
     # if jobs held are less than available count (total alloted by condition)
-    if sum(assignment_list) > 0:
+    if np.sum(assignment_list) > 0:
 
         amer_quota = assignment_list[0]
         east_quota = assignment_list[1]
@@ -2002,7 +2004,7 @@ def mark_for_recall(orig_range, num_of_job_levels,
             set stride if stride option for recall selected
             default is 2
     '''
-    active_count = sum(fur_range == 0)
+    active_count = np.sum(fur_range == 0)
     excess_job_slots = jobs_avail[month] - active_count
 
     if excess_job_slots > 0:
@@ -2086,7 +2088,7 @@ def mark_for_furlough(orig_range, fur_range, month,
             from config file, used to mark fur job level as
             num_of_job_levels + 1
     '''
-    active_count = sum(fur_range == 0)
+    active_count = np.sum(fur_range == 0)
 
     excess_job_slots = jobs_avail[month] - active_count
 
