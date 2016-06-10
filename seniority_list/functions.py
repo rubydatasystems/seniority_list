@@ -101,7 +101,7 @@ def last_month_mpay_pcnt(ret_list):
 
 
 # AGE AT START DATE
-def starting_age(ret_list, start_date=cf.starting_date, retage=65):
+def starting_age(ret_list, start_date=cf.starting_date, retage=cf.ret_age):
     '''Short_Form
     Returns decimal age at given date.
     Input is list of retirement dates
@@ -197,7 +197,7 @@ def gen_emp_skeleton_index(monthly_active_count_nparay, career_mths_nparray):
 
 # AGE FOR EACH MONTH (correction to starting age)
 @jit
-def age_correction(month_nums_array, ages_array, retage=65):
+def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
     '''Long_Form
     Returns a long_form (all months) array of employee ages by
     incrementing starting ages according to month number.
@@ -942,10 +942,11 @@ def assign_jobs_nbnf_job_changes(df_align,
 
     # calc amer grp4 condition month range and concat to
     # job_change_months
-    if proposal_name_text == 'p1' and cf.apply_amer_cond:
+    if proposal_name_text == 'p1' and cf.apply_ratio_cond:
         amer_cond = np.array(cf.amr_g4_cond)
         amer_jobs = np.transpose(amer_cond)[1]
-        amer_cond_ratio_month = amer_cond[0][2]
+        ratio_cond_month = amer_cond[0][2]
+        ratio_cond_job = 1
         amr_month_range = np.arange(np.min(amer_cond[:, 2]),
                                     np.max(amer_cond[:, 3]))
         job_change_months = np.concatenate((job_change_months,
@@ -1018,24 +1019,26 @@ def assign_jobs_nbnf_job_changes(df_align,
                                job)
 
                 # **AMR GRP4 condition**
-                if proposal_name_text == 'p1' and cf.apply_amer_cond:
+                if proposal_name_text == 'p1' and cf.apply_ratio_cond:
                     # TODO refactor cond_dict below so it only runs once...
                     # instead of 8 or 16 times...
-                    if month == amer_cond_ratio_month and job == 1:
+                    if month == ratio_cond_month and job == ratio_cond_job:
 
-                        a_cond_dict = set_amer_gr4_ratios(amer_jobs,
-                                                          orig_job_range,
-                                                          eg_range)
+                        ratio_cond_dict = set_ratio_cond_dict(1,
+                                                              amer_jobs,
+                                                              orig_job_range,
+                                                              eg_range)
 
                     if month in amr_month_range and job in amer_jobs:
 
-                        assign_range_with_amer_grp4_cond(job,
-                                                         this_job_count,
-                                                         a_cond_dict,
-                                                         orig_job_range,
-                                                         assign_range,
-                                                         eg_range,
-                                                         fur_range)
+                        assign_range_ratio_cond(job,
+                                                this_job_count,
+                                                1,
+                                                ratio_cond_dict,
+                                                orig_job_range,
+                                                assign_range,
+                                                eg_range,
+                                                fur_range)
 
                 # **EAST GRP4 condition**
                 if proposal_name_text == 'p2' and cf.apply_east_cond:
@@ -1776,38 +1779,39 @@ def get_job_reduction_months(job_changes):
     return month_list
 
 
-# ASSIGN AMERICAN CONDITION GROUP 4 JOBS
-def assign_range_with_amer_grp4_cond(job, this_job_count,
-                                     c_dict, orig_rnge, assign_rnge,
-                                     eg_rnge, fur_rnge):
-    ''' Apply american proposed group 4 condition
-    # condition begins on implementation date and expires 1-1-2020
+# ASSIGN JOBS BY RATIO CONDITION
+def assign_range_ratio_cond(job, this_job_count, eg_num,
+                            c_dict, orig_rng, assign_rng,
+                            eg_rng, fur_rng):
+    ''' Apply a job ratio condition
+    # main job assignment function calls this function in appropriate month
+    and with appropriate job data
 
-    # group 4 job counts are as of implementation date
-    # ratio of american to (east and west) combined...
+    # as written, ratios one group with one or more groups, may be recoded
+    to permit other combinations of ratios.
     '''
-    amer_job_count = int(round(c_dict[job] * this_job_count))
+    eg1_job_count = int(round(c_dict[job] * this_job_count))
 
-    us_job_count = int(this_job_count - amer_job_count)
-    np.put(assign_rnge,
-           np.where((assign_rnge == 0) &
-                    (eg_rnge == 1) &
-                    (fur_rnge == 0))[0][:amer_job_count],
+    not_eg1_job_count = int(this_job_count - eg1_job_count)
+    np.put(assign_rng,
+           np.where((assign_rng == 0) &
+                    (eg_rng == eg_num) &
+                    (fur_rng == 0))[0][:eg1_job_count],
            job)
-    # assign us nbnf jobs first
-    np.put(assign_rnge,
-           np.where((assign_rnge == 0) &
-                    (eg_rnge > 1) &
-                    (fur_rnge == 0) &
-                    (orig_rnge <= job))[0][:us_job_count],
+    # assign not_eg1 nbnf jobs
+    np.put(assign_rng,
+           np.where((assign_rng == 0) &
+                    (eg_rng != eg_num) &
+                    (fur_rng == 0) &
+                    (orig_rng <= job))[0][:not_eg1_job_count],
            job)
 
-    used_jobs = np.where((assign_rnge == job) & (eg_rnge > 1))[0].size
-    # then assign any remaining us jobs by seniority
-    np.put(assign_rnge,
-           np.where((assign_rnge == 0) &
-                    (eg_rnge > 1) &
-                    (fur_rnge == 0))[0][:us_job_count - used_jobs],
+    used_jobs = np.where((assign_rng == job) & (eg_rng > 1))[0].size
+    # then assign any remaining non_eg1 jobs by seniority
+    np.put(assign_rng,
+           np.where((assign_rng == 0) &
+                    (eg_rng != eg_num) &
+                    (fur_rng == 0))[0][:not_eg1_job_count - used_jobs],
            job)
 
 
@@ -1944,22 +1948,22 @@ def assign_range_with_east_grp4_cond(job, this_job_count,
                    job)
 
 
-# SET_AMER_GR4_RATIOS
-def set_amer_gr4_ratios(job_list, orig_rng, eg_range):
-    '''Determine the job ratios to carry forward during
-    the amer grp4 cond period for job assignment
+# SET_RATIO_COND_DICT
+def set_ratio_cond_dict(eg_num, job_list, orig_rng, eg_range):
+    '''Determine the job distribution ratios to carry forward during
+    the ratio condition application period
 
-    called at implementation month
+    likely called at implementation month by main job assignment function
     '''
-    amer_cond_dict = {}
+    ratio_cond_dict = {}
     for job in job_list:
 
         total_this_job_count = np.sum(orig_rng == job)
-        amer_count = np.sum((orig_rng == job) & (eg_range == 1))
-        amer_ratio = round(amer_count / total_this_job_count, 2)
-        amer_cond_dict[job] = amer_ratio
+        eg_count = np.sum((orig_rng == job) & (eg_range == eg_num))
+        eg_ratio = round(eg_count / total_this_job_count, 2)
+        ratio_cond_dict[job] = eg_ratio
 
-    return amer_cond_dict
+    return ratio_cond_dict
 
 
 # RECALL
@@ -2918,7 +2922,7 @@ def print_config_selections():
                    'enhanced_jobs': cf.enhanced_jobs,
                    'apply_supc': cf.apply_supc,
                    'apply_east_cond': cf.apply_east_cond,
-                   'apply_amer_cond': cf.apply_amer_cond,
+                   'apply_amer_cond': cf.apply_ratio_cond,
                    'starting_date': cf.starting_date,
                    'delayed_implementation': cf.delayed_implementation,
                    'intl_blk_pcnt': cf.intl_blk_pcnt,

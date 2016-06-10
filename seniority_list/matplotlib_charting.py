@@ -1266,13 +1266,108 @@ def differential_scatter(base_ds, compare_ds_list,
 # others, use .mean
 def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
                            formatter, plt_kind='bar', rets_only=True,
+                           ret_age=cf.ret_age,
+                           measure_subset='age', measure_val=55,
+                           measure_val2=65, operator='equals',
                            time_group='A', display_yrs=40, legend_loc=4,
                            xsize=12, ysize=10, chart_example=False):
 
+    '''Inverted bar chart display of job counts by group over time.  Various
+    filters may be applied to study slices of the datasets.
+
+    The 'rets_only' option will display the count of employees retiring from
+    each year grouped by job level.
+
+    When the 'rets_only' option is not set True, the data slice to examine is
+    selected with the [measure_subset, measure_val, measure_val2(optional),
+    and operator] inputs.  For example, to study the annual job distribution
+    of employees between the ages of 35 and 45, select a measure_subset of
+    'age', measure_val of 35, measure_val2 of 45, and operator as 'between'.
+
+    The 'measure_val2' input is only used and applicable when the 'between'
+    operator is selected.
+
+    inputs
+
+        proposal
+            dataset (dataframe) to study
+
+        prop_text
+            text representation of the proposal variable name
+
+        eg_list
+            list of unique employee group numbers within the proposal
+            Example: [1, 2]
+
+        jobs
+            list of job label strings (for plot legend)
+
+        colors
+            list of colors to be used for plotting
+
+        formatter
+            matplotlib formatter, used to set the y-axis scaling to percentage
+            when 'rets_only' is selected
+
+        plt_kind
+            'bar' or 'area' (bar recommended)
+
+        rets_only
+            calculate for employees at retirement age only
+
+        ret_age
+            retirement age in years
+
+        measure_subset
+            filtering attribute if rets_only is not selected
+
+        measure_val
+            primary value for filtering with measure_subset
+
+        measure_val2
+            if 'between' is the operator input, this is the secondary filter
+            value
+
+        operator
+            'equals', 'greater_than', 'less_than', or 'between' operator for
+            measure subset filtering
+
+        time_group
+            group counts/percentages by year ('A'), quarter ('Q'),
+            or month ('M')
+
+        display_years
+            when using the bar chart type display, evenly scale the x axis
+            to include the number of years selected for all group charts
+
+        legend_loc
+            matplotlib legend location number code
+
+        xsize, ysize
+            size of each chart in inches
+
+        chart_example
+            produce a chart without case-specific labels (generic example)
+
+    '''
+
     if rets_only:
-        df_sub = proposal[proposal.age == 65][['eg', 'date', 'jnum']]
+        df_sub = proposal[proposal.age == ret_age][
+            ['eg', 'date', 'jnum']].copy()
     else:
-        df_sub = proposal[proposal.age > 55][['eg', 'date', 'jnum']]
+        if operator == 'equals':
+            df_sub = proposal[proposal[measure_subset] ==
+                              measure_val][['eg', 'date', 'jnum']].copy()
+        if operator == 'greater_than':
+            df_sub = proposal[proposal[measure_subset] >
+                              measure_val][['eg', 'date', 'jnum']].copy()
+        if operator == 'less_than':
+            df_sub = proposal[proposal[measure_subset] <
+                              measure_val][['eg', 'date', 'jnum']].copy()
+        if operator == 'between':
+            df_sub = proposal[(proposal[measure_subset] >=
+                              measure_val) & (proposal[measure_subset] <=
+                              measure_val2)][['eg', 'date', 'jnum']].copy()
 
     for eg in eg_list:
         with sns.axes_style("darkgrid"):
@@ -1308,23 +1403,27 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
                 clr.append(colors[col - 1])
 
             if plt_kind == 'area':
-                df.plot(kind=plt_kind, linewidth=0, color=clr, stacked=True)
+                df.plot(kind='area', linewidth=0, color=clr, stacked=True)
 
             if plt_kind == 'bar':
-                df.plot(kind=plt_kind, width=1, color=clr, stacked=True)
+                df.plot.bar(width=1, color=clr, stacked=True)
 
             if rets_only:
                 plt.gca().set_yticks(np.arange(.08, 0, -.01))
                 plt.gca().yaxis.set_major_formatter(formatter)
             plt.gca().invert_yaxis()
-            plt.xlim(0, display_yrs)
+            if plt_kind == 'bar':
+                plt.xlim(0, display_yrs)
             plt.legend((labels), loc=legend_loc)
             plt.ylabel(ylbl)
             if chart_example:
-                plt.title('Proposal 1' + ' group ' + str(eg), y=1.01)
+                plt.title('Proposal' + ' group ' + str(eg), y=1.01)
             else:
-                plt.title(cf.proposal_dict[prop_text] + ' group ' +
-                          cf.eg_dict[eg], y=1.01)
+                try:
+                    plt.title(cf.proposal_dict[prop_text] + ' group ' +
+                              cf.eg_dict[eg], y=1.01)
+                except:
+                    plt.title('Proposal' + ' group ' + cf.eg_dict[eg], y=1.01)
             plt.gcf().set_size_inches(xsize, ysize)
             plt.show()
 
@@ -1348,14 +1447,6 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
 
     num_egplots = len(eg_list)
     num_months = len(month_list)
-
-    sns.set_style('whitegrid',
-                  {'axes.facecolor': '#f5f5dc',  # f5f5dc
-                   'axes.axisbelow': True,
-                   'axes.edgecolor': '.2',
-                   'axes.linewidth': 1.0,
-                   'grid.color': '.7',
-                   'grid.linestyle': u'--'})
 
     fig, ax = plt.subplots(num_months, num_egplots)
 
@@ -1400,47 +1491,54 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
                 .join(ds2, rsuffix=('_E'))
             df_joined.columns = ['WEST', 'eg', 'StandAlone', 'AMER', 'EAST']
 
-        if 1 in eg_list:
-            plot_num += 1
-            plt.subplot(num_months, num_egplots, plot_num)
-            df_1 = df_joined[df_joined.eg == 1]
-            df_1 = df_1[::a_stride]
-            parallel_coordinates(df_1, 'eg', lw=1.5, alpha=.7,
-                                 color=color_dict[1])
-            if chart_example:
-                plt.title('Group 1' + ' ' + measure.upper() + ' ' +
-                          str(month) + ' mths', fontsize=16, y=1.02)
-            else:
-                plt.title(group_dict[1].upper() + ' ' + measure.upper() + ' ' +
-                          str(month) + ' mths', fontsize=16, y=1.02)
+        with sns.axes_style('whitegrid', {'axes.facecolor': '#f5f5dc',
+                                          'axes.axisbelow': True,
+                                          'axes.edgecolor': '.2',
+                                          'axes.linewidth': 1.0,
+                                          'grid.color': '.7',
+                                          'grid.linestyle': u'--'}):
 
-        if 2 in eg_list:
-            plot_num += 1
-            plt.subplot(num_months, num_egplots, plot_num)
-            df_2 = df_joined[df_joined.eg == 2]
-            df_2 = df_2[::e_stride]
-            parallel_coordinates(df_2, 'eg', lw=1.5, alpha=.7,
-                                 color=color_dict[2])
-            if chart_example:
-                plt.title('Group 2' + ' ' + measure.upper() + ' ' +
-                          str(month) + ' mths', fontsize=16, y=1.02)
-            else:
-                plt.title(group_dict[2].upper() + ' ' + measure.upper() + ' ' +
-                          str(month) + ' mths', fontsize=16, y=1.02)
+            if 1 in eg_list:
+                plot_num += 1
+                plt.subplot(num_months, num_egplots, plot_num)
+                df_1 = df_joined[df_joined.eg == 1]
+                df_1 = df_1[::a_stride]
+                parallel_coordinates(df_1, 'eg', lw=1.5, alpha=.7,
+                                     color=color_dict[1])
+                if chart_example:
+                    plt.title('Group 1' + ' ' + measure.upper() + ' ' +
+                              str(month) + ' mths', fontsize=16, y=1.02)
+                else:
+                    plt.title(group_dict[1].upper() + ' ' + measure.upper() +
+                              ' ' + str(month) + ' mths', fontsize=16, y=1.02)
 
-        if 3 in eg_list:
-            plot_num += 1
-            plt.subplot(num_months, num_egplots, plot_num)
-            df_3 = df_joined[df_joined.eg == 3]
-            df_3 = df_3[::w_stride]
-            parallel_coordinates(df_3, 'eg', lw=1.5, alpha=.7,
-                                 color=color_dict[3])
-            if chart_example:
-                plt.title('Group 3' + ' ' + measure.upper() + ' ' +
-                          str(month) + ' mths', fontsize=16, y=1.02)
-            else:
-                plt.title(group_dict[3].upper() + ' ' + measure.upper() + ' ' +
-                          str(month) + ' mths', fontsize=16, y=1.02)
+            if 2 in eg_list:
+                plot_num += 1
+                plt.subplot(num_months, num_egplots, plot_num)
+                df_2 = df_joined[df_joined.eg == 2]
+                df_2 = df_2[::e_stride]
+                parallel_coordinates(df_2, 'eg', lw=1.5, alpha=.7,
+                                     color=color_dict[2])
+                if chart_example:
+                    plt.title('Group 2' + ' ' + measure.upper() + ' ' +
+                              str(month) + ' mths', fontsize=16, y=1.02)
+                else:
+                    plt.title(group_dict[2].upper() + ' ' + measure.upper() +
+                              ' ' + str(month) + ' mths', fontsize=16, y=1.02)
+
+            if 3 in eg_list:
+                plot_num += 1
+                plt.subplot(num_months, num_egplots, plot_num)
+                df_3 = df_joined[df_joined.eg == 3]
+                df_3 = df_3[::w_stride]
+                parallel_coordinates(df_3, 'eg', lw=1.5, alpha=.7,
+                                     color=color_dict[3])
+                if chart_example:
+                    plt.title('Group 3' + ' ' + measure.upper() + ' ' +
+                              str(month) + ' mths', fontsize=16, y=1.02)
+                else:
+                    plt.title(group_dict[3].upper() + ' ' + measure.upper() +
+                              ' ' + str(month) + ' mths', fontsize=16, y=1.02)
 
     fig = plt.gcf()
     for ax in fig.axes:

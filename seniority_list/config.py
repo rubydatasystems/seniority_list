@@ -22,7 +22,7 @@ else:
 # CONDITIONS
 apply_supc = True
 apply_east_cond = True
-apply_amer_cond = True
+apply_ratio_cond = True
 
 starting_date = '2013-12-31'
 start = pd.to_datetime(starting_date)
@@ -44,7 +44,7 @@ imp_date = pd.to_datetime(implementation_date)
 imp_month = ((imp_date.year - start.year) * 12) - \
     (start.month - imp_date.month)
 
-if apply_amer_cond:
+if apply_ratio_cond:
 
     end_date = pd.to_datetime('2020-01-31')
     amer_final_month = ((end_date.year - start.year) * 12) - \
@@ -53,6 +53,7 @@ if apply_amer_cond:
 no_bump = True
 recall = True
 
+ret_age = 65
 actives_only = False
 save_to_pickle = True
 
@@ -182,7 +183,7 @@ if enhanced_jobs:
     # eg2_job_count = [110,  73,  93,  576,  62, 309, 202,
     # 134, 106,  599, 71,  69, 329, 38, 74, 58]
 
-    if apply_amer_cond:
+    if apply_ratio_cond:
         # eg1 group 4 C&R
         # sequence = [eg, jnum, pcnt, start_month, end_month]
         eg1_cr1 = [1, 1, imp_month, amer_final_month]
@@ -232,7 +233,7 @@ if enhanced_jobs:
 
 else:  # basic job levels only:
 
-    if apply_amer_cond:
+    if apply_ratio_cond:
         # eg1 group 4 C&R
         # sequence = [eg, jnum, pcnt, start_month, end_month]
         eg1_cr1 = [1, 1, imp_month, amer_final_month]
