@@ -623,6 +623,12 @@ def compare_dataframes(base, compare, return_orphans=True,
     base_only_cols = list(base.columns[~base.columns.isin(compare.columns)])
     comp_only_cols = list(compare.columns[~compare.columns.isin(base.columns)])
 
+    oddballs = base_only_cols.copy()
+    oddballs.extend(comp_only_cols)
+
+    all_columns = common_cols.copy()
+    all_columns.extend(oddballs)
+
     if print_info:
         same_col_list = []
         print('\nCOMMON COLUMN equivalency:\n')
@@ -656,6 +662,25 @@ def compare_dataframes(base, compare, return_orphans=True,
         print('\ncommon but unequal columns:\n', unequal_cols)
         print('\ncols only in base:\n', base_only_cols)
         print('\ncols only in compare:\n', comp_only_cols, '\n')
+
+        col_df = pd.DataFrame(index=[all_columns])
+        column_names = ['equal_cols', 'unequal_cols', 'common_cols',
+                        'base_only_cols', 'comp_only_cols', 'all_columns']
+        for result_name in column_names:
+            i = 0
+            col_arr = np.empty_like(all_columns)
+            for name in all_columns:
+                if name in eval(result_name):
+                    col_arr[i] = name
+                i += 1
+            col_df[result_name] = col_arr
+        col_df.sort_values(['unequal_cols', 'equal_cols'], inplace=True)
+        col_df.reset_index(drop=True, inplace=True)
+        col_df.rename(columns={'unequal_cols': 'not_equal',
+                               'base_only_cols': 'base_only',
+                               'comp_only_cols': 'comp_only'}, inplace=True)
+        print('\nCATEGORIZED COLUMN DATAFRAME:\n')
+        print(col_df, '\n')
 
     zipped = []
     col_counts = []
@@ -709,7 +734,8 @@ def compare_dataframes(base, compare, return_orphans=True,
 
 # FIND LABEL LOCATIONS (index input)
 def find_index_locs(df, index_values):
-    '''Find the index location of an array-like input of index labels.
+    '''Find the pandas dataframe index location of an array-like input
+    of index labels.
 
     Returns a list containing the index location(s).
 
@@ -732,7 +758,8 @@ def find_index_locs(df, index_values):
 
 # FIND SERIES VALUE INDEX LOCATIONS
 def find_series_locs(df, series_values, column_label):
-    '''Find the index location of an array-like input of series values.
+    '''Find the pandas dataframe index location of an array-like input
+    of series values.
 
     Returns a list containing the index location(s).
 
