@@ -2150,12 +2150,10 @@ def mark_fur_range(assign_range, fur_range, job_levels):
 
 # ALIGN
 def align_fill_down(l, u, long_indexed_df, short_array, long_array):
-    '''data align current values to future months
+    '''data align current values to all future months
     (short array segment aligned to long array)
 
-    use pandas df auto align - this is very slow and
-    only in place for working model.  Improve with new
-    function when workload permits...
+    use pandas df auto align - relatively slow
 
     inputs
         short_array
@@ -2194,6 +2192,27 @@ def align_fill_down(l, u, long_indexed_df, short_array, long_array):
 
 # ALIGN
 def align_next(long_index_arr, short_index_arr, arr):
+    '''"carry forward" data from one month to the next.
+
+    Use the numpy in1d function to compare indexes (empkeys) from one month
+    to the next month and return a boolean mask.  Apply the mask to current
+    month data column (slice) and assign results to next month slice.
+
+    Effectively finds the remaining employees (not retired) in the next month
+    and copies the target column data for them from current month into the
+    next month.
+
+    inputs
+        long_index_arr
+            current month index of unique employee keys
+
+        short_index_arr
+            next month index of unique employee keys
+            (a subset of long_index_arr)
+
+        arr
+            the data column (attribute) to carry forward
+    '''
 
     arr = arr[np.in1d(long_index_arr, short_index_arr, assume_unique=True)]
     return arr
