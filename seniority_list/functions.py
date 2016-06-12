@@ -913,6 +913,13 @@ def assign_jobs_nbnf_job_changes(df_align,
     eg_data = np.array(df_align.eg)
     sg_ident = np.array(df_align.sg)
     fur_data = np.array(df_align.fur)
+    index_data = np.array(df_align.index)
+
+    lower_next = lower[1:]
+    lower_next = np.append(lower_next, lower_next[-1])
+
+    upper_next = upper[1:]
+    upper_next = np.append(upper_next, upper_next[-1])
 
     # job assignment result array/column
     long_assign_column = np.zeros(total_months, dtype=int)
@@ -920,7 +927,6 @@ def assign_jobs_nbnf_job_changes(df_align,
     long_count_column = np.zeros(total_months, dtype=int)
 
     num_of_months = upper.size
-    long_df = df_align[[]]
 
     if cf.delayed_implementation:
         long_assign_column[:upper[start_month]] = \
@@ -977,12 +983,17 @@ def assign_jobs_nbnf_job_changes(df_align,
         L = lower[month]
         U = upper[month]
 
+        L_next = lower_next[month]
+        U_next = upper_next[month]
+
         orig_job_range = orig[L:U]
         assign_range = long_assign_column[L:U]
         job_count_range = long_count_column[L:U]
         fur_range = fur_data[L:U]
         eg_range = eg_data[L:U]
         sg_range = sg_ident[L:U]
+        index_range = index_data[L:U]
+        index_range_next = index_data[L_next:U_next]
 
         # use numpy arrays for job assignment process for each month
         # use pandas for data alignment 'job position forwarding'
@@ -1060,9 +1071,11 @@ def assign_jobs_nbnf_job_changes(df_align,
                                                 (eg_range == 3))[0],
                                        j)
 
-                            west_nbnf_jobs = align(L, U,
-                                                   long_df, west_range,
-                                                   west_nbnf_jobs)
+                            west_next = align_next(index_range,
+                                                   index_range_next,
+                                                   west_range)
+                            np.copyto(west_nbnf_jobs[L_next:U_next],
+                                      west_next)
 
                         west_range = west_nbnf_jobs[L:U]
                         assign_range_with_east_grp4_cond(job,
@@ -1103,7 +1116,8 @@ def assign_jobs_nbnf_job_changes(df_align,
         # AFTER MONTHLY JOB LOOPS DONE, PRIOR TO NEXT MONTH:
 
         # pass down assign_range
-        orig = align(L, U, long_df, assign_range, orig)
+        orig_next = align_next(index_range, index_range_next, orig_job_range)
+        np.copyto(orig[L_next:U_next], orig_next)
 
         # pass down fur_range
         #  TODO **
@@ -1119,7 +1133,8 @@ def assign_jobs_nbnf_job_changes(df_align,
                np.where(fur_range == 1)[0],
                np.sum(fur_range == 1))
 
-        fur_data = align(L, U, long_df, fur_range, fur_data)
+        fur_next = align_next(index_range, index_range_next, fur_range)
+        np.copyto(fur_data[L_next:U_next], fur_next)
 
     long_assign_column[long_assign_column == 0] = num_of_job_levels + 1
     orig[orig == num_of_job_levels + 1] = 0
@@ -2134,7 +2149,7 @@ def mark_fur_range(assign_range, fur_range, job_levels):
 
 
 # ALIGN
-def align(l, u, long_indexed_df, short_array, long_array):
+def align_fill_down(l, u, long_indexed_df, short_array, long_array):
     '''data align current values to future months
     (short array segment aligned to long array)
 
@@ -2175,6 +2190,13 @@ def align(l, u, long_indexed_df, short_array, long_array):
     result_size = result_array.size
     np.copyto(long_array[-result_size:], result_array)
     return long_array
+
+
+# ALIGN
+def align_next(long_index_arr, short_index_arr, arr):
+
+    arr = arr[np.in1d(long_index_arr, short_index_arr, assume_unique=True)]
+    return arr
 
 
 # DISTRIBUTE (simple)
@@ -2775,6 +2797,13 @@ def assign_standalone_job_changes(df_align,
     num_of_job_levels = cf.num_of_job_levels
     sg_ident = np.array(df_align.sg)
     fur_data = np.array(df_align.fur)
+    index_data = np.array(df_align.index)
+
+    lower_next = lower[1:]
+    lower_next = np.append(lower_next, lower_next[-1])
+
+    upper_next = upper[1:]
+    upper_next = np.append(upper_next, upper_next[-1])
 
     # job assignment result array/column
     long_assign_column = np.zeros(total_months, dtype=int)
@@ -2784,7 +2813,6 @@ def assign_standalone_job_changes(df_align,
     held_jobs = np.zeros(total_months, dtype=int)
 
     num_of_months = upper.size
-    long_df = df_align[[]]
 
     if cf.apply_supc:
 
@@ -2814,11 +2842,16 @@ def assign_standalone_job_changes(df_align,
         L = lower[month]
         U = upper[month]
 
+        L_next = lower_next[month]
+        U_next = upper_next[month]
+
         held_job_range = held_jobs[L:U]
         assign_range = long_assign_column[L:U]
         job_count_range = long_count_column[L:U]
         fur_range = fur_data[L:U]
         sg_range = sg_ident[L:U]
+        index_range = index_data[L:U]
+        index_range_next = index_data[L_next:U_next]
 
         # use numpy arrays for job assignment process for each month
         # use pandas for data alignment 'job position forwarding'
@@ -2886,7 +2919,9 @@ def assign_standalone_job_changes(df_align,
         # AFTER MONTHLY JOB LOOPS DONE, PRIOR TO NEXT MONTH:
 
         # pass down assign_range
-        held_jobs = align(L, U, long_df, assign_range, held_jobs)
+        # held_jobs = align_fill_down(L, U, long_df, assign_range, held_jobs)
+        held_next = align_next(index_range, index_range_next, assign_range)
+        np.copyto(held_jobs[L_next:U_next], held_next)
 
         # pass down fur_range
         #  TODO **
@@ -2902,7 +2937,9 @@ def assign_standalone_job_changes(df_align,
                np.where(fur_range == 1)[0],
                np.sum(fur_range == 1))
 
-        fur_data = align(L, U, long_df, fur_range, fur_data)
+        # fur_data = align_fill_down(L, U, long_df, fur_range, fur_data)
+        fur_next = align_next(index_range, index_range_next, fur_range)
+        np.copyto(fur_data[L_next:U_next], fur_next)
 
     long_assign_column[long_assign_column == 0] = num_of_job_levels + 1
     held_jobs[held_jobs == num_of_job_levels + 1] = 0
@@ -2954,4 +2991,5 @@ def max_of_nested_lists(nested_list):
         x = max(lst)
         max_list.append(x)
     return max(max_list)
+
 

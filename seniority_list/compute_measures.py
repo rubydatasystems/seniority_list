@@ -8,7 +8,9 @@ import config as cf
 
 from sys import argv
 
-script, proposal_name = argv
+script, proposal_name, *conditions = argv
+
+print(conditions)
 
 pre, suf = 'dill/', '.pkl'
 
@@ -159,17 +161,17 @@ if cf.delayed_implementation:
     delayed_fur = np.zeros(all_months)
     delayed_fur[:imp_high] = temp_fur
 
-    aligned_jnums = f.align(imp_low,
-                            imp_high,
-                            ds[[]],
-                            delayed_jnums[imp_low:imp_high],
-                            delayed_jnums)
+    aligned_jnums = f.align_fill_down(imp_low,
+                                      imp_high,
+                                      ds[[]],
+                                      delayed_jnums[imp_low:imp_high],
+                                      delayed_jnums)
 
-    aligned_fur = f.align(imp_low,
-                          imp_high,
-                          ds[[]],
-                          delayed_fur[imp_low:imp_high],
-                          delayed_fur)
+    aligned_fur = f.align_fill_down(imp_low,
+                                    imp_high,
+                                    ds[[]],
+                                    delayed_fur[imp_low:imp_high],
+                                    delayed_fur)
 
     delayed_jnums[imp_low:] = aligned_jnums[imp_low:]
     ds['orig_job'] = delayed_jnums
