@@ -26,6 +26,7 @@ skel_path_string = (pre + output_name + suf)
 
 # only include pilots that are not retired prior to the starting_month
 start_date = pd.to_datetime(cf.starting_date)
+
 df_list = df_list[
     df_list.retdate >= start_date - pd.DateOffset(months=1)]
 
@@ -84,7 +85,6 @@ skel['empkey'] = pd.Series.map(skel.idx, df.reset_index(drop=True).empkey)
 
 # grab retdates from df column (short_form)
 # used for mth_pcnt and age calc (also mapping retdates)
-
 rets = list(df['retdate'])
 
 # calculate last month pay percentage for each employee (short_form)

@@ -229,7 +229,7 @@ for i in range(len(ds_list)):
 
     ds = pd.concat([ds, df_long], ignore_index=True)
 
-ds.sort_values(by=['mnum', 'idx'], inplace=True)
+ds.sort_values(by=['mnum', 'snum'], inplace=True)
 ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
 
 # save to file

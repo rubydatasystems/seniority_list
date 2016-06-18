@@ -8,9 +8,10 @@ lspcnt_calc_on_remaining_population = False
 
 edit_mode = False
 
-sample_mode = False
-if sample_mode:
-    sample_prefix = 'sample3_'
+# GET RID OF THIS WHEN REFACTOR COMPLETE:
+sample_mode = True
+
+case_study = 'sample3'
 
 enhanced_jobs = True
 # number of job levels for model excluding furlough
@@ -110,28 +111,35 @@ compute_pay_measures = True
 # jc6 = [6, [1, 61], -822, [-747, -57, -18]]
 
 # j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
-if sample_mode:
-    if sample_prefix == 'sample3_':
-        # JOB CHANGES
-        # group 4 additions...
-        jc1 = [1, [35, 64], 43, [40, 3, 0]]
-        jc2 = [4, [35, 64], 72, [66, 6, 0]]
-        # group3 reductions...
-        jc3 = [2, [1, 52], -408, [-377, -23, -8]]
-        jc4 = [5, [1, 52], -510, [-474, -26, -10]]
-        # group 2 additions...
-        jc5 = [3, [1, 61], 411, [376, 26, 9]]
-        jc6 = [6, [1, 61], 411, [376, 26, 9]]
+if case_study == 'sample3':
+    # JOB COUNTS
+    eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
+    eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
+    eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
+    furlough_count = [340, 0, 23]
 
-        # JOB COUNTS
-        eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
-        eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
-        eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
-        furlough_count = [340, 0, 23]
+    # JOB CHANGES
+    # group 4 additions...
+    jc1 = [1, [35, 64], 43, [40, 3, 0]]
+    jc2 = [4, [35, 64], 72, [66, 6, 0]]
+    # group3 reductions...
+    jc3 = [2, [1, 52], -408, [-377, -23, -8]]
+    jc4 = [5, [1, 52], -510, [-474, -26, -10]]
+    # group 2 additions...
+    jc5 = [3, [1, 61], 411, [376, 26, 9]]
+    jc6 = [6, [1, 61], 411, [376, 26, 9]]
 
-        recall_1 = [8, [6, 0, 2], 50, 75]
-        recall_2 = [10, [10, 0, 0], 75, 150]
-else:
+    recall_1 = [8, [6, 0, 2], 50, 75]
+    recall_2 = [10, [10, 0, 0], 75, 150]
+
+if case_study == 'aa_us':
+
+    eg1_job_count = [395, 939, 2112, 825, 1255, 2242, 0, 0]
+    eg2_job_count = [161, 170, 885, 326, 192, 928, 109, 132]
+    eg3_job_count = [0, 53, 637, 0, 74, 608, 0, 0]
+    furlough_count = [681, 0, 45]
+
+    # JOB CHANGES
     # group 4 additions...
     jc1 = [1, [35, 64], 87, [80, 7, 0]]
     jc2 = [4, [35, 64], 145, [133, 12, 0]]
@@ -141,11 +149,6 @@ else:
     # group 2 additions...
     jc5 = [3, [1, 61], 822, [747, 57, 18]]
     jc6 = [6, [1, 61], 822, [747, 57, 18]]
-
-    eg1_job_count = [395, 939, 2112, 825, 1255, 2242, 0, 0]
-    eg2_job_count = [161, 170, 885, 326, 192, 928, 109, 132]
-    eg3_job_count = [0, 53, 637, 0, 74, 608, 0, 0]
-    furlough_count = [681, 0, 45]
 
     recall_1 = [8, [6, 0, 2], 50, 75]
     recall_2 = [10, [10, 0, 0], 75, 150]
@@ -193,25 +196,26 @@ if enhanced_jobs:
 
         amr_g4_cond = [eg1_cr1, eg1_cr2, eg1_cr7, eg1_cr8]
 
-    if sample_mode:  # use sample data, enhanced jobs...
-        if sample_prefix == 'sample3_':
+    if case_study == 'sample3':  # use sample data, enhanced jobs...
 
-            if apply_supc:
-                # eg1 sg sup cc award (all reserve...)
-                # sequence = [eg, jnum, count, start_month, end_month]
-                eg1_sg5 = [1, 5, 43, 0, 67]
-                eg1_sg6 = [1, 6, 130, 0, 67]
-                eg1_sg12 = [1, 12, 43, 0, 67]
-                eg1_sg13 = [1, 13, 130, 0, 67]
+        if apply_supc:
+            # eg1 sg sup cc award (all reserve...)
+            # sequence = [eg, jnum, count, start_month, end_month]
+            eg1_sg5 = [1, 5, 43, 0, 67]
+            eg1_sg6 = [1, 6, 130, 0, 67]
+            eg1_sg12 = [1, 12, 43, 0, 67]
+            eg1_sg13 = [1, 13, 130, 0, 67]
 
-            if apply_east_cond:
-                # eg2 group 4 C&R (split block and reserve...):
-                # sequence = [eg, jnum, count, start_month, end_month]
-                eg2_cr1 = [2, 1, 55, imp_month, imp_month + 60]
-                eg2_cr2 = [2, 2, 37, imp_month, imp_month + 60]
-                eg2_cr7 = [2, 7, 101, imp_month, imp_month + 60]
-                eg2_cr8 = [2, 8, 67, imp_month, imp_month + 60]
-    else:
+        if apply_east_cond:
+            # eg2 group 4 C&R (split block and reserve...):
+            # sequence = [eg, jnum, count, start_month, end_month]
+            eg2_cr1 = [2, 1, 55, imp_month, imp_month + 60]
+            eg2_cr2 = [2, 2, 37, imp_month, imp_month + 60]
+            eg2_cr7 = [2, 7, 101, imp_month, imp_month + 60]
+            eg2_cr8 = [2, 8, 67, imp_month, imp_month + 60]
+
+    if case_study == 'aa_us':
+
         if apply_supc:
             # eg1 sg sup cc award (all reserve...)
             # sequence = [eg, jnum, count, start_month, end_month]
@@ -241,24 +245,24 @@ else:  # basic job levels only:
 
         amr_g4_cond = [eg1_cr1, eg1_cr4]
 
-    if sample_mode:  # use sample data...
-        if sample_prefix == 'sample3_':
+    if case_study == 'sample3':  # use sample data, enhanced jobs...
 
-            if apply_supc:
-                # eg1 sg sup cc award
-                # sequence = [eg, jnum, count, start_month, end_month]
-                eg1_sg2 = [1, 2, 43, 0, 67]
-                eg1_sg3 = [1, 3, 130, 0, 67]
-                eg1_sg5 = [1, 5, 43, 0, 67]
-                eg1_sg6 = [1, 6, 130, 0, 67]
+        if apply_supc:
+            # eg1 sg sup cc award
+            # sequence = [eg, jnum, count, start_month, end_month]
+            eg1_sg2 = [1, 2, 43, 0, 67]
+            eg1_sg3 = [1, 3, 130, 0, 67]
+            eg1_sg5 = [1, 5, 43, 0, 67]
+            eg1_sg6 = [1, 6, 130, 0, 67]
 
-            if apply_east_cond:
-                # eg2 group 4 C&R
-                # sequence = [eg, jnum, count, start_month, end_month]
-                eg2_cr1 = [2, 1, 92, imp_month, imp_month + 60]
-                eg2_cr4 = [2, 4, 168, imp_month, imp_month + 60]
+        if apply_east_cond:
+            # eg2 group 4 C&R
+            # sequence = [eg, jnum, count, start_month, end_month]
+            eg2_cr1 = [2, 1, 92, imp_month, imp_month + 60]
+            eg2_cr4 = [2, 4, 168, imp_month, imp_month + 60]
 
-    else:
+    if case_study == 'aa_us':
+
         if apply_supc:
             # eg1 sg sup cc award
             # sequence = [eg, jnum, count, start_month, end_month]
@@ -279,13 +283,16 @@ else:  # basic job levels only:
 ############################################
 # colors, dicts
 
-if sample_mode:  # generic labels
+if case_study == 'sample3':  # generic labels
+
     eg_dict = {1: '1', 2: '2', 3: '3', 4: 'sa'}
     eg_dict_verbose = {1: 'Group 1', 2: 'Group 2', 3: 'Group 3',
                        4: 'Standalone'}
     proposal_dict = {'ds1': 'Group 1 PROPOSAL', 'ds2': 'Group 2 PROPOSAL',
                      'ds3': 'Group 3 PROPOSAL', 'ds4': 'Standalone Data'}
-else:
+
+if case_study == 'aa_us':
+
     eg_dict = {1: 'A', 2: 'E', 3: 'W', 4: 'S'}
     eg_dict_verbose = {1: 'AMER', 2: 'EAST', 3: 'WEST', 4: 'Standalone'}
     proposal_dict = {'ds1': 'APSIC PROPOSAL', 'ds2': 'EAST PROPOSAL',

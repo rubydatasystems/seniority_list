@@ -27,9 +27,7 @@ script, master_name, proposed_order_df, output_name, fill_style = argv
 pre, suf = 'dill/', '.pkl'
 xlpre, xlsuf = 'reports/', '.xlsx'
 
-if cf.sample_mode:
-    output_name = cf.sample_prefix + output_name
-
+output_name = cf.case_study + '_' + output_name
 
 master_path_string = (pre + master_name + suf)
 order_path_string = (pre + proposed_order_df + suf)
@@ -51,11 +49,11 @@ for eg in eg_set:
 
     if fill_style == 'ffill':
         eg_df.iloc[0, eg_df.columns.get_loc('idx')] = eg_df.idx.min()
-        eg_df.idx = eg_df.idx.fillna(method='ffill').astype(int)
+        eg_df.idx.fillna(method='ffill', inplace=True)
 
     if fill_style == 'bfill':
         eg_df.iloc[-1, eg_df.columns.get_loc('idx')] = eg_df.idx.max()
-        eg_df.idx = eg_df.idx.fillna(method='bfill')  # .astype(int)
+        eg_df.idx.fillna(method='bfill', inplace=True)
 
     final = pd.concat([final, eg_df])
 

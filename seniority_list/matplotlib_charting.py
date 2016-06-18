@@ -112,7 +112,7 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
     egs = sorted(list(set(ds_sel_cols.eg)))
     legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
     ytick_fontsize = (np.clip(int(ysize * 1.55), 9, 14))
-    #ytick_fontsize = 14
+
     for eg in egs:
 
         ds_eg = ds_sel_cols[(ds_sel_cols.eg == eg) & (ds_sel_cols.jnum >= 1)]
@@ -418,8 +418,9 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
     plt.ylim(1, 0)
     plt.xlim(25, 65)
     plt.tight_layout()
-    plt.gca().yaxis.set_major_formatter(formatter)
-    plt.yticks = (np.arange(0, 1.05, .05))
+    ax.yaxis.set_major_formatter(formatter)
+    ax.set_yticks(np.arange(0, 1.05, .05))
+
     if chart_example:
         plt.title('Proposal 1' +
                   ' - age vs seniority percentage' +
@@ -496,43 +497,42 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
 
     for emp in emp_list:
         if chart_example:
-            frame[frame.empkey == emp].set_index(xax)[measure] \
-                .plot(label='Employee ' + str(i + 1))
+            ax = frame[frame.empkey == emp] \
+                .set_index(xax)[measure].plot(label='Employee ' + str(i + 1))
             i += 1
         else:
             try:
                 if len(emp_list) == 3:
-                    frame[frame.empkey == emp].set_index(xax)[measure] \
-                        .plot(color=color_list[i], label=emp)
+                    ax = frame[frame.empkey == emp] \
+                        .set_index(xax)[measure].plot(color=color_list[i],
+                                                      label=emp)
                 else:
-                    frame[frame.empkey == emp].set_index(xax)[measure] \
-                        .plot(label=emp)
+                    ax = frame[frame.empkey == emp] \
+                        .set_index(xax)[measure].plot(label=emp)
                 i += 1
             except:
                 continue
 
-    fig = plt.gca()
-
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum', 'jobp', 'fbff']:
-        fig.invert_yaxis()
+        ax.invert_yaxis()
     if measure in ['lspcnt', 'spcnt']:
-        plt.gca().yaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(formatter)
         plt.yticks = (np.arange(0, 1.05, .05))
+
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
-        plt.yticks = (np.arange(0, job_levels + 2, 1))
-        plt.ylim(job_levels + 1.5, 0.5)
-
-        yticks = fig.get_yticks().tolist()
+        ax.set_yticks(np.arange(0, job_levels + 2, 1))
+        yticks = ax.get_yticks().tolist()
 
         for i in np.arange(1, len(yticks)):
             yticks[i] = job_str_list[i - 1]
         plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.9)
-        fig.set_yticklabels(yticks)
+        ax.set_yticklabels(yticks)
         plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
+        plt.ylim(job_levels + 1.5, 0.5)
 
     if xax in ['spcnt', 'lspcnt']:
-        plt.gca().xaxis.set_major_formatter(formatter)
+        ax.xaxis.set_major_formatter(formatter)
         plt.xticks(np.arange(0, 1.1, .1))
         plt.xlim(1, 0)
 
@@ -678,7 +678,7 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
         fig.invert_yaxis()
         if measure in ['spcnt', 'lspcnt']:
             fig.yaxis.set_major_formatter(formatter)
-            plt.yticks = (np.arange(0, 1.05, .05))
+            plt.gca().set_yticks(np.arange(0, 1.05, .05))
             plt.ylim(1.04, -.04)
     plt.show()
 
@@ -1406,7 +1406,7 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
                 df.plot(kind='area', linewidth=0, color=clr, stacked=True)
 
             if plt_kind == 'bar':
-                df.plot.bar(width=1, color=clr, stacked=True)
+                df.plot(kind='bar', width=1, color=clr, stacked=True)
 
             if rets_only:
                 plt.gca().set_yticks(np.arange(.08, 0, -.01))
@@ -2516,16 +2516,17 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
             ax1.grid(ls='dashed', lw=.5)
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
-        plt.yticks = (np.arange(0, job_levels + 2, 1))
-        plt.ylim(job_levels + 2, 0.5)
 
+        ax1.set_yticks(np.arange(0, job_levels + 2, 1))
         yticks = fig.get_yticks().tolist()
 
         for i in np.arange(1, len(yticks)):
             yticks[i] = job_strs[i - 1]
+
         plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.2)
-        fig.set_yticklabels(yticks)
+        ax1.set_yticklabels(yticks)
         plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
+        plt.ylim(job_levels + 1.5, 0.5)
 
     if xax in ['snum']:
         plt.xlim(max_count, 0)
@@ -2541,6 +2542,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
 
     plt.gcf().set_size_inches(width, height)
     plt.show()
+    sns.set_style('darkgrid')
 
 
 def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
@@ -2640,3 +2642,4 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
                 plt.ylim(.5, -.5)
             plt.yticks = np.arange(.5, -.55, .05)
         plt.show()
+

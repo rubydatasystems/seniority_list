@@ -18,15 +18,12 @@ skeleton_path_string = (pre + 'skel' + suf)
 proposal_order_string = (pre + proposal_name + suf)
 stand_path_string = (pre + 'stand' + suf)
 
-if proposal_name != 'hybrid':
-    output_name = proposal_name.replace('p', 'ds')
-elif proposal_name == 'hybrid':
+if proposal_name == 'hybrid':
     output_name = 'dsh'
 else:
-    output_name = 'ds_'
+    output_name = 'ds' + proposal_name[-1:]
 
 ds = pd.read_pickle(skeleton_path_string)
-
 df_order = pd.read_pickle(proposal_order_string)
 df_master = pd.read_pickle(pre + 'master' + suf)
 
@@ -55,7 +52,6 @@ if cf.enhanced_jobs:
 else:
     eg_counts = cf.eg_counts
     j_changes = cf.j_changes
-
 # grab the job counts from the config file and insert into array (and
 # compute totals)
 
@@ -77,7 +73,6 @@ else:
     order_key = df_order.idx
     ds['new_order'] = order_key
     dataset_path_string = (pre + output_name + suf)
-
 # sort the skeleton by month and proposed list order
 
 ds.sort_values(['mnum', 'new_order'], inplace=True)
@@ -216,6 +211,7 @@ if cf.compute_with_job_changes:
                                                      reduction_months,
                                                      imp_month,
                                                      proposal_name,
+                                                     conditions,
                                                      fur_return=cf.recall)
 
     nbnf = jobs_and_counts[0]

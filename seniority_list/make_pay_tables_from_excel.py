@@ -9,11 +9,9 @@ table_sheets = ['basic_with_fur', 'enhanced_with_fur']
 hours_sheets = ['basic_hours', 'enhanced_hours']
 
 save_multi_index_version = False
+case = cf.case_study
 
-if cf.sample_mode:
-    wb = 'sample_data/sample_pay_tables.xlsx'
-else:
-    wb = 'excel/pay_tables.xlsx'
+wb = 'excel/' + case + '/pay_tables.xlsx'
 
 for i in np.arange(len(table_sheets)):
     # add international override pay option

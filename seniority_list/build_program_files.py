@@ -38,14 +38,19 @@ import numpy as np
 import functions as f
 import config as cf
 
+case = cf.case_study
+start_date = pd.to_datetime(cf.starting_date)
+
 # MASTER FILE:
-if cf.sample_mode:
-    sample_prefix = cf.sample_prefix
-    master = pd.read_excel('sample_data/' + sample_prefix + 'master.xlsx')
-else:
-    master = pd.read_excel('excel/master.xlsx')
+master = pd.read_excel('excel/' + case + '/master.xlsx')
 
 master.set_index('empkey', drop=False, inplace=True)
+
+retage = cf.ret_age
+master['retdate'] = master['dob'] + pd.DateOffset(years=retage)
+
+# only include pilots that are not retired prior to the starting_month
+master = master[master.retdate >= start_date - pd.DateOffset(months=1)]
 master.to_pickle('dill/master.pkl')
 
 # FUR
@@ -69,10 +74,8 @@ actives.to_pickle('dill/active_each_month.pkl')
 # list orderings on separate worksheets
 # The worksheet tab names are important for the function
 # The pickle files will be named like the worbook sheet names
-if cf.sample_mode:
-    xl = pd.ExcelFile('sample_data/' + sample_prefix + 'proposals.xlsx')
-else:
-    xl = pd.ExcelFile('excel/proposals.xlsx')
+
+xl = pd.ExcelFile('excel/' + case + '/proposals.xlsx')
 
 sheets = xl.sheet_names
 for ws in sheets:

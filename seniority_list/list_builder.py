@@ -64,11 +64,7 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
     Job-related attributes are referenced to job counts from the config file.
     '''
 
-    if cf.sample_mode:
-        sample_prefix = cf.sample_prefix
-        master_ = pd.read_pickle('sample_data/' + sample_prefix + 'master.pkl')
-    else:
-        master_ = pd.read_pickle('dill/master.pkl')
+    master_ = pd.read_pickle('dill/master.pkl')
 
     if pre_sort:
         sort_eg_attributes(master_)
@@ -222,6 +218,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
     else:
         df['idx'] = np.arange(len(df), dtype=int) + 1
     df.set_index('empkey', drop=True, inplace=True)
+    df.idx = df.idx.astype(int)
     df[['idx']].to_pickle('dill/hybrid.pkl')
 
     if return_df:
