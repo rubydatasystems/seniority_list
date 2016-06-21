@@ -3,6 +3,7 @@
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib
 from matplotlib import cm
 from matplotlib import colors
 from matplotlib.ticker import FuncFormatter
@@ -17,6 +18,22 @@ from pandas.tools.plotting import parallel_coordinates
 import numpy as np
 import config as cf
 import functions as f
+
+
+# TO_PERCENT (matplotlib percentage axis)
+def to_percent(y, position):
+    '''matplotlib axis as a percentage...
+    Ignores the passed in position variable.
+    This has the effect of scaling the default
+    tick locations.
+    '''
+    s = str(np.round(100 * y, 0).astype(int))
+
+    # The percent symbol needs to be escaped in latex
+    if matplotlib.rcParams['text.usetex'] is True:
+        return s + r'$\%$'
+    else:
+        return s + '%'
 
 
 def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
@@ -501,17 +518,14 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                 .set_index(xax)[measure].plot(label='Employee ' + str(i + 1))
             i += 1
         else:
-            try:
-                if len(emp_list) == 3:
-                    ax = frame[frame.empkey == emp] \
-                        .set_index(xax)[measure].plot(color=color_list[i],
-                                                      label=emp)
-                else:
-                    ax = frame[frame.empkey == emp] \
-                        .set_index(xax)[measure].plot(label=emp)
-                i += 1
-            except:
-                continue
+            if len(emp_list) == 3:
+                ax = frame[frame.empkey == emp] \
+                    .set_index(xax)[measure].plot(color=color_list[i],
+                                                  label=emp)
+            else:
+                ax = frame[frame.empkey == emp] \
+                    .set_index(xax)[measure].plot(label=emp)
+            i += 1
 
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum', 'jobp', 'fbff']:
         ax.invert_yaxis()
@@ -522,12 +536,12 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
         ax.set_yticks(np.arange(0, job_levels + 2, 1))
-        yticks = ax.get_yticks().tolist()
+        ytick_labels = ax.get_yticks().tolist()
 
-        for i in np.arange(1, len(yticks)):
-            yticks[i] = job_str_list[i - 1]
+        for i in np.arange(1, len(ytick_labels)):
+            ytick_labels[i] = job_str_list[i - 1]
         plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.9)
-        ax.set_yticklabels(yticks)
+        ax.set_yticklabels(ytick_labels)
         plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         plt.ylim(job_levels + 1.5, 0.5)
 
@@ -577,30 +591,28 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
                                                         color=colors[i - 1],
                                                         alpha=.6)
 
-    fig = plt.gca()
-
     if measure in ['snum', 'spcnt', 'jnum', 'jobp', 'fbff',
                    'lspcnt', 'rank_in_job', 'cat_order']:
-        fig.invert_yaxis()
+        ax.invert_yaxis()
     if measure in ['spcnt', 'lspcnt']:
         fig.yaxis.set_major_formatter(formatter)
         plt.yticks = (np.arange(0, 1.05, .05))
     if xax in ['spcnt', 'lspcnt']:
-        fig.xaxis.set_major_formatter(formatter)
+        ax.xaxis.set_major_formatter(formatter)
         plt.xticks(np.arange(0, 1.1, .1))
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
-        plt.yticks = (np.arange(0, job_levels + 2, 1))
-        plt.ylim(job_levels + 2, 0.5)
+        ax.set_yticks(np.arange(0, job_levels + 2, 1))
+        ytick_labels = list(ax.get_yticks())
 
-        yticks = fig.get_yticks().tolist()
+        for i in np.arange(1, len(ytick_labels)):
+            ytick_labels[i] = job_dict[i]
 
-        for i in np.arange(1, len(yticks)):
-            yticks[i] = job_dict[i - 1]
         plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.3)
-        fig.set_yticklabels(yticks)
+        ax.set_yticklabels(ytick_labels)
         plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.3, lw=3)
+        plt.ylim(job_levels + 2, 0.5)
 
     if measure in ['mpay', 'cpay', 'mlong', 'ylong']:
         plt.ylim(ymin=0)
@@ -614,7 +626,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
         plt.xlabel(xax)
 
     if xax not in ['age', 'mlong', 'ylong']:
-        fig.invert_xaxis()
+        ax.invert_xaxis()
 
     if xax in ['spcnt', 'lspcnt'] and full_pcnt_xscale:
         plt.xlim(1, 0)
@@ -733,31 +745,19 @@ def eg_diff_boxplot(df_list, formatter, measure='spcnt',
     xsize, ysize
         plot size in inches'''
 
-    if cf.sample_mode:
-        yval_dict = {'s_a': 'Group 1 PROPOSAL vs. standalone ' +
-                     measure.upper(),
-                     's_e': 'Group 2 PROPOSAL vs. standalone ' +
-                     measure.upper(),
-                     's_w': 'Group 3 PROPOSAL vs. standalone ' +
-                     measure.upper(),
-                     'a_e': 'Group 2 vs. Group 1 ' + measure.upper(),
-                     'a_w': 'Group 3 vs. Group 1 ' + measure.upper(),
-                     'e_a': 'Group 1 vs. Group 2 ' + measure.upper(),
-                     'e_w': 'Group 3 vs. Group 2 ' + measure.upper(),
-                     'w_a': 'Group 1 vs. Group 3 ' + measure.upper(),
-                     'w_e': 'Group 2 vs. Group 3 ' + measure.upper(),
-                     }
-    else:
-        yval_dict = {'s_a': 'AASIC vs. standalone ' + measure.upper(),
-                     's_e': 'EAST PROPOSAL vs. standalone ' + measure.upper(),
-                     's_w': 'WEST PROPOSAL vs. standalone ' + measure.upper(),
-                     'a_e': 'EAST vs. AASIC ' + measure.upper(),
-                     'a_w': 'WEST vs. AASIC ' + measure.upper(),
-                     'e_a': 'AASIC vs. EAST ' + measure.upper(),
-                     'e_w': 'WEST vs. EAST ' + measure.upper(),
-                     'w_a': 'AASIC vs. WEST ' + measure.upper(),
-                     'w_e': 'EAST vs. WEST ' + measure.upper(),
-                     }
+    yval_dict = {'s_a': 'Group 1 PROPOSAL vs. standalone ' +
+                 measure.upper(),
+                 's_e': 'Group 2 PROPOSAL vs. standalone ' +
+                 measure.upper(),
+                 's_w': 'Group 3 PROPOSAL vs. standalone ' +
+                 measure.upper(),
+                 'a_e': 'Group 2 vs. Group 1 ' + measure.upper(),
+                 'a_w': 'Group 3 vs. Group 1 ' + measure.upper(),
+                 'e_a': 'Group 1 vs. Group 2 ' + measure.upper(),
+                 'e_w': 'Group 3 vs. Group 2 ' + measure.upper(),
+                 'w_a': 'Group 1 vs. Group 3 ' + measure.upper(),
+                 'w_e': 'Group 2 vs. Group 3 ' + measure.upper(),
+                 }
 
     chart_pad = {'jnum': .3,
                  'jobp': .3,
@@ -1215,11 +1215,11 @@ def differential_scatter(base_ds, compare_ds_list,
 
                 if show_lin_reg:
                     if show_scatter:
-                        lr_colors = cf.lr_colors
+                        lin_reg_colors = cf.lin_reg_colors
                     else:
-                        lr_colors = cf.lr_colors2
+                        lin_reg_colors = cf.lin_reg_colors2
                     sns.regplot(x=xval, y=yval, data=data,
-                                color=lr_colors[eg - 1],
+                                color=lin_reg_colors[eg - 1],
                                 label=label,
                                 scatter=False, truncate=True, ci=50,
                                 order=lin_reg_order,
@@ -1647,8 +1647,9 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
         plt.gcf().set_size_inches(xsize, ysize)
         plt.xticks([])
         plt.tick_params(axis='y', labelsize=min(ysize - 6, 10))
-        #plt.yticks(fontsize=min(ysize - 6, 10))
-        plt.ylabel(str(cols) + ' per row', fontsize=12)
+        plt.yticks(fontsize=max(6, (min(12, ysize - 3))))
+        plt.ylabel(str(cols) + ' per row',
+                   fontsize=max(12, min(ysize + 1, 18)))
         plt.title(title, fontsize=18, y=1.01)
         plt.gca().spines['top'].set_visible(True)
         plt.gca().spines['bottom'].set_visible(True)
@@ -2118,11 +2119,11 @@ def editor(base_ds, compare_ds_text, prop_order=True,
 
             if chk_fit.value:
                 if chk_scatter.value:
-                    lr_colors = cf.lr_colors
+                    lin_reg_colors = cf.lin_reg_colors
                 else:
-                    lr_colors = cf.lr_colors2
+                    lin_reg_colors = cf.lin_reg_colors2
                 ax = sns.regplot(x=xval, y=yval, data=data,
-                                 color=lr_colors[eg - 1],
+                                 color=lin_reg_colors[eg - 1],
                                  label=cf.eg_dict[eg],
                                  scatter=False, truncate=True, ci=50,
                                  order=lin_reg_order,
@@ -2149,7 +2150,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
         plt.xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
-            formatter = FuncFormatter(f.to_percent)
+            formatter = FuncFormatter(to_percent)
             plt.gca().yaxis.set_major_formatter(formatter)
 
         if xval == 'sep_eg_pcnt':

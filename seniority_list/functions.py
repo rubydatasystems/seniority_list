@@ -13,7 +13,6 @@ size and age)
 import pandas as pd
 import numpy as np
 from numba import jit
-import matplotlib
 import scipy.stats as st
 
 import config as cf
@@ -1521,22 +1520,6 @@ def make_jcnts(job_count_lists):
     combined_job_count = sum(np.array(eg_job_counts))
 
     return eg_job_counts.astype(int), combined_job_count.astype(int)
-
-
-# TO_PERCENT (matplotlib percentage axis)
-def to_percent(y, position):
-    '''matplotlib axis as a percentage...
-    Ignores the passed in position variable.
-    This has the effect of scaling the default
-    tick locations.
-    '''
-    s = str(np.round(100 * y, 0).astype(int))
-
-    # The percent symbol needs to be escaped in latex
-    if matplotlib.rcParams['text.usetex'] is True:
-        return s + r'$\%$'
-    else:
-        return s + '%'
 
 
 # SQUEEZE
@@ -3105,8 +3088,8 @@ def print_config_selections():
     '''
     config_dict = {'lspcnt_calc_on_remaining_population':
                    cf.lspcnt_calc_on_remaining_population,
+                   'case_study': cf.case_study,
                    'edit_mode': cf.edit_mode,
-                   'sample_mode': cf.sample_mode,
                    'enhanced_jobs': cf.enhanced_jobs,
                    'apply_supc': cf.apply_supc,
                    'apply_east_cond': cf.apply_east_cond,
