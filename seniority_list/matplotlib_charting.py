@@ -44,7 +44,7 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                                stop=1.0, flip_x=False, flip_y=False,
                                rotate=False, gain_loss_bg=False, bg_alpha=.05,
                                normalize_yr_scale=False, year_clip=30,
-                               xsize=8, ysize=6):
+                               xsize=12, ysize=12):
     '''stacked bar or area chart presenting the time spent in the various
     job levels for quartiles of a selected employee group.
 
@@ -125,10 +125,17 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
     mnum0 = ds_sel_cols[ds_sel_cols.mnum == 0][[]]
     mnum0['order'] = np.arange(len(mnum0)) + 1
 
-    # ds_sel_cols = ds_sel_cols[(ds_sel_cols.doh > '1989-07-01')]
     egs = sorted(list(set(ds_sel_cols.eg)))
-    legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
-    ytick_fontsize = (np.clip(int(ysize * 1.55), 9, 14))
+
+    legend_font_size = np.clip(int(ysize * .8), 12, 18)
+    tick_fontsize = (np.clip(int(ysize * .45), 9, 14))
+    label_size = (np.clip(int(ysize * .8), 14, 16))
+
+    num_rows = len(egs)
+    num_cols = 2 if plot_differential else 1
+
+    fig, ax = plt.subplots(num_rows, num_cols)
+    plot_num = 1
 
     for eg in egs:
 
@@ -151,6 +158,12 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
         result_arr = np.zeros((num_bins, len(months_in_jobs.columns)))
 
         cols = list(months_in_jobs.columns)
+
+        if custom_color:
+            num_of_colors = cf.num_of_job_levels + 1
+            cm_subsection = np.linspace(start, stop, num_of_colors)
+            colormap = eval('cm.' + cm_name)
+            color_list = [colormap(x) for x in cm_subsection]
 
         labels = []
         colors = []
@@ -210,56 +223,21 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                     sa_quantile_yrs[col] = 0
 
             sa_quantile_yrs.sort_index(axis=1, inplace=True)
-            sa_cols = list(sa_quantile_yrs.columns)
-
-            if gain_loss_bg:
-                sa_labels = ['Loss', 'Gain']
-                sa_colors = ['r', 'g']
-
-            else:
-                sa_labels = []
-                sa_colors = []
-
-            for sa_col in sa_cols:
-                sa_labels.append(job_str_list[sa_col - 1])
-                sa_colors.append(color_list[sa_col - 1])
-
-            # patch_alpha = min(quartile_alpha + .1, 1)
-            # legend_font_size = np.clip(int(bins / 1.65), 12, 14)
-            # legend_cols = int(bins / 30) + 1
-            # legend_position = 1 + (legend_cols * .17) + legend_pos_adj
-            if gain_loss_bg:
-                recs = []
-                for i in np.arange(len(sa_cols) + 2):
-                    if i <= 1:
-                        patch_alpha = .2
-                    else:
-                        patch_alpha = 1
-                    recs.append(mpatches.Rectangle((0, 0), 1, 1,
-                                                   fc=sa_colors[i],
-                                                   alpha=patch_alpha))
-
-        # dict color mapping to job level is currently lost...
-        if custom_color:
-            num_of_colors = cf.num_of_job_levels + 1
-            cm_subsection = np.linspace(start, stop, num_of_colors)
-            colormap = eval('cm.' + cm_name)
-            colors = [colormap(x) for x in cm_subsection]
 
         with sns.axes_style('darkgrid'):
 
+            ax = plt.subplot(num_rows, num_cols, plot_num)
+
             if style == 'area':
                 quantile_yrs.plot(kind='area',
-                                  stacked=True, color=colors)
+                                  stacked=True, color=colors, ax=ax)
             if style == 'bar':
                 if rotate:
                     kind = 'barh'
                 else:
                     kind = 'bar'
                 quantile_yrs.plot(kind=kind, width=1,
-                                  stacked=True, color=colors)
-
-            ax = plt.gca()
+                                  stacked=True, color=colors, ax=ax)
 
             if normalize_yr_scale:
                 if rotate:
@@ -273,58 +251,42 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                     ax.invert_yaxis()
 
                 if rotate:
-                    plt.xlabel('years')
-                    plt.ylabel('quartiles')
+                    plt.xlabel('years', fontsize=label_size)
+                    plt.ylabel('quartiles', fontsize=label_size)
                 else:
-                    plt.ylabel('years')
-                    plt.xlabel('quartiles')
+                    plt.ylabel('years', fontsize=label_size)
+                    plt.xlabel('quartiles', fontsize=label_size)
                     plt.xticks(rotation='horizontal')
 
             if flip_x:
                 ax.invert_xaxis()
 
-            try:
-                plt.suptitle(proposal_dict[proposal] + ', GROUP ' +
-                             eg_dict[eg], fontsize=20, y=1.02)
-            except:
-                plt.suptitle('proposal' + ', GROUP ' + eg_dict[eg],
-                             fontsize=20, y=1.02)
+            ax.set_title('group ' + str(eg), fontsize=label_size)
+            ax.legend_.remove()
 
-            plt.title('years in position, ' + str(num_bins) + '-quantiles',
-                      y=1.02)
-
-            box = ax.get_position()
-            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-            ax.legend((labels), loc='center left',
-                      bbox_to_anchor=(1, 0.5),
-                      fontsize=legend_font_size)
-            # plt.yticks(fontsize=14)
-            # plt.yticks(fontsize=ytick_fontsize)
-            plt.tick_params(axis='y', labelsize=ytick_fontsize)
-            fig = plt.gcf()
-            fig.set_size_inches(xsize, ysize)
-            plt.show()
+            plt.tick_params(axis='y', labelsize=tick_fontsize)
+            # plt.tick_params(axis='x', labelsize=tick_fontsize)
+            plot_num += 1
 
             if plot_differential and style == 'bar':
 
+                ax = plt.subplot(num_rows, num_cols, plot_num)
                 diff = quantile_yrs - sa_quantile_yrs
 
                 if style == 'area':
                     diff.plot(kind='area',
-                              stacked=True, color=colors)
+                              stacked=True, color=colors, ax=ax)
                 if style == 'bar':
                     if rotate:
                         kind = 'barh'
                     else:
                         kind = 'bar'
                     diff.plot(kind=kind, width=1,
-                              stacked=True, color=colors)
-
-                ax = plt.gca()
+                              stacked=True, color=colors, ax=ax)
 
                 if rotate:
-                    plt.xlabel('years')
-                    plt.ylabel('quartiles')
+                    plt.xlabel('years', fontsize=label_size)
+                    plt.ylabel('quartiles', fontsize=label_size)
                     if normalize_yr_scale:
                         plt.xlim(year_clip / -3, year_clip / 3)
                     if not flip_y:
@@ -334,8 +296,8 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                         plt.axvspan(0, x_max, facecolor='g', alpha=bg_alpha)
                         plt.axvspan(0, x_min, facecolor='r', alpha=bg_alpha)
                 else:
-                    plt.ylabel('years')
-                    plt.xlabel('quartiles')
+                    plt.ylabel('years', fontsize=label_size)
+                    plt.xlabel('quartiles', fontsize=label_size)
                     if normalize_yr_scale:
                         plt.ylim(year_clip / -3, year_clip / 3)
                     if flip_y:
@@ -347,35 +309,55 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                     ax.invert_xaxis()
                     plt.xticks(rotation='horizontal')
 
-                box = ax.get_position()
-                ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-                if gain_loss_bg:
-                    ax.legend(
-                        recs, (sa_labels), loc='center left',
-                        bbox_to_anchor=(1, 0.5),
-                        fontsize=legend_font_size)
-                else:
-                    ax.legend(
-                        (sa_labels), loc='center left',
-                        bbox_to_anchor=(1, 0.5),
-                        fontsize=legend_font_size)
+                ax.set_title('group ' + str(eg), fontsize=label_size)
+                plt.tick_params(axis='y', labelsize=tick_fontsize)
+                # plt.tick_params(axis='x', labelsize=tick_fontsize)
+                ax.legend_.remove()
+                plot_num += 1
 
-                try:
-                    plt.suptitle(proposal_dict[proposal] +
-                                 ', GROUP ' + eg_dict[eg],
-                                 fontsize=20, y=1.02)
-                except:
-                    plt.suptitle('proposal' +
-                                 ', GROUP ' + eg_dict[eg],
-                                 fontsize=20, y=1.02)
-                plt.title('years differential vs standalone, ' +
-                          str(num_bins) + '-quantiles',
-                          y=1.02)
-                # plt.yticks(fontsize=ytick_fontsize)
-                plt.tick_params(axis='y', labelsize=ytick_fontsize)
-                fig = plt.gcf()
-                fig.set_size_inches(xsize, ysize)
-                plt.show()
+    try:
+        plt.suptitle(proposal_dict[proposal], fontsize=16, y=1.02)
+    except:
+        plt.suptitle('proposal',
+                     fontsize=16, y=1.02)
+
+    if not plot_differential:
+        xsize = xsize * .5
+    fig.set_size_inches(xsize, ysize)
+    plt.tight_layout()
+
+    if gain_loss_bg:
+            legend_labels = ['Loss', 'Gain']
+            legend_colors = ['r', 'g']
+    else:
+        legend_labels = []
+        legend_colors = []
+
+    for jnum in np.unique(sa_ds.jnum):
+        legend_labels.append(job_str_list[jnum - 1])
+        legend_colors.append(color_list[jnum - 1])
+
+    recs = []
+    if gain_loss_bg:
+        for i in np.arange(len(legend_colors)):
+            if i <= 1:
+                patch_alpha = .2
+            else:
+                patch_alpha = 1
+            recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                           fc=legend_colors[i],
+                                           alpha=patch_alpha))
+    else:
+        for i in np.arange(len(legend_colors)):
+            recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                           fc=legend_colors[i],
+                                           alpha=1))
+
+    fig.legend(recs, (legend_labels),
+               loc='center left',
+               bbox_to_anchor=(1.01, 0.5),
+               fontsize=legend_font_size)
+    plt.show()
 
 
 def age_vs_spcnt(df, eg_list, mnum, color_list,
@@ -1570,7 +1552,8 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
 
 def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
                   jnum_colors, cols=200,
-                  job_only=False, jnum=1, cell_border=True, border_color='.5',
+                  job_only=False, jnum=1, cell_border=True,
+                  eg_border_color='.3', job_border_color='.8',
                   xsize=14, ysize=12, chart_example=False):
     '''currently will plot egs, fur, jnums, sg
     TODO: modify to plot additional measures, including graduated coloring
@@ -1579,6 +1562,11 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
     data = prop[prop.mnum == mnum]
     rows = int(len(prop[prop.mnum == 0]) / cols) + 1
     heat_data = np.zeros(cols * rows)
+
+    if job_only:
+        border_color = job_border_color
+    else:
+        border_color = eg_border_color
 
     i = 1
 
@@ -1646,8 +1634,7 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
 
         plt.gcf().set_size_inches(xsize, ysize)
         plt.xticks([])
-        plt.tick_params(axis='y', labelsize=min(ysize - 6, 10))
-        plt.yticks(fontsize=max(6, (min(12, ysize - 3))))
+        plt.tick_params(axis='y', labelsize=max(6, (min(12, ysize - 3))))
         plt.ylabel(str(cols) + ' per row',
                    fontsize=max(12, min(ysize + 1, 18)))
         plt.title(title, fontsize=18, y=1.01)
@@ -1960,7 +1947,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
            mean_len=80,
            dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
            width=17.5, height=10, strip_height=3.5, bright_bg=True,
-           chart_style='whitegrid', bg_clr='#fffff0'):
+           chart_style='whitegrid', bg_clr='#fffff0', show_grid=True):
     '''compare specific proposal attributes and interactively adjust
     list order.  may be used to minimize distortions.  utilizes ipywidgets.
 
@@ -2017,6 +2004,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     '''
 
     try:
+        # assert len(base_ds) == len(eval(compare_ds_text))
         compare_ds = pd.read_pickle('dill/' + compare_ds_text + '.pkl')
     except:
         compare_ds = pd.read_pickle('dill/ds1.pkl')
@@ -2161,6 +2149,8 @@ def editor(base_ds, compare_ds_text, prop_order=True,
         if bright_bg:
             # ax.set_axis_bgcolor('#faf6eb')
             ax.set_axis_bgcolor(bg_clr)
+        if show_grid:
+            ax.grid(lw=1, ls='-', c='grey', alpha=.25)
 
         plt.close(fig)
 
@@ -2297,7 +2287,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
             display(Javascript('IPython.notebook.execute_cell()'))
 
         button_calc = Button(description="calculate",
-                             background_color='#99ddff')
+                             background_color='red')
         button_calc.on_click(run_cell)
 
         button_draw = Button(description="draw",
@@ -2644,3 +2634,476 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
             plt.yticks = np.arange(.5, -.55, .05)
         plt.show()
 
+
+def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
+                     xsize=9, ysize=5):
+    '''line-style charts displaying job category counts over time.
+
+    option to display employee group results on separate charts or together
+    '''
+    if plot_egs_sep:
+
+        num_egplots = len(eg_list)
+        num_jobs = cf.num_of_job_levels
+
+        fig, ax = plt.subplots(num_jobs, num_egplots)
+
+        fig = plt.gcf()
+        fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
+        subplot_list = build_subplotting_order(num_jobs, num_egplots)
+        plot_idx = 0
+
+        for eg in eg_list:
+
+            for jnum in np.arange(1, cf.num_of_job_levels + 1):
+
+                plot_id = subplot_list[plot_idx]
+                ax = plt.subplot(num_jobs, num_egplots, plot_id)
+
+                base[base.jnum == jnum].groupby(['date', 'jnum']).size() \
+                    .unstack().fillna(0).astype(int).plot(c='g',
+                                                          lw=.7,
+                                                          alpha=.7,
+                                                          ax=ax)
+                prop[prop.jnum == jnum].groupby(['date', 'jnum']).size() \
+                    .unstack().fillna(0).astype(int).plot(c='g',
+                                                          ls='dotted',
+                                                          lw=1,
+                                                          ax=ax)
+
+                try:
+                    prop[(prop.eg == eg) & (prop.jnum == jnum)] \
+                        .groupby(['date', 'jnum']).size().unstack() \
+                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
+                                                    ls='dotted',
+                                                    lw=3,
+                                                    ax=ax)
+
+                    base[(base.eg == eg) & (base.jnum == jnum)] \
+                        .groupby(['date', 'jnum']).size().unstack() \
+                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
+                                                    lw=2,
+                                                    ax=ax)
+                except:
+                    pass
+                ax.legend_.remove()
+                plt.title(cf.eg_dict_verbose[eg] + '  ' +
+                          cf.jobs_dict[jnum], fontsize=14)
+                plot_idx += 1
+
+    else:
+
+        for jnum in np.arange(1, cf.num_of_job_levels + 1):
+
+            ax = base[base.jnum == jnum].groupby(['date', 'jnum']).size() \
+                .unstack().fillna(0).astype(int).plot(c='g', lw=.7, alpha=.7)
+
+            prop[prop.jnum == jnum].groupby(['date', 'jnum']).size() \
+                .unstack().fillna(0).astype(int).plot(c='g',
+                                                      ls='dotted',
+                                                      lw=1,
+                                                      ax=ax)
+
+            for eg in eg_list:
+                try:
+                    prop[(prop.eg == eg) & (prop.jnum == jnum)] \
+                        .groupby(['date', 'jnum']).size().unstack() \
+                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
+                                                    ls='dotted',
+                                                    lw=3,
+                                                    ax=ax)
+
+                    base[(base.eg == eg) & (base.jnum == jnum)] \
+                        .groupby(['date', 'jnum']).size().unstack() \
+                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
+                                                    lw=2,
+                                                    ax=ax)
+                except:
+                    pass
+            ax.legend_.remove()
+            fig = plt.gcf()
+            fig.set_size_inches(xsize, ysize)
+            plt.title(cf.jobs_dict[jnum], fontsize=14)
+
+    fig.tight_layout()
+    plt.show()
+
+
+def build_subplotting_order(rows, cols):
+    '''build a list of integers to permit passing through subplots by columns
+    '''
+    subplot_order_list = []
+    for col in np.arange(1, cols + 1):
+        subplot_order_list.extend(np.arange(col, (rows * cols) + 1, cols))
+    return subplot_order_list
+
+
+def emp_quick_glance(empkey, proposal, xsize=8, ysize=48, lw=4):
+    '''view basic stats for selected employee and proposal
+    '''
+
+    one_emp = proposal[proposal.empkey == empkey].set_index('date')
+
+    cols = ['age', 'ylong', 'spcnt', 'snum', 'jnum', 'jobp',
+            'cat_order', 'rank_in_job', 'job_count', 'mpay', 'cpay']
+
+    with sns.axes_style('dark'):
+        one_emp[cols].plot(subplots=True, figsize=(xsize, ysize), lw=lw)
+
+    plt.xticks(rotation=0, horizontalalignment='center')
+
+    fig = plt.gcf()
+    i = 0
+    for ax in fig.axes:
+        if cols[i] in ['new_order', 'jnum', 'snum', 'spcnt', 'lnum',
+                       'lspcnt', 'rank_in_job', 'job_count', 'jobp',
+                       'cat_order']:
+            ax.invert_yaxis()
+
+        if i % 2 == 0:
+            ax.yaxis.tick_right()
+            if i == 0:
+                try:
+                    ax.set_title(' emp ' +
+                                 str(empkey), y=1.1)
+                except:
+                    ax.set_title('proposal' + ' emp ' + str(empkey), y=1.1)
+            else:
+                ax.set_title('emp ' + str(empkey))
+        if i == 0:
+            ax.xaxis.set_tick_params(labeltop='on')
+        ax.grid(c='grey', alpha=.3)
+        i += 1
+
+    plt.tick_params(axis='y', labelsize=14)
+    plt.tick_params(axis='x', labelsize=14)
+
+    one_emp = ()
+    plt.tight_layout()
+    fig.subplots_adjust(hspace=0.075, wspace=0)
+    plt.show()
+
+
+def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
+                               job_str_list,
+                               proposal, proposal_dict, eg_dict, color_list,
+                               style='bar', plot_differential=True,
+                               custom_color=False, cm_name='Dark2', start=0.0,
+                               stop=1.0, flip_x=False, flip_y=False,
+                               rotate=False, gain_loss_bg=False, bg_alpha=.05,
+                               normalize_yr_scale=False, year_clip=30,
+                               xsize=8, ysize=6):
+    '''stacked bar or area chart presenting the time spent in the various
+    job levels for quartiles of a selected employee group.
+    inputs
+        prop_ds (dataframe)
+            proposal dataset to explore
+        sa_ds (dataframe)
+            standalone dataset
+        job_levels
+            the number of job levels in the model
+        num_bins
+            the total number of segments (divisions of the population) to
+            calculate and display
+        job_str_list
+            a list of strings which correspond with the job levels, used for
+            the chart legend
+            example:
+                jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
+        proposal
+            text name of the (proposal) dataset, used as key in the
+            proposal dict
+        proposal_dict
+            a dictionary of proposal text keys and corresponding proposal text
+            descriptions, used for chart titles
+        eg_dict
+            dictionary used to convert employee group numbers to text,
+            used with chart title text display
+        color_list
+            a list of color codes which control the job level color display
+        style
+            option to select 'area' or 'bar' to determine the type
+            of chart output. default is 'bar'.
+        custom_color, cm_name, start, stop
+            if custom color is set to True, create a custom color map from
+            the cm_name color map style.  A portion of the color map may be
+            selected for customization using the start and stop inputs.
+        flip_x
+            'flip' the chart horizontally if True
+        flip_y
+            'flip' the chart vertically if True
+        rotate
+            transpose the chart output
+        normalize_yr_scale
+            set all output charts to have the same x axis range
+        yr_clip
+            max x axis value (years) if normalize_yr_scale set True'''
+
+    if 'new_order' in prop_ds.columns:
+        ds_sel_cols = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
+                               'new_order', 'doh', 'retdate']]
+        if plot_differential:
+            sa_ds['new_order'] = sa_ds['idx']
+            sa_sel_cols = sa_ds[['mnum', 'eg', 'jnum', 'empkey',
+                                 'new_order', 'doh', 'retdate']].copy()
+
+    else:
+        prop_ds['new_order'] = prop_ds['idx']
+        ds_sel_cols = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
+                               'new_order', 'doh', 'retdate']].copy()
+        plot_differential = False
+
+    mnum0 = ds_sel_cols[ds_sel_cols.mnum == 0][[]]
+    mnum0['order'] = np.arange(len(mnum0)) + 1
+
+    # ds_sel_cols = ds_sel_cols[(ds_sel_cols.doh > '1989-07-01')]
+    egs = sorted(list(set(ds_sel_cols.eg)))
+    legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
+    ytick_fontsize = (np.clip(int(ysize * 1.55), 9, 14))
+
+    for eg in egs:
+
+        ds_eg = ds_sel_cols[(ds_sel_cols.eg == eg) & (ds_sel_cols.jnum >= 1)]
+
+        job_counts_by_emp = ds_eg.groupby(['empkey', 'jnum']).size()
+
+        months_in_jobs = job_counts_by_emp.unstack() \
+            .fillna(0).sort_index(axis=1, ascending=True).astype(int)
+
+        months_in_jobs = months_in_jobs.join(mnum0[['order']], how='left')
+        months_in_jobs.sort_values(by='order', inplace=True)
+        months_in_jobs.pop('order')
+
+        bin_lims = pd.qcut(np.arange(len(months_in_jobs)),
+                           num_bins,
+                           retbins=True,
+                           labels=np.arange(num_bins) + 1)[1].astype(int)
+
+        result_arr = np.zeros((num_bins, len(months_in_jobs.columns)))
+
+        cols = list(months_in_jobs.columns)
+
+        labels = []
+        colors = []
+        for col in cols:
+            labels.append(job_str_list[col - 1])
+            colors.append(color_list[col - 1])
+
+        for i in np.arange(num_bins):
+            bin_avg = \
+                np.array(months_in_jobs[bin_lims[i]:bin_lims[i + 1]].mean())
+            result_arr[i] = bin_avg
+
+        quantile_mos = pd.DataFrame(result_arr,
+                                    columns=months_in_jobs.columns,
+                                    index=np.arange(1, num_bins + 1))
+
+        quantile_yrs = quantile_mos / 12
+
+        if plot_differential:
+
+            sa_eg = sa_sel_cols[
+                (sa_sel_cols.eg == eg) & (sa_sel_cols.jnum >= 1)]
+
+            sa_job_counts_by_emp = sa_eg.groupby(['empkey', 'jnum']).size()
+
+            sa_months_in_jobs = sa_job_counts_by_emp.unstack() \
+                .fillna(0).sort_index(axis=1, ascending=True).astype(int)
+
+            sa_months_in_jobs = sa_months_in_jobs.join(
+                mnum0[['order']], how='left')
+            sa_months_in_jobs.sort_values(by='order', inplace=True)
+            sa_months_in_jobs.pop('order')
+
+            sa_bin_lims = pd.qcut(np.arange(len(sa_months_in_jobs)),
+                                  num_bins,
+                                  retbins=True,
+                                  labels=np.arange(num_bins) + 1)[1] \
+                .astype(int)
+
+            sa_result_arr = np.zeros(
+                (num_bins, len(sa_months_in_jobs.columns)))
+
+            for i in np.arange(num_bins):
+                sa_bin_avg = \
+                    np.array(sa_months_in_jobs
+                             [sa_bin_lims[i]:sa_bin_lims[i + 1]].mean())
+                sa_result_arr[i] = sa_bin_avg
+
+            sa_quantile_mos = pd.DataFrame(sa_result_arr,
+                                           columns=sa_months_in_jobs.columns,
+                                           index=np.arange(1, num_bins + 1))
+
+            sa_quantile_yrs = sa_quantile_mos / 12
+
+            for col in quantile_yrs:
+                if col not in sa_quantile_yrs:
+                    sa_quantile_yrs[col] = 0
+
+            sa_quantile_yrs.sort_index(axis=1, inplace=True)
+            sa_cols = list(sa_quantile_yrs.columns)
+
+            if gain_loss_bg:
+                sa_labels = ['Loss', 'Gain']
+                sa_colors = ['r', 'g']
+
+            else:
+                sa_labels = []
+                sa_colors = []
+
+            for sa_col in sa_cols:
+                sa_labels.append(job_str_list[sa_col - 1])
+                sa_colors.append(color_list[sa_col - 1])
+
+            # patch_alpha = min(quartile_alpha + .1, 1)
+            # legend_font_size = np.clip(int(bins / 1.65), 12, 14)
+            # legend_cols = int(bins / 30) + 1
+            # legend_position = 1 + (legend_cols * .17) + legend_pos_adj
+            if gain_loss_bg:
+                recs = []
+                for i in np.arange(len(sa_cols) + 2):
+                    if i <= 1:
+                        patch_alpha = .2
+                    else:
+                        patch_alpha = 1
+                    recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                                   fc=sa_colors[i],
+                                                   alpha=patch_alpha))
+
+        # dict color mapping to job level is currently lost...
+        if custom_color:
+            num_of_colors = cf.num_of_job_levels + 1
+            cm_subsection = np.linspace(start, stop, num_of_colors)
+            colormap = eval('cm.' + cm_name)
+            colors = [colormap(x) for x in cm_subsection]
+
+        with sns.axes_style('darkgrid'):
+
+            if style == 'area':
+                quantile_yrs.plot(kind='area',
+                                  stacked=True, color=colors)
+            if style == 'bar':
+                if rotate:
+                    kind = 'barh'
+                else:
+                    kind = 'bar'
+                quantile_yrs.plot(kind=kind, width=1,
+                                  stacked=True, color=colors)
+
+            ax = plt.gca()
+
+            if normalize_yr_scale:
+                if rotate:
+                    plt.xlim(0, year_clip)
+                else:
+                    plt.ylim(ymax=year_clip)
+
+            if style == 'bar':
+
+                if not flip_y:
+                    ax.invert_yaxis()
+
+                if rotate:
+                    plt.xlabel('years')
+                    plt.ylabel('quartiles')
+                else:
+                    plt.ylabel('years')
+                    plt.xlabel('quartiles')
+                    plt.xticks(rotation='horizontal')
+
+            if flip_x:
+                ax.invert_xaxis()
+
+            try:
+                plt.suptitle(proposal_dict[proposal] + ', GROUP ' +
+                             eg_dict[eg], fontsize=20, y=1.02)
+            except:
+                plt.suptitle('proposal' + ', GROUP ' + eg_dict[eg],
+                             fontsize=20, y=1.02)
+
+            plt.title('years in position, ' + str(num_bins) + '-quantiles',
+                      y=1.02)
+
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax.legend((labels), loc='center left',
+                      bbox_to_anchor=(1, 0.5),
+                      fontsize=legend_font_size)
+            # plt.yticks(fontsize=14)
+            # plt.yticks(fontsize=ytick_fontsize)
+            plt.tick_params(axis='y', labelsize=ytick_fontsize)
+            fig = plt.gcf()
+            fig.set_size_inches(xsize, ysize)
+            plt.show()
+
+            if plot_differential and style == 'bar':
+
+                diff = quantile_yrs - sa_quantile_yrs
+
+                if style == 'area':
+                    diff.plot(kind='area',
+                              stacked=True, color=colors)
+                if style == 'bar':
+                    if rotate:
+                        kind = 'barh'
+                    else:
+                        kind = 'bar'
+                    diff.plot(kind=kind, width=1,
+                              stacked=True, color=colors)
+
+                ax = plt.gca()
+
+                if rotate:
+                    plt.xlabel('years')
+                    plt.ylabel('quartiles')
+                    if normalize_yr_scale:
+                        plt.xlim(year_clip / -3, year_clip / 3)
+                    if not flip_y:
+                        ax.invert_yaxis()
+                    x_min, x_max = plt.xlim()
+                    if gain_loss_bg:
+                        plt.axvspan(0, x_max, facecolor='g', alpha=bg_alpha)
+                        plt.axvspan(0, x_min, facecolor='r', alpha=bg_alpha)
+                else:
+                    plt.ylabel('years')
+                    plt.xlabel('quartiles')
+                    if normalize_yr_scale:
+                        plt.ylim(year_clip / -3, year_clip / 3)
+                    if flip_y:
+                        ax.invert_yaxis()
+                    ymin, ymax = plt.ylim()
+                    if gain_loss_bg:
+                        plt.axhspan(0, ymax, facecolor='g', alpha=bg_alpha)
+                        plt.axhspan(0, ymin, facecolor='r', alpha=bg_alpha)
+                    ax.invert_xaxis()
+                    plt.xticks(rotation='horizontal')
+
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+                if gain_loss_bg:
+                    ax.legend(
+                        recs, (sa_labels), loc='center left',
+                        bbox_to_anchor=(1, 0.5),
+                        fontsize=legend_font_size)
+                else:
+                    ax.legend(
+                        (sa_labels), loc='center left',
+                        bbox_to_anchor=(1, 0.5),
+                        fontsize=legend_font_size)
+
+                try:
+                    plt.suptitle(proposal_dict[proposal] +
+                                 ', GROUP ' + eg_dict[eg],
+                                 fontsize=20, y=1.02)
+                except:
+                    plt.suptitle('proposal' +
+                                 ', GROUP ' + eg_dict[eg],
+                                 fontsize=20, y=1.02)
+                plt.title('years differential vs standalone, ' +
+                          str(num_bins) + '-quantiles',
+                          y=1.02)
+                # plt.yticks(fontsize=ytick_fontsize)
+                plt.tick_params(axis='y', labelsize=ytick_fontsize)
+                fig = plt.gcf()
+                fig.set_size_inches(xsize, ysize)
+plt.show()
