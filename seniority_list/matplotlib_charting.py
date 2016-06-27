@@ -589,7 +589,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
         ytick_labels = list(ax.get_yticks())
 
         for i in np.arange(1, len(ytick_labels)):
-            ytick_labels[i] = job_dict[i]
+            ytick_labels[i] = job_dict[i - 1]
 
         plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.3)
         ax.set_yticklabels(ytick_labels)
@@ -967,27 +967,16 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
 
     through_date = pd.to_datetime(through_date)
     fur_lvl = job_levels + 1
-    if job_levels == 16:
+    jobs_dict = cf.jobs_dict
+    if cf.enhanced_jobs:
         j_changes = f.convert_job_changes_to_enhanced(job_change_lists, cf.jd)
         eg_counts = f.convert_jcnts_to_enhanced(job_counts,
                                                 cf.intl_blk_pcnt,
                                                 cf.dom_blk_pcnt)
-        # for adjusting secondary y label positioning
-        adjust = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -75, 50, 0, -160, -40, 120, 0]
-        jobs_dict = {1: 'Capt G4 B', 2: 'Capt G4 R', 3: 'Capt G3 B',
-                     4: 'Capt G2 B', 5: 'Capt G3 R', 6: 'Capt G2 R',
-                     7: 'F/O  G4 B', 8: 'F/O  G4 R', 9: 'F/O  G3 B',
-                     10: 'F/O  G2 B', 11: 'Capt G1 B', 12: 'F/O  G3 R',
-                     13: 'F/O  G2 R', 14: 'Capt G1 R', 15: 'F/O  G1 B',
-                     16: 'F/O  G1 R', 17: 'FUR'}
 
     else:
         j_changes = job_change_lists
         eg_counts = job_counts
-        adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]
-        jobs_dict = {1: 'Capt G4', 2: 'Capt G3', 3: 'Capt G2', 4: 'F/O  G4',
-                     5: 'F/O  G3', 6: 'F/O  G2', 7: 'Capt G1', 8: 'F/O  G1',
-                     9: 'FUR'}
 
     jcnts_arr = f.make_jcnts(eg_counts)
     table = f.job_gain_loss_table(np.unique(ds.mnum).size,
@@ -1010,11 +999,6 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
         pd.date_range(cf.starting_date,
                       periods=np.unique(df_monthly_non_ret.index).size,
                       freq='M'), inplace=True)
-    # df_monthly_non_ret = pd.DataFrame(non_ret_counts)
-    # df_monthly_non_ret.set_index(pd.date_range('2013-12-31',
-    #                                            periods=len(non_ret_counts),
-    #                                            freq='M'),
-    #                              inplace=True)
 
     non_ret_count = df_monthly_non_ret[:through_date]
     last_month_jobs_series = jobs_table.loc[through_date].sort_index()
@@ -1033,6 +1017,8 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
     cnts.insert(0, 0)
     axis2_lbl_locs = []
     axis2_lbls = []
+
+    adjust = cf.adjust
 
     i = 0
     for job_num in last_month_counts.index:
@@ -1582,6 +1568,10 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
         for eg_num in np.unique(eg):
             np.put(heat_data, np.where(eg == eg_num)[0], eg_num)
         np.put(heat_data, np.where(jnums != jnum)[0], 0)
+        # if jnum input is not in the list of available job numbers:
+        if jnum not in np.unique(jnums):
+            jnum = np.unique(jnums)[0]
+
         if chart_example:
             title = 'Proposal 1' + ' month ' + str(mnum) + \
                 ':  ' + cf.job_strs[jnum - 1] + '  job distribution'
@@ -2287,7 +2277,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
             display(Javascript('IPython.notebook.execute_cell()'))
 
         button_calc = Button(description="calculate",
-                             background_color='red')
+                             background_color='#80ffff')
         button_calc.on_click(run_cell)
 
         button_draw = Button(description="draw",
@@ -2744,7 +2734,7 @@ def emp_quick_glance(empkey, proposal, xsize=8, ysize=48, lw=4):
 
     one_emp = proposal[proposal.empkey == empkey].set_index('date')
 
-    cols = ['age', 'ylong', 'spcnt', 'snum', 'jnum', 'jobp',
+    cols = ['age', 'ylong', 'spcnt', 'lspcnt', 'snum', 'jnum', 'jobp',
             'cat_order', 'rank_in_job', 'job_count', 'mpay', 'cpay']
 
     with sns.axes_style('dark'):

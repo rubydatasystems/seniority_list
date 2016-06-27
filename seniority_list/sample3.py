@@ -23,6 +23,8 @@ if cf.enhanced_jobs:
 else:
     num_of_job_levels = 8
 
+annual_pcnt_raise = .02
+top_of_scale = 12
 
 # JOB COUNTS
 eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
@@ -168,6 +170,12 @@ color3 = ['#ff0066', '#ff4d94', '#0033cc', '#ffff00', '#0040ff',
           '#ffff99', '#ff0066', '#ff4d94', '#0033cc', '#ffff00',
           '#00cc00', '#0040ff', '#ffff99', '#00e600', '#00cc00',
           '#00e600', '#333333']
+
+# for chart lable adjustment (secondary y label positioning)
+if cf.enhanced_jobs:
+    adjust = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -75, 50, 0, -160, -40, 120, 0]
+else:
+    adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]
 
 # reference only:
 

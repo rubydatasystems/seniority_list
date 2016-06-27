@@ -7,22 +7,17 @@ compute_with_job_changes = True
 discount_longev_for_fur = True
 lspcnt_calc_on_remaining_population = False
 
-edit_mode = False
-
 case_study = 'sample3'
-enhanced_jobs = True
+
+enhanced_jobs = False
+
+edit_mode = False
 
 # ********************************************************************
 # This impport must come after any variables that need to be used by the
 # case-specific modules...
 case = importlib.import_module(case_study)
 # ********************************************************************
-
-# number of job levels for model excluding furlough
-# if enhanced_jobs:
-#     num_of_job_levels = 16
-# else:
-#     num_of_job_levels = 8
 
 num_of_job_levels = case.num_of_job_levels
 
@@ -31,7 +26,7 @@ dom_blk_pcnt = case.dom_blk_pcnt
 
 # CONDITIONS
 apply_supc = True
-apply_east_cond = True
+apply_count_cond = True
 apply_ratio_cond = True
 
 starting_date = '2013-12-31'
@@ -41,7 +36,7 @@ delayed_implementation = False
 # imp_month = 33
 
 # for 8 to 16 job level conversion.
-# intl_blk_pcnt also used for east group 4 cond calculation when
+# intl_blk_pcnt also used for count group 4 cond calculation when
 # model contains 16 job levels.
 # intl_blk_pcnt = .6
 # dom_blk_pcnt = .65
@@ -57,7 +52,7 @@ imp_month = ((imp_date.year - start.year) * 12) - \
 if apply_ratio_cond:
 
     end_date = pd.to_datetime('2020-01-31')
-    amer_final_month = ((end_date.year - start.year) * 12) - \
+    ratio_final_month = ((end_date.year - start.year) * 12) - \
         (start.month - end_date.month)
 
 no_bump = True
@@ -78,8 +73,8 @@ add_sg_col = True
 # PAY RELATED (skeleton):
 
 pay_raise = False
-annual_pcnt_raise = .02
-top_of_scale = 12
+annual_pcnt_raise = case.annual_pcnt_raise
+top_of_scale = case.top_of_scale
 
 compute_job_category_order = True
 
@@ -92,6 +87,8 @@ eg_counts = case.eg_counts
 furlough_count = case.furlough_count
 recalls = case.recalls
 
+adjust = case.adjust
+
 if enhanced_jobs:
     # Job dictionary for enhanced jobs conversion:
     jd = case.jd
@@ -99,12 +96,12 @@ if enhanced_jobs:
     if apply_ratio_cond:
         # eg1 group 4 C&R
         # sequence = [eg, jnum, pcnt, start_month, end_month]
-        eg1_cr1 = [1, 1, imp_month, amer_final_month]
-        eg1_cr2 = [1, 2, imp_month, amer_final_month]
-        eg1_cr7 = [1, 7, imp_month, amer_final_month]
-        eg1_cr8 = [1, 8, imp_month, amer_final_month]
+        eg1_cr1 = [1, 1, imp_month, ratio_final_month]
+        eg1_cr2 = [1, 2, imp_month, ratio_final_month]
+        eg1_cr7 = [1, 7, imp_month, ratio_final_month]
+        eg1_cr8 = [1, 8, imp_month, ratio_final_month]
 
-        amr_g4_cond = [eg1_cr1, eg1_cr2, eg1_cr7, eg1_cr8]
+        ratio_cond = [eg1_cr1, eg1_cr2, eg1_cr7, eg1_cr8]
 
     if case_study == 'sample3':  # use sample data, enhanced jobs...
 
@@ -116,7 +113,7 @@ if enhanced_jobs:
             eg1_sg12 = [1, 12, 43, 0, 67]
             eg1_sg13 = [1, 13, 130, 0, 67]
 
-        if apply_east_cond:
+        if apply_count_cond:
             # eg2 group 4 C&R (split block and reserve...):
             # sequence = [eg, jnum, count, start_month, end_month]
             eg2_cr1 = [2, 1, 55, imp_month, imp_month + 60]
@@ -134,7 +131,7 @@ if enhanced_jobs:
             eg1_sg12 = [1, 12, 86, 0, 67]
             eg1_sg13 = [1, 13, 260, 0, 67]
 
-        if apply_east_cond:
+        if apply_count_cond:
             # eg2 group 4 C&R (split block and reserve...):
             # sequence = [eg, jnum, count, start_month, end_month]
             eg2_cr1 = [2, 1, 110, imp_month, imp_month + 60]
@@ -143,17 +140,17 @@ if enhanced_jobs:
             eg2_cr8 = [2, 8, 134, imp_month, imp_month + 60]
 
     sg_rights = [eg1_sg5, eg1_sg6, eg1_sg12, eg1_sg13]
-    east_g4_cond = [eg2_cr1, eg2_cr2, eg2_cr7, eg2_cr8]
+    count_cond = [eg2_cr1, eg2_cr2, eg2_cr7, eg2_cr8]
 
 else:  # basic job levels only:
 
     if apply_ratio_cond:
         # eg1 group 4 C&R
         # sequence = [eg, jnum, pcnt, start_month, end_month]
-        eg1_cr1 = [1, 1, imp_month, amer_final_month]
-        eg1_cr4 = [1, 4, imp_month, amer_final_month]
+        eg1_cr1 = [1, 1, imp_month, ratio_final_month]
+        eg1_cr4 = [1, 4, imp_month, ratio_final_month]
 
-        amr_g4_cond = [eg1_cr1, eg1_cr4]
+        ratio_cond = [eg1_cr1, eg1_cr4]
 
     if case_study == 'sample3':  # use sample data, enhanced jobs...
 
@@ -165,7 +162,7 @@ else:  # basic job levels only:
             eg1_sg5 = [1, 5, 43, 0, 67]
             eg1_sg6 = [1, 6, 130, 0, 67]
 
-        if apply_east_cond:
+        if apply_count_cond:
             # eg2 group 4 C&R
             # sequence = [eg, jnum, count, start_month, end_month]
             eg2_cr1 = [2, 1, 92, imp_month, imp_month + 60]
@@ -181,14 +178,14 @@ else:  # basic job levels only:
             eg1_sg5 = [1, 5, 86, 0, 67]
             eg1_sg6 = [1, 6, 260, 0, 67]
 
-        if apply_east_cond:
+        if apply_count_cond:
             # eg2 group 4 C&R
             # sequence = [eg, jnum, count, start_month, end_month]
             eg2_cr1 = [2, 1, 183, imp_month, imp_month + 60]
             eg2_cr4 = [2, 4, 336, imp_month, imp_month + 60]
 
     sg_rights = [eg1_sg2, eg1_sg3, eg1_sg5, eg1_sg6]
-    east_g4_cond = [eg2_cr1, eg2_cr4]
+    count_cond = [eg2_cr1, eg2_cr4]
 
 ############################################
 # colors, dicts
@@ -215,9 +212,7 @@ row_colors = case.row_colors
 white_grey = case.white_grey
 
 color1 = case.color1
-
 color2 = case.color2
-
 color3 = case.color3
 
 

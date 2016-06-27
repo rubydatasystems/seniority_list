@@ -988,25 +988,25 @@ def assign_jobs_nbnf_job_changes(df,
     # calc amer grp4 condition month range and concat to
     # job_change_months
     if 'ratio' in condition_list:
-        amer_cond = np.array(cf.amr_g4_cond)
-        amer_jobs = np.transpose(amer_cond)[1]
-        ratio_cond_month = amer_cond[0][2]
+        ratio_cond = np.array(cf.ratio_cond)
+        ratio_jobs = np.transpose(ratio_cond)[1]
+        ratio_cond_month = ratio_cond[0][2]
         ratio_cond_job = 1
-        amr_month_range = np.arange(np.min(amer_cond[:, 2]),
-                                    np.max(amer_cond[:, 3]))
+        ratio_month_range = np.arange(np.min(ratio_cond[:, 2]),
+                                      np.max(ratio_cond[:, 3]))
         job_change_months = np.concatenate((job_change_months,
-                                            amr_month_range))
+                                            ratio_month_range))
 
         # calc east grp4 condition month range and concat
     if 'count' in condition_list:
-        east_cond = np.array(cf.east_g4_cond)
-        east_jobs = np.transpose(east_cond)[1]
-        east_cond_start_month = east_cond[0][3]
-        east_month_range = np.arange(np.min(east_cond[:, 3]),
-                                     np.max(east_cond[:, 4]))
+        count_cond = np.array(cf.count_cond)
+        count_jobs = np.transpose(count_cond)[1]
+        count_cond_start_month = count_cond[0][3]
+        count_month_range = np.arange(np.min(count_cond[:, 3]),
+                                      np.max(count_cond[:, 4]))
         job_change_months = np.concatenate((job_change_months,
-                                            east_month_range))
-        west_nbnf_jobs = np.zeros(total_months, dtype=int)
+                                            count_month_range))
+        nonparticip_nbnf_jobs = np.zeros(total_months, dtype=int)
 
     if fur_return:
 
@@ -1075,11 +1075,11 @@ def assign_jobs_nbnf_job_changes(df,
                     if month == ratio_cond_month and job == ratio_cond_job:
 
                         ratio_cond_dict = set_ratio_cond_dict(1,
-                                                              amer_jobs,
+                                                              ratio_jobs,
                                                               orig_job_range,
                                                               eg_range)
 
-                    if month in amr_month_range and job in amer_jobs:
+                    if month in ratio_month_range and job in ratio_jobs:
 
                         assign_cond_ratio(job,
                                           this_job_count,
@@ -1093,30 +1093,31 @@ def assign_jobs_nbnf_job_changes(df,
                 # **EAST GRP4 condition**
                 if 'count' in condition_list:
 
-                    if month in east_month_range and job in east_jobs:
+                    if month in count_month_range and job in count_jobs:
 
                         # this is for the first month of cond only.
-                        # mark the west employees holding an affected job
-                        # and pass down to long_form west nbnf array.
+                        # mark the nonparticipating employees holding an
+                        # affected job and pass down to long_form
+                        # nonparticipating nbnf array.
                         # this is future reference for assignment function
                         # below.
-                        if month == east_cond_start_month and job == 1:
+                        if month == count_cond_start_month and job == 1:
 
-                            west_range = west_nbnf_jobs[L:U]
+                            nonparticip_range = nonparticip_nbnf_jobs[L:U]
 
-                            for j in east_jobs:
-                                np.put(west_range,
+                            for j in count_jobs:
+                                np.put(nonparticip_range,
                                        np.where((orig_job_range == j) &
                                                 (eg_range == 3))[0],
                                        j)
 
-                            west_next = align_next(index_range,
-                                                   index_range_next,
-                                                   west_range)
-                            np.copyto(west_nbnf_jobs[L_next:U_next],
-                                      west_next)
+                            nonparticip_next = align_next(index_range,
+                                                          index_range_next,
+                                                          nonparticip_range)
+                            np.copyto(nonparticip_nbnf_jobs[L_next:U_next],
+                                      nonparticip_next)
 
-                        west_range = west_nbnf_jobs[L:U]
+                        nonparticip_range = nonparticip_nbnf_jobs[L:U]
                         assign_cond_ratio_capped(job,
                                                  this_job_count,
                                                  np.array((1)),
@@ -1125,7 +1126,7 @@ def assign_jobs_nbnf_job_changes(df,
                                                  assign_range,
                                                  eg_range,
                                                  fur_range,
-                                                 west_range)
+                                                 nonparticip_range)
 
             # TODO, code speedup...
             # use when not in condition month and monotonic is true
@@ -3092,8 +3093,8 @@ def print_config_selections():
                    'edit_mode': cf.edit_mode,
                    'enhanced_jobs': cf.enhanced_jobs,
                    'apply_supc': cf.apply_supc,
-                   'apply_east_cond': cf.apply_east_cond,
-                   'apply_amer_cond': cf.apply_ratio_cond,
+                   'apply_count_cond': cf.apply_count_cond,
+                   'apply_ratio_cond': cf.apply_ratio_cond,
                    'starting_date': cf.starting_date,
                    'delayed_implementation': cf.delayed_implementation,
                    'intl_blk_pcnt': cf.intl_blk_pcnt,

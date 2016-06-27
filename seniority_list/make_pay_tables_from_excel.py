@@ -26,7 +26,7 @@ for i in np.arange(len(table_sheets)):
                        var_name='scale',
                        value_name='rate')
 
-    pay_melt.rate = np.round(pay_melt.rate, 2)
+    # pay_melt.rate = np.round(pay_melt.rate, 2)
 
     pay_melt = pd.merge(pay_melt, pay_hours,
                         right_index=True, left_on=['jnum'])

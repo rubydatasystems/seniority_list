@@ -22,11 +22,16 @@ from pay_tables:
     idx_pay_table_with_rsv_with_fur.pkl,
     idx_pay_table_no_rsv_with_fur.pkl
 
+initialized:
+    slider_vals.pkl*,
+
 created by editor tool:
      ds_edit.pkl,
-     slider_vals.pkl,
+     slider_vals.pkl*,
      squeeze_vals.pkl,
      new_order.pkl
+
+*persistent values stored when editor tool is used
 
 example usage in jupyter notebook:
     %run build_files.py master_sample
@@ -100,3 +105,22 @@ df_dates.set_index('dates', inplace=True)
 df_dates = df_dates[['last_pay']]
 df_dates.to_pickle('dill/last_month.pkl')
 
+# SQUEEZE_VALS
+# initial values for editor tool widgets.
+# The values stored within this file will be replaced and
+# updated by the editor tool when it is utilized.
+rows = len(master)
+low = int(.2 * rows)
+high = int(.8 * rows)
+
+init_editor_vals = pd.DataFrame([['<<  d', '2', 'age', 'spcnt', 'log',
+                                  False, 65, high, False, True, low, 100]],
+                                columns=['drop_dir_val', 'drop_eg_val',
+                                         'drop_filter', 'drop_msr',
+                                         'drop_sq_val', 'fit_val',
+                                         'int_sel', 'junior', 'mean_val',
+                                         'scat_val', 'senior',
+                                         'slide_fac_val'],
+                                index=['value'])
+
+init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
