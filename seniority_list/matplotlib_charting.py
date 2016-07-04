@@ -1398,20 +1398,17 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
 
 def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
              formatter, left='sa', a_stride=50, e_stride=30, w_stride=20,
-             xsize=6, ysize=8, chart_example=False):
+             xsize=6, ysize=8):
+    '''Compare positional or value differences for various proposals
+    with a baseline position or value for selected months.
 
-    group_dict = {1: 'AMER', 2: 'EAST', 3: 'WEST'}
+    The vertical lines represent different proposed lists.
+    '''
+
+    group_dict = cf.eg_dict
     color_dict = {1: 'black', 2: 'blue', 3: 'red'}
 
-    if job_levels == 16:
-        jobs = ['Capt G4 B', 'Capt G4 R', 'Capt G3 B', 'Capt G2 B',
-                'Capt G3 R', 'Capt G2 R', 'F/O  G4 B', 'F/O  G4 R',
-                'F/O  G3 B', 'F/O  G2 B', 'Capt G1 B', 'F/O  G3 R',
-                'F/O  G2 R', 'Capt G1 R', 'F/O  G1 B', 'F/O  G1 R', 'FUR']
-
-    if job_levels == 8:
-        jobs = ['Capt G4', 'Capt G3', 'Capt G2', 'F/O  G4', 'F/O  G3',
-                'F/O  G2', 'Capt G1', 'F/O  G1', 'FUR']
+    jobs = cf.job_strs
 
     num_egplots = len(eg_list)
     num_months = len(month_list)
@@ -1431,33 +1428,30 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
         ds4 = dsd[(dsd.mnum == month) & (dsd.fur == 0)][['eg', measure]].copy()
 
         if left == 'sa':
-            df_joined = ds4.join(ds2, rsuffix=('_E')) \
-                .join(ds3, rsuffix=('_W')) \
-                .join(ds1, rsuffix=('_A'))
-            if chart_example:
-                df_joined.columns = ['eg', 'StandAlone',
-                                     'List2', 'List3', 'List1']
-            else:
-                df_joined.columns = ['eg', 'StandAlone',
-                                     'EAST', 'WEST', 'AMER']
+            df_joined = ds4.join(ds2, rsuffix=('_2')) \
+                .join(ds3, rsuffix=('_3')) \
+                .join(ds1, rsuffix=('_1'))
 
-        if left == 'amer':
-            df_joined = ds1.join(ds4, lsuffix=('_A')) \
-                .join(ds2, rsuffix=('_E')) \
-                .join(ds3, rsuffix=('_W'))
-            df_joined.columns = ['AMER', 'eg', 'StandAlone', 'EAST', 'WEST']
+            df_joined.columns = ['eg', 'StandAlone',
+                                 'List2', 'List3', 'List1']
 
-        if left == 'east':
-            df_joined = ds2.join(ds4, lsuffix=('_E')) \
-                .join(ds1, rsuffix=('_A')) \
-                .join(ds3, rsuffix=('_W'))
-            df_joined.columns = ['EAST', 'eg', 'StandAlone', 'AMER', 'WEST']
+        if left == '1':
+            df_joined = ds1.join(ds4, lsuffix=('_1')) \
+                .join(ds2, rsuffix=('_2')) \
+                .join(ds3, rsuffix=('_3'))
+            df_joined.columns = ['List1', 'eg', 'StandAlone', 'List2', 'List3']
 
-        if left == 'west':
-            df_joined = ds3.join(ds4, lsuffix=('_W')) \
-                .join(ds1, rsuffix=('_A')) \
-                .join(ds2, rsuffix=('_E'))
-            df_joined.columns = ['WEST', 'eg', 'StandAlone', 'AMER', 'EAST']
+        if left == '2':
+            df_joined = ds2.join(ds4, lsuffix=('_2')) \
+                .join(ds1, rsuffix=('_1')) \
+                .join(ds3, rsuffix=('_3'))
+            df_joined.columns = ['List2', 'eg', 'StandAlone', 'List1', 'List3']
+
+        if left == '3':
+            df_joined = ds3.join(ds4, lsuffix=('_3')) \
+                .join(ds1, rsuffix=('_1')) \
+                .join(ds2, rsuffix=('_2'))
+            df_joined.columns = ['List3', 'eg', 'StandAlone', 'List1', 'List2']
 
         with sns.axes_style('whitegrid', {'axes.facecolor': '#f5f5dc',
                                           'axes.axisbelow': True,
@@ -1473,12 +1467,10 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
                 df_1 = df_1[::a_stride]
                 parallel_coordinates(df_1, 'eg', lw=1.5, alpha=.7,
                                      color=color_dict[1])
-                if chart_example:
-                    plt.title('Group 1' + ' ' + measure.upper() + ' ' +
-                              str(month) + ' mths', fontsize=16, y=1.02)
-                else:
-                    plt.title(group_dict[1].upper() + ' ' + measure.upper() +
-                              ' ' + str(month) + ' mths', fontsize=16, y=1.02)
+
+                plt.title('Group ' + group_dict[1].upper() + ' ' +
+                          measure.upper() +
+                          ' ' + str(month) + ' mths', fontsize=16, y=1.02)
 
             if 2 in eg_list:
                 plot_num += 1
@@ -1487,12 +1479,10 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
                 df_2 = df_2[::e_stride]
                 parallel_coordinates(df_2, 'eg', lw=1.5, alpha=.7,
                                      color=color_dict[2])
-                if chart_example:
-                    plt.title('Group 2' + ' ' + measure.upper() + ' ' +
-                              str(month) + ' mths', fontsize=16, y=1.02)
-                else:
-                    plt.title(group_dict[2].upper() + ' ' + measure.upper() +
-                              ' ' + str(month) + ' mths', fontsize=16, y=1.02)
+
+                plt.title('Group ' + group_dict[2].upper() + ' ' +
+                          measure.upper() +
+                          ' ' + str(month) + ' mths', fontsize=16, y=1.02)
 
             if 3 in eg_list:
                 plot_num += 1
@@ -1501,12 +1491,10 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
                 df_3 = df_3[::w_stride]
                 parallel_coordinates(df_3, 'eg', lw=1.5, alpha=.7,
                                      color=color_dict[3])
-                if chart_example:
-                    plt.title('Group 3' + ' ' + measure.upper() + ' ' +
-                              str(month) + ' mths', fontsize=16, y=1.02)
-                else:
-                    plt.title(group_dict[3].upper() + ' ' + measure.upper() +
-                              ' ' + str(month) + ' mths', fontsize=16, y=1.02)
+
+                plt.title('Group ' + group_dict[3].upper() + ' ' +
+                          measure.upper() +
+                          ' ' + str(month) + ' mths', fontsize=16, y=1.02)
 
     fig = plt.gcf()
     for ax in fig.axes:
@@ -2626,28 +2614,33 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
 
 
 def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
-                     xsize=9, ysize=5):
+                     xsize=7, ysize=5):
     '''line-style charts displaying job category counts over time.
 
     option to display employee group results on separate charts or together
     '''
+    num_jobs = cf.num_of_job_levels
+
     if plot_egs_sep:
-
         num_egplots = len(eg_list)
-        num_jobs = cf.num_of_job_levels
+    else:
+        num_egplots = 1
 
-        fig, ax = plt.subplots(num_jobs, num_egplots)
+    fig, ax = plt.subplots(num_jobs, num_egplots)
 
-        fig = plt.gcf()
-        fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
-        subplot_list = build_subplotting_order(num_jobs, num_egplots)
-        plot_idx = 0
+    fig = plt.gcf()
+    fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
+    subplot_list = build_subplotting_order(num_jobs, num_egplots)
+
+    plot_idx = 0
+
+    if plot_egs_sep:
 
         for eg in eg_list:
 
             for jnum in np.arange(1, cf.num_of_job_levels + 1):
-
                 plot_id = subplot_list[plot_idx]
+
                 ax = plt.subplot(num_jobs, num_egplots, plot_id)
 
                 base[base.jnum == jnum].groupby(['date', 'jnum']).size() \
@@ -2655,6 +2648,7 @@ def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
                                                           lw=.7,
                                                           alpha=.7,
                                                           ax=ax)
+
                 prop[prop.jnum == jnum].groupby(['date', 'jnum']).size() \
                     .unstack().fillna(0).astype(int).plot(c='g',
                                                           ls='dotted',
@@ -2662,17 +2656,17 @@ def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
                                                           ax=ax)
 
                 try:
+                    base[(base.eg == eg) & (base.jnum == jnum)] \
+                        .groupby(['date', 'jnum']).size().unstack() \
+                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
+                                                    lw=2,
+                                                    ax=ax)
+
                     prop[(prop.eg == eg) & (prop.jnum == jnum)] \
                         .groupby(['date', 'jnum']).size().unstack() \
                         .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
                                                     ls='dotted',
                                                     lw=3,
-                                                    ax=ax)
-
-                    base[(base.eg == eg) & (base.jnum == jnum)] \
-                        .groupby(['date', 'jnum']).size().unstack() \
-                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
-                                                    lw=2,
                                                     ax=ax)
                 except:
                     pass
@@ -2685,8 +2679,12 @@ def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
 
         for jnum in np.arange(1, cf.num_of_job_levels + 1):
 
-            ax = base[base.jnum == jnum].groupby(['date', 'jnum']).size() \
-                .unstack().fillna(0).astype(int).plot(c='g', lw=.7, alpha=.7)
+            plot_id = subplot_list[plot_idx]
+            ax = plt.subplot(num_jobs, num_egplots, plot_id)
+
+            base[base.jnum == jnum].groupby(['date', 'jnum']).size() \
+                .unstack().fillna(0).astype(int).plot(c='g', lw=.7,
+                                                      alpha=.7, ax=ax)
 
             prop[prop.jnum == jnum].groupby(['date', 'jnum']).size() \
                 .unstack().fillna(0).astype(int).plot(c='g',
@@ -2696,24 +2694,23 @@ def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
 
             for eg in eg_list:
                 try:
+                    base[(base.eg == eg) & (base.jnum == jnum)] \
+                        .groupby(['date', 'jnum']).size().unstack() \
+                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
+                                                    lw=2,
+                                                    ax=ax)
+
                     prop[(prop.eg == eg) & (prop.jnum == jnum)] \
                         .groupby(['date', 'jnum']).size().unstack() \
                         .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
                                                     ls='dotted',
                                                     lw=3,
                                                     ax=ax)
-
-                    base[(base.eg == eg) & (base.jnum == jnum)] \
-                        .groupby(['date', 'jnum']).size().unstack() \
-                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
-                                                    lw=2,
-                                                    ax=ax)
                 except:
                     pass
             ax.legend_.remove()
-            fig = plt.gcf()
-            fig.set_size_inches(xsize, ysize)
             plt.title(cf.jobs_dict[jnum], fontsize=14)
+            plot_idx += 1
 
     fig.tight_layout()
     plt.show()
@@ -3174,4 +3171,85 @@ def cond_test(d, sel, plot_all_jobs=False, max_mnum=110,
     plt.title(title)
     fig = plt.gca()
     fig.invert_yaxis()
+    plt.show()
+
+
+def single_emp_compare(emp, measure, ds_list, xax, formatter,
+                       job_strs, eg_colors, eg_dict,
+                       job_levels, chart_example=False):
+
+    '''Select a single employee and compare proposal outcome using various
+    calculated measures.
+
+    inputs
+        emp
+            empkey for selected employee
+
+        measure
+            calculated measure to compare
+            examples: 'jobp' or 'cpay'
+
+        ds_list
+            list of calculated datasets to compare
+
+        xax
+            dataset column to set as x axis
+
+        formatter
+            maplotlib percentage formatter for percentage charts
+            ('spcnt' or 'lspcnt')
+
+        job_strs
+            string job description list
+
+        eg_colors
+            list of colors to be assigned to line plots
+
+        eg_dict
+            dictionary containing eg group integer to eg string descriptions
+
+        job_levels
+            number of jobs in the model
+
+        chart_example
+            option to select anonomized results for display purposes
+    '''
+    if chart_example:
+        for i in range(0, len(ds_list)):
+            ax = ds_list[i][ds_list[i].empkey == emp].set_index(xax)[measure] \
+                .plot(label=str(i + 1), lw=3,
+                      color=eg_colors[i], alpha=.6)
+        plt.title('Employee  ' + '< number >' + '  -  ' + str.upper(measure),
+                  y=1.02)
+    else:
+        for i in range(0, len(ds_list)):
+            ax = ds_list[i][ds_list[i].empkey == emp].set_index(xax)[measure] \
+                .plot(label=eg_dict[i + 1], lw=3, color=eg_colors[i], alpha=.6)
+        plt.title('Employee  ' + str(emp) + '  -  ' + str.upper(measure),
+                  y=1.02)
+
+    if measure in ['snum', 'cat_order', 'spcnt', 'lspcnt',
+                   'jnum', 'jobp', 'fbff']:
+        ax.invert_yaxis()
+
+    if measure in ['spcnt', 'lspcnt']:
+        ax.yaxis.set_major_formatter(formatter)
+        plt.axhline(y=1, c='.8', alpha=.8, lw=3)
+
+    if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
+
+        ax.set_yticks(np.arange(0, job_levels + 2, 1))
+        yticks = ax.get_yticks().tolist()
+
+        for i in np.arange(1, len(yticks)):
+            yticks[i] = job_strs[i - 1]
+        plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.9)
+        ax.set_yticklabels(yticks)
+        plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
+        plt.ylim(job_levels + 1.5, 0.5)
+
+    plt.legend(loc='best')
+
+    plt.xlabel(xax.upper())
+    plt.ylabel(measure.upper())
     plt.show()
