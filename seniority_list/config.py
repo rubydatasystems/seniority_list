@@ -7,7 +7,7 @@ compute_with_job_changes = True
 discount_longev_for_fur = True
 lspcnt_calc_on_remaining_population = False
 
-case_study = 'aa_us'
+case_study = 'sample3'
 
 enhanced_jobs = True
 
