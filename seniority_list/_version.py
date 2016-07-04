@@ -18,4 +18,4 @@ the seniority_list library. If not, see http://www.gnu.org/licenses/.
 """
 
 # Keep your version number updated here each time you make a release
-__version__ = '0.26'
+__version__ = '0.27'
