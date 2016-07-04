@@ -1,38 +1,42 @@
 # -*- coding: utf-8 -*-
 
-import config as cf
+from config import enhanced_jobs
 
-intl_blk_pcnt = .6
-dom_blk_pcnt = .65
-blk_average = (intl_blk_pcnt + dom_blk_pcnt) / 2
-
-if cf.enhanced_jobs:
-    num_of_job_levels = 16
-
-    # Job dictionary for enhanced jobs conversion:
-    jd = {
-        1: [1, 2, intl_blk_pcnt],
-        2: [3, 5, blk_average],
-        3: [4, 6, dom_blk_pcnt],
-        4: [7, 8, intl_blk_pcnt],
-        5: [9, 12, blk_average],
-        6: [10, 13, dom_blk_pcnt],
-        7: [11, 14, dom_blk_pcnt],
-        8: [15, 16, dom_blk_pcnt]
-    }
-else:
-    num_of_job_levels = 8
+full_time_pcnt1 = .6
+full_time_pcnt2 = .65
+full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
 
 annual_pcnt_raise = .02
 top_of_scale = 12
 
-# JOB COUNTS
+# NUMBER OF JOB LEVELS, CONVERSION DATA
+# (basic to enhanced)
+if enhanced_jobs:
+    num_of_job_levels = 16
+
+    # Job dictionary for enhanced jobs conversion:
+    jd = {
+        1: [1, 2, full_time_pcnt1],
+        2: [3, 5, full_time_avg_pcnt],
+        3: [4, 6, full_time_pcnt2],
+        4: [7, 8, full_time_pcnt1],
+        5: [9, 12, full_time_avg_pcnt],
+        6: [10, 13, full_time_pcnt2],
+        7: [11, 14, full_time_pcnt2],
+        8: [15, 16, full_time_pcnt2]
+    }
+else:
+    num_of_job_levels = 8
+
+# JOB COUNTS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
 eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
 eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
 furlough_count = [340, 0, 23]
 
-# JOB CHANGES
+# JOB CHANGES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# [job level affected, [start and end month], total change,
+# [standalone allocation]]
 # group 4 additions...
 jc1 = [1, [35, 64], 43, [40, 3, 0]]
 jc2 = [4, [35, 64], 72, [66, 6, 0]]
@@ -43,13 +47,18 @@ jc4 = [5, [1, 52], -510, [-474, -26, -10]]
 jc5 = [3, [1, 61], 411, [376, 26, 9]]
 jc6 = [6, [1, 61], 411, [376, 26, 9]]
 
+j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
+eg_counts = [eg1_job_count, eg2_job_count, eg3_job_count]
+
+# RECALLS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# [total monthly_recall_count, eg recall allocation,
+#   start_month, end_month]
 recall_1 = [8, [6, 0, 2], 50, 75]
 recall_2 = [10, [10, 0, 0], 75, 150]
 
-j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
-eg_counts = [eg1_job_count, eg2_job_count, eg3_job_count]
 recalls = [recall_1, recall_2]
 
+# DICTIONARIES, DESCRIPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 eg_dict = {1: '1', 2: '2', 3: '3', 4: 'sa'}
 eg_dict_verbose = {1: 'Group 1', 2: 'Group 2', 3: 'Group 3',
                    4: 'Standalone'}
@@ -57,7 +66,7 @@ proposal_dict = {'ds1': 'Group 1 PROPOSAL', 'ds2': 'Group 2 PROPOSAL',
                  'ds3': 'Group 3 PROPOSAL', 'ds4': 'Standalone Data'}
 
 # detailed job labels...
-if cf.enhanced_jobs:
+if enhanced_jobs:
 
     job_strs = ['Capt G4 B', 'Capt G4 R', 'Capt G3 B', 'Capt G2 B',
                 'Capt G3 R', 'Capt G2 R', 'F/O  G4 B', 'F/O  G4 R',
@@ -81,7 +90,9 @@ else:
                  5: 'F/O  G3', 6: 'F/O  G2', 7: 'Capt G1', 8: 'F/O  G1',
                  9: 'FUR'}
 
-if cf.enhanced_jobs:  # enhanced job level chart colors (16)
+# CHART COLORS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+if enhanced_jobs:  # enhanced job level chart colors (16)
 
     grp1_color = ['#008f00', '#006600', '#7b1979', '#0433ff', '#551154',
                   '#4d6dff', '#ff7c00', '#ffa34d', '#ff2600', '#fffb00',
@@ -171,8 +182,9 @@ color3 = ['#ff0066', '#ff4d94', '#0033cc', '#ffff00', '#0040ff',
           '#00cc00', '#0040ff', '#ffff99', '#00e600', '#00cc00',
           '#00e600', '#333333']
 
+# CHART LABEL ADJUSTMENT
 # for chart lable adjustment (secondary y label positioning)
-if cf.enhanced_jobs:
+if enhanced_jobs:
     adjust = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -75, 50, 0, -160, -40, 120, 0]
 else:
     adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]

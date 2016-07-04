@@ -1001,7 +1001,7 @@ def assign_jobs_nbnf_job_changes(df,
     if 'count' in condition_list:
         count_cond = np.array(cf.count_cond)
         count_jobs = np.transpose(count_cond)[1]
-        count_cond_start_month = count_cond[0][3]
+        # count_cond_start_month = count_cond[0][3]
         count_month_range = np.arange(np.min(count_cond[:, 3]),
                                       np.max(count_cond[:, 4]))
         job_change_months = np.concatenate((job_change_months,
@@ -1095,27 +1095,27 @@ def assign_jobs_nbnf_job_changes(df,
 
                     if month in count_month_range and job in count_jobs:
 
-                        # this is for the first month of cond only.
-                        # mark the nonparticipating employees holding an
-                        # affected job and pass down to long_form
-                        # nonparticipating nbnf array.
-                        # this is future reference for assignment function
-                        # below.
-                        if month == count_cond_start_month and job == 1:
+                        # # this is for the first month of cond only.
+                        # # mark the nonparticipating employees holding an
+                        # # affected job and pass down to long_form
+                        # # nonparticipating nbnf array.
+                        # # this is future reference for assignment function
+                        # # below.
+                        # if month == count_cond_start_month and job == 1:
 
-                            nonparticip_range = nonparticip_nbnf_jobs[L:U]
+                        #     nonparticip_range = nonparticip_nbnf_jobs[L:U]
 
-                            for j in count_jobs:
-                                np.put(nonparticip_range,
-                                       np.where((orig_job_range == j) &
-                                                (eg_range == 3))[0],
-                                       j)
+                        #     for j in count_jobs:
+                        #         np.put(nonparticip_range,
+                        #                np.where((orig_job_range == j) &
+                        #                         (eg_range == 3))[0],
+                        #                j)
 
-                            nonparticip_next = align_next(index_range,
-                                                          index_range_next,
-                                                          nonparticip_range)
-                            np.copyto(nonparticip_nbnf_jobs[L_next:U_next],
-                                      nonparticip_next)
+                        #     nonparticip_next = align_next(index_range,
+                        #                                   index_range_next,
+                        #                                   nonparticip_range)
+                        #     np.copyto(nonparticip_nbnf_jobs[L_next:U_next],
+                        #               nonparticip_next)
 
                         nonparticip_range = nonparticip_nbnf_jobs[L:U]
                         assign_cond_ratio_capped(job,
@@ -1510,6 +1510,32 @@ def make_jcnts(job_count_lists):
             the eg job count list(s)
 
     Returns tuple of two ndarrays.
+
+    Example return:
+
+    (
+
+    array(
+
+    [[ 237,  158,  587, 1373,  352,  739,  495,  330,  784, 1457, 0,
+    471,  785,    0,    0,    0],
+
+    [  97,   64,  106,  575,   64,  310,  196,  130,  120,  603,   71,
+    72,  325,   38,   86,   46],
+
+    [   0,    0,   33,  414,   20,  223,    0,    0,   46,  395,    0,
+    28,  213,    0,    0,    0]]
+
+    ),
+
+    array(
+
+    [ 334,  222,  726, 2362,  436, 1272,  691,  460,  950, 2455, 71,
+    571, 1323,   38,   86,   46]
+
+    )
+
+    )
     '''
     eg_job_counts = []
 
@@ -1881,7 +1907,7 @@ def assign_cond_ratio(job, this_job_count, eg_num,
 
 
 # ASSIGN JOBS PER EAST Group 4 CONDITION
-def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
+def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
                              orig_range, assign_range,
                              eg_range, fur_range, exclude_eg_range):
     '''distribute job assignments to employee groups by ratio for the first
@@ -1894,9 +1920,9 @@ def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
             job number
         this_job_count
             count of job
-        eg_arr1
+        eg_1_arr
             np.array containing the employee group codes within ratio group 1
-        eg_arr2
+        eg_2_arr
             np.array containing the employee group codes within ratio group 2
         orig_range
             current month slice of original job array
@@ -1915,24 +1941,30 @@ def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
     '''
     eg_1_count = 0
     eg_2_count = 0
-    block_pcnt = cf.intl_blk_pcnt
+    block_pcnt = cf.full_time_pcnt1
     reserve_pcnt = 1 - block_pcnt
 
     # find the indexes of each ratio group
-    eg_1_indexes = np.in1d(eg_range, eg_arr1)
-    eg_2_indexes = np.in1d(eg_range, eg_arr2)
-    # combine
-    affected_indexes = np.in1d(eg_range, np.append(eg_arr1, eg_arr2))
+    eg_1_indexes = np.in1d(eg_range, eg_1_arr)
+    eg_2_indexes = np.in1d(eg_range, eg_2_arr)
+
+    # find the indexes for both groups (these groups are subject to condition)
+    affected_indexes = np.in1d(eg_range, np.append(eg_1_arr, eg_2_arr))
 
     # find the first n indexes of unassigned employees
-    assign_range_indexes = np.where(assign_range == 0)[0][:this_job_count]
+    # assign_range_indexes = np.where(assign_range == 0)[0][:this_job_count]
 
-    # first assign nbnf jobs to excluded employees
-    exclude_nbnf = np.where(
-        exclude_eg_range[assign_range_indexes] == job)[0]
+    # # first assign nbnf jobs to excluded employees
+    # exclude_nbnf = np.where(
+    #     exclude_eg_range[assign_range_indexes] == job)[0]
+
+    # # assign jobs to exclude_eg_range
+    # np.put(assign_range, assign_range_indexes[exclude_nbnf], job)
+
+    exclude_nbnf = np.where(exclude_eg_range == job)[0]
 
     # assign jobs to exclude_eg_range
-    np.put(assign_range, assign_range_indexes[exclude_nbnf], job)
+    np.put(assign_range, exclude_nbnf, job)
 
     # count the number of jobs assigned to excluded employees
     exclude_count = np.where(assign_range == job)[0].size
@@ -1940,7 +1972,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
     # initial nbnf assignment to ratio condition affected groups
     np.put(assign_range,
            np.where((assign_range == 0) &
-                    (orig_range <= job) &
+                    (orig_range == job) &
                     (fur_range == 0) &
                     (affected_indexes))[0][:this_job_count - exclude_count],
            job)
@@ -1951,7 +1983,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
     # calculate 'available' (total job count to split between egs
     # affected by cond)
     # and assign proper weighting per proposal
-    if cf.num_of_job_levels == 16:
+    if cf.enhanced_jobs:
 
         if job in [1, 2]:
 
@@ -1977,7 +2009,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
 
         max_quota = min(this_job_count, round(limit))
 
-    elif cf.num_of_job_levels == 8:
+    else:
 
         if job == 1:
             weights = [2.48, 1]
@@ -1996,7 +2028,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
     # already run above)
 
     assignment_list = distribute_vacancies_by_weights(
-        available, eg_counts, weights).astype(int)
+        available, eg_counts, weights)
 
     # if jobs held are less than available count (total alloted by condition)
     if np.sum(assignment_list) > 0:
@@ -2033,20 +2065,20 @@ def assign_cond_ratio_capped(job, this_job_count, eg_arr1, eg_arr2,
         eg_1_shortfall = max(0, eg_quotas[0] - eg_1_count)
         eg_2_shortfall = max(0, eg_quotas[1] - eg_2_count)
 
-        if eg_1_shortfall > 0:
-            eg_1_to_add = min(eg_1_shortfall, open_jobs)
-            np.put(assign_range,
-                   np.where((assign_range == 0) &
-                            (eg_1_indexes) &
-                            (fur_range == 0))[0][:eg_1_to_add],
-                   job)
-
         if eg_2_shortfall > 0:
             eg_2_to_add = min(eg_2_shortfall, open_jobs)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (eg_2_indexes) &
                             (fur_range == 0))[0][:eg_2_to_add],
+                   job)
+
+        if eg_1_shortfall > 0:
+            eg_1_to_add = min(eg_1_shortfall, open_jobs)
+            np.put(assign_range,
+                   np.where((assign_range == 0) &
+                            (eg_1_indexes) &
+                            (fur_range == 0))[0][:eg_1_to_add],
                    job)
 
 
@@ -2357,8 +2389,8 @@ def distribute_vacancies_by_weights(available, eg_counts, weights):
         to the weightings
     '''
     bin_counts = []
-    total_weights = sum(weights)
-    vacancies = available - sum(eg_counts)
+    total_weights = np.sum(weights)
+    vacancies = available - np.sum(eg_counts)
     if vacancies <= 0:
         additives = np.repeat(0, len(eg_counts)).astype(int)
         return additives
@@ -2386,7 +2418,7 @@ def distribute_vacancies_by_weights(available, eg_counts, weights):
         additives = np.array(additives).astype(int)
         additives[list_loc] = distribute(vacancies, weights[list_loc])
 
-    return additives
+    return additives.astype(int)
 
 
 # To 8 (job levels) from 16 (job_levels)
@@ -3097,8 +3129,8 @@ def print_config_selections():
                    'apply_ratio_cond': cf.apply_ratio_cond,
                    'starting_date': cf.starting_date,
                    'delayed_implementation': cf.delayed_implementation,
-                   'intl_blk_pcnt': cf.intl_blk_pcnt,
-                   'dom_blk_pcnt': cf.dom_blk_pcnt,
+                   'full_time_pcnt1': cf.full_time_pcnt1,
+                   'full_time_pcnt2': cf.full_time_pcnt2,
                    'implementation_date': cf.implementation_date,
                    'no_bump': cf.no_bump,
                    'recall': cf.recall,
@@ -3119,7 +3151,7 @@ def print_config_selections():
 
 
 def max_of_nested_lists(nested_list):
-    '''
+    '''find the maximum value within a list of lists
     '''
     max_list = []
     for lst in nested_list:

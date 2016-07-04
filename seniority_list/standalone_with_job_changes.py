@@ -33,8 +33,8 @@ start_month = 0
 
 if cf.enhanced_jobs:
     eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
-                                            cf.intl_blk_pcnt,
-                                            cf.dom_blk_pcnt)
+                                            cf.full_time_pcnt1,
+                                            cf.full_time_pcnt2)
     j_changes = f.convert_job_changes_to_enhanced(cf.j_changes, cf.jd)
 else:
     eg_counts = cf.eg_counts

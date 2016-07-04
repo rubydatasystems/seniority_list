@@ -971,8 +971,8 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
     if cf.enhanced_jobs:
         j_changes = f.convert_job_changes_to_enhanced(job_change_lists, cf.jd)
         eg_counts = f.convert_jcnts_to_enhanced(job_counts,
-                                                cf.intl_blk_pcnt,
-                                                cf.dom_blk_pcnt)
+                                                cf.full_time_pcnt1,
+                                                cf.full_time_pcnt2)
 
     else:
         j_changes = job_change_lists
@@ -2331,8 +2331,8 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
 
         if job_levels == 16:
             eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
-                                                    cf.intl_blk_pcnt,
-                                                    cf.dom_blk_pcnt)
+                                                    cf.full_time_pcnt1,
+                                                    cf.full_time_pcnt2)
             j_changes = f.convert_job_changes_to_enhanced(cf.j_changes, cf.jd)
 
         if job_levels == 8:
@@ -3097,3 +3097,81 @@ def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
                 fig = plt.gcf()
                 fig.set_size_inches(xsize, ysize)
 plt.show()
+
+
+def cond_test(d, sel, plot_all_jobs=False, max_mnum=110,
+              basic_jobs=[1, 4], enhanced_jobs=[1, 2, 7, 8]):
+    '''visualize selected job counts applicable to computed condition.
+    Primary usage is testing, though the function can chart any job level(s).
+    title_dict and slice_dict must be customized to match case data.
+    '''
+
+    title_dict = {0: 'all groups',
+                  1: 'amer_only',
+                  2: 'east only',
+                  3: 'west only',
+                  4: 'east and west',
+                  5: 'sg group'}
+
+    slice_dict = {0: 'd.copy()',
+                  1: 'd[d.eg == 1].copy()',
+                  2: 'd[d.eg == 2].copy()',
+                  3: 'd[d.eg == 3].copy()',
+                  4: 'd[(d.eg == 2) | (d.eg == 3)].copy()',
+                  5: 'd[d.sg == 1].copy()'}
+
+    segment = slice_dict[sel]
+    df = eval(segment)
+
+    all_jcnts = df.groupby(['date', 'jnum']).size() \
+        .unstack().fillna(0).astype(int)
+
+    if cf.enhanced_jobs:
+        tgt_cols = enhanced_jobs
+    else:
+        tgt_cols = basic_jobs
+
+    title = title_dict[sel]
+
+    job_colors = np.array(cf.job_colors)[np.array(tgt_cols) - 1]
+
+    if not plot_all_jobs:
+
+        cnd_jcnts = all_jcnts.copy()
+
+        cnd_jcnts['mnum'] = range(len(cnd_jcnts))
+        jdf = cnd_jcnts[(cnd_jcnts.mnum >= 0) & (cnd_jcnts.mnum <= max_mnum)]
+        jdf[tgt_cols].plot(color=job_colors, title=title)
+
+    if plot_all_jobs:
+
+        outall = []
+        for col in all_jcnts.columns:
+            try:
+                col + 0
+                outall.append(int(col))
+            except:
+                pass
+
+        all_jcnts['mnum'] = range(len(all_jcnts))
+        jdf = all_jcnts[(all_jcnts.mnum >= 0) & (all_jcnts.mnum <= max_mnum)]
+        jdf[outall].plot(color=cf.job_colors, title=title)
+
+    plt.ylim(ymin=0)
+    plt.show()
+
+    out = []
+    for col in all_jcnts.columns:
+        try:
+            col + 0
+            out.append(int(col))
+        except:
+            pass
+    all_jcnts[out][:max_mnum].plot(kind='area',
+                                   color=cf.job_colors,
+                                   stacked=True,
+                                   linewidth=0.1)
+    plt.title(title)
+    fig = plt.gca()
+    fig.invert_yaxis()
+    plt.show()

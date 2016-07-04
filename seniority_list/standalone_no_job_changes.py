@@ -34,8 +34,8 @@ num_of_months = np.unique(ds.mnum).size
 # TODO: make conversion function generic
 if cf.enhanced_jobs:
     eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
-                                            cf.intl_blk_pcnt,
-                                            cf.dom_blk_pcnt)
+                                            cf.full_time_pcnt1,
+                                            cf.full_time_pcnt2)
     j_changes = f.convert_job_changes_to_enhanced(cf.j_changes, cf.jd)
 else:
     eg_counts = cf.eg_counts
@@ -207,7 +207,7 @@ for i in range(len(ds_list)):
 
     ds = pd.concat([ds, df_long], ignore_index=True)
 
-ds.sort_values(by=['mnum', 'idx'], inplace=True)
+ds.sort_values(by=['mnum', 'snum'], inplace=True)
 ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
 
 # save to file

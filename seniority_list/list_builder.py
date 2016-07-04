@@ -80,8 +80,8 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
 
     if cf.enhanced_jobs:
         eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
-                                                cf.intl_blk_pcnt,
-                                                cf.dom_blk_pcnt)
+                                                cf.full_time_pcnt1,
+                                                cf.full_time_pcnt2)
     else:
         eg_counts = cf.eg_counts
 

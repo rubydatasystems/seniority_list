@@ -7,9 +7,9 @@ compute_with_job_changes = True
 discount_longev_for_fur = True
 lspcnt_calc_on_remaining_population = False
 
-case_study = 'sample3'
+case_study = 'aa_us'
 
-enhanced_jobs = False
+enhanced_jobs = True
 
 edit_mode = False
 
@@ -21,8 +21,8 @@ case = importlib.import_module(case_study)
 
 num_of_job_levels = case.num_of_job_levels
 
-intl_blk_pcnt = case.intl_blk_pcnt
-dom_blk_pcnt = case.dom_blk_pcnt
+full_time_pcnt1 = case.full_time_pcnt1
+full_time_pcnt2 = case.full_time_pcnt2
 
 # CONDITIONS
 apply_supc = True
@@ -32,15 +32,15 @@ apply_ratio_cond = True
 starting_date = '2013-12-31'
 start = pd.to_datetime(starting_date)
 # for separate job assignment calculations:
-delayed_implementation = False
+delayed_implementation = True
 # imp_month = 33
 
 # for 8 to 16 job level conversion.
-# intl_blk_pcnt also used for count group 4 cond calculation when
+# full_time_pcnt1 also used for count group 4 cond calculation when
 # model contains 16 job levels.
-# intl_blk_pcnt = .6
-# dom_blk_pcnt = .65
-# blk_average = (intl_blk_pcnt + dom_blk_pcnt) / 2
+# full_time_pcnt1 = .6
+# full_time_pcnt2 = .65
+# full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
 
 # this is used for proposal conditions even if
 # 'delayed implementation above is False'
