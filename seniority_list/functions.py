@@ -16,6 +16,7 @@ from numba import jit
 import scipy.stats as st
 
 import config as cf
+import conditions as cond
 
 
 # CAREER MONTHS
@@ -976,16 +977,16 @@ def assign_jobs_nbnf_job_changes(df,
         sg_rights = np.array(cf.sg_rights)
 
         sg_jobs = np.transpose(sg_rights)[1]
-        sup_c_counts = np.transpose(sg_rights)[2]
-        sg_dict = dict(zip(sg_jobs, sup_c_counts))
+        sg_counts = np.transpose(sg_rights)[2]
+        sg_dict = dict(zip(sg_jobs, sg_counts))
 
-        # calc sg sup c condition month range and concat
+        # calc sg supc condition month range and concat
         sg_month_range = np.arange(np.min(sg_rights[:, 3]),
                                    np.max(sg_rights[:, 4]))
         job_change_months = np.concatenate((job_change_months,
                                             sg_month_range))
 
-    # calc amer grp4 condition month range and concat to
+    # calc ratio condition month range and concat to
     # job_change_months
     if 'ratio' in condition_list:
         ratio_cond = np.array(cf.ratio_cond)
@@ -997,7 +998,7 @@ def assign_jobs_nbnf_job_changes(df,
         job_change_months = np.concatenate((job_change_months,
                                             ratio_month_range))
 
-        # calc east grp4 condition month range and concat
+        # calc capped count condition month range and concat
     if 'count' in condition_list:
         count_cond = np.array(cf.count_cond)
         count_jobs = np.transpose(count_cond)[1]
@@ -1089,11 +1090,18 @@ def assign_jobs_nbnf_job_changes(df,
                                           assign_range,
                                           eg_range,
                                           fur_range)
+                        # d = cond.ratio_arg_dict
+                        # #locals().update(d)
+
+                        # assign_cond_ratio(cond.create_vars(d))
 
                 # **EAST GRP4 condition**
                 if 'count' in condition_list:
 
                     if month in count_month_range and job in count_jobs:
+
+                        # Commented code below scheduled to be removed
+                        # pending confirmation testing
 
                         # # this is for the first month of cond only.
                         # # mark the nonparticipating employees holding an
@@ -1906,7 +1914,7 @@ def assign_cond_ratio(job, this_job_count, eg_num,
            job)
 
 
-# ASSIGN JOBS PER EAST Group 4 CONDITION
+# ASSIGN JOBS BY RATIO for FIRST n JOBS
 def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
                              orig_range, assign_range,
                              eg_range, fur_range, exclude_eg_range):
@@ -1941,8 +1949,8 @@ def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
     '''
     eg_1_count = 0
     eg_2_count = 0
-    block_pcnt = cf.full_time_pcnt1
-    reserve_pcnt = 1 - block_pcnt
+    full_time_pcnt = cf.full_time_pcnt1
+    reserve_pcnt = 1 - full_time_pcnt
 
     # find the indexes of each ratio group
     eg_1_indexes = np.in1d(eg_range, eg_1_arr)
@@ -1991,7 +1999,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
             limit = 637
 
             if job == 1:
-                limit = limit * block_pcnt
+                limit = limit * full_time_pcnt
 
             if job == 2:
                 limit = limit * reserve_pcnt
@@ -2002,7 +2010,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
             limit = 1162
 
             if job == 7:
-                limit = limit * block_pcnt
+                limit = limit * full_time_pcnt
 
             if job == 8:
                 limit = limit * reserve_pcnt
@@ -2883,6 +2891,7 @@ def assign_standalone_job_changes(df_align,
                                   job_reduction_months,
                                   start_month,
                                   df_index,
+                                  apply_sg_cond=True,
                                   fur_return=False):
     '''Long_Form
     Uses the job_gain_or_loss_table job count array for job assignments.
@@ -2981,13 +2990,13 @@ def assign_standalone_job_changes(df_align,
 
     num_of_months = upper.size
 
-    if cf.apply_supc:
+    if apply_sg_cond:
 
         sg_rights = np.array(cf.sg_rights)
 
         sg_jobs = np.transpose(sg_rights)[1]
-        sup_c_counts = np.transpose(sg_rights)[2]
-        sg_dict = dict(zip(sg_jobs, sup_c_counts))
+        sg_counts = np.transpose(sg_rights)[2]
+        sg_dict = dict(zip(sg_jobs, sg_counts))
 
         # calc sg sup c condition month range and concat
         sg_month_range = np.arange(np.min(sg_rights[:, 3]),
@@ -3044,7 +3053,7 @@ def assign_standalone_job_changes(df_align,
 
             if month in job_change_months:
 
-                if cf.apply_supc:
+                if apply_sg_cond:
 
                     if month in sg_month_range and job in sg_jobs:
 
@@ -3124,9 +3133,6 @@ def print_config_selections():
                    'case_study': cf.case_study,
                    'edit_mode': cf.edit_mode,
                    'enhanced_jobs': cf.enhanced_jobs,
-                   'apply_supc': cf.apply_supc,
-                   'apply_count_cond': cf.apply_count_cond,
-                   'apply_ratio_cond': cf.apply_ratio_cond,
                    'starting_date': cf.starting_date,
                    'delayed_implementation': cf.delayed_implementation,
                    'full_time_pcnt1': cf.full_time_pcnt1,
@@ -3160,3 +3166,8 @@ def max_of_nested_lists(nested_list):
     return max(max_list)
 
 
+def eval_strings(args):
+    arg_list = []
+    for arg in args:
+        arg_list.append(eval(arg))
+    return arg_list

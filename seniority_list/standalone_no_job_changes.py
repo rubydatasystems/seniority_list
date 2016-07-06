@@ -8,7 +8,9 @@ import config as cf
 
 from sys import argv
 
-script, input_skel = argv
+script, *conditions = argv
+
+input_skel = 'skel'
 
 pre, suf = 'dill/', '.pkl'
 
@@ -88,13 +90,14 @@ for i in range(len(ds_list)):
     all_months = np.sum(this_ds_nonret_each_month)
 
     this_table = table[0][i]
+    this_month_counts = table[1][i]
 
-    if i == 0 and cf.apply_supc:  # i == 0 >> eg1 from skeleton
+    if (i == 0) and ('supc' in conditions):  # i == 0 >> eg1 from skeleton
 
         sg_rights = np.array(cf.sg_rights)
         sg_jobs = np.transpose(sg_rights)[1]
-        sup_c_counts = np.transpose(sg_rights)[2]
-        sg_dict = dict(zip(sg_jobs, sup_c_counts))
+        sg_counts = np.transpose(sg_rights)[2]
+        sg_dict = dict(zip(sg_jobs, sg_counts))
 
         # calc sg sup c condition month range and concat
         sg_month_range = np.arange(np.min(sg_rights[:, 3]),
@@ -106,16 +109,16 @@ for i in range(len(ds_list)):
 
         amer_job_counts = jcnts_arr[0][0]
 
-        supc = f.make_amer_standalone_long_supc(lower,
-                                                upper,
-                                                df_align,
-                                                amer_job_counts,
-                                                sg_jobs,
-                                                sg_dict,
-                                                sg_month_range)
+        sg = f.make_amer_standalone_long_supc(lower,
+                                              upper,
+                                              df_align,
+                                              amer_job_counts,
+                                              sg_jobs,
+                                              sg_dict,
+                                              sg_month_range)
 
-        orig_jobs = supc[1]
-        jnums = supc[0]
+        orig_jobs = sg[1]
+        jnums = sg[0]
 
     else:
 
@@ -153,6 +156,7 @@ for i in range(len(ds_list)):
                          num_of_job_levels,
                          lower,
                          upper,
+                         this_month_counts,
                          all_months)
 
     # RANK in JOB
@@ -167,10 +171,10 @@ for i in range(len(ds_list)):
 
     df_long['job_count'] = f.put_map(jnums, jcnts, fur_count).astype(int)
 
-    # NJOBP
+    # JOBP
 
-    df_long['njobp'] = (df_long['rank_in_job'] /
-                        df_long['job_count']) + (df_long['jnum'] - .0001)
+    df_long['jobp'] = (df_long['rank_in_job'] /
+                       df_long['job_count']) + (df_long['jnum'] - .0001)
 
     # PAY - merge with pay table - provides monthly pay
     if cf.compute_pay_measures:

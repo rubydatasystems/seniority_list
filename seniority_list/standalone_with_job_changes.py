@@ -8,7 +8,9 @@ import config as cf
 
 from sys import argv
 
-script, input_skel = argv
+script, *conditions = argv
+
+input_skel = 'skel'
 
 pre, suf = 'dill/', '.pkl'
 
@@ -89,6 +91,7 @@ for i in range(len(ds_list)):
 
     this_table = table[0][i]
     this_month_counts = table[1][i]
+
     df_align = df_long[['sg', 'fur']]
     fur_codes = np.array(df_align.fur)
 

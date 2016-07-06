@@ -82,16 +82,16 @@ ds.sort_values(['mnum', 'new_order'], inplace=True)
 eg_sequence = np.array(df_master.eg)
 fur_sequence = np.array(df_master.fur)
 
-if cf.apply_supc:
+if 'supc' in conditions:
 
     eg2_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][1])
     eg3_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][2])
     sg = np.array(df_master[df_master.eg == 1]['sg'])
-    amer_fur = np.array(df_master[df_master.eg == 1]['fur'])
+    eg1_fur = np.array(df_master[df_master.eg == 1]['fur'])
     eg1_ojob_array = f.make_amer_stovepipe_short_supc(
-        jcnts_arr[0][0], sg, cf.sg_rights, amer_fur)
+        jcnts_arr[0][0], sg, cf.sg_rights, eg1_fur)
 
-    eg1_supc_stove = np.take(eg1_ojob_array, np.where(amer_fur == 0)[0])
+    eg1_supc_stove = np.take(eg1_ojob_array, np.where(eg1_fur == 0)[0])
 
     sp_arr = np.array((eg1_supc_stove, eg2_stove, eg3_stove))
     # total of jobs per eg
