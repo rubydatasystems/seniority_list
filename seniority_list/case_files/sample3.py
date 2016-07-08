@@ -95,6 +95,17 @@ if enhanced_jobs:
     eg2_cr7 = [2, 7, 101, imp_month, imp_month + 60]
     eg2_cr8 = [2, 8, 67, imp_month, imp_month + 60]
 
+    # dict below is input for assign_cond_ratio_capped function
+    # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
+    # the job pcnt input is used with enhanced jobs (divides capped limit
+    # into full/part time level cap)
+    quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
+                  (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
+                  (7, 1): ([2.46, 1], 580, full_time_pcnt1),
+                  (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1),
+                  (1, 0): ([2.48, 1], 320, 1),
+                  (4, 0): ([2.46, 1], 580, 1)}
+
     sg_rights = [eg1_sg5, eg1_sg6, eg1_sg12, eg1_sg13]
     ratio_cond = [eg1_cr1, eg1_cr2, eg1_cr7, eg1_cr8]
     count_cond = [eg2_cr1, eg2_cr2, eg2_cr7, eg2_cr8]

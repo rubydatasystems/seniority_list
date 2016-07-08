@@ -84,6 +84,7 @@ if enhanced_jobs:
 ratio_cond = case.ratio_cond
 sg_rights = case.sg_rights
 count_cond = case.count_cond
+quota_dict = case.quota_dict
 ############################################
 
 # chart label adjustment

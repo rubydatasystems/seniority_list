@@ -2031,6 +2031,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     to_join_ds.rename(columns={measure: measure + '_c',
                                'new_order': 'proposal_order'}, inplace=True)
     df = df.join(to_join_ds)
+    print(df.proposal_order)
     x_limit = int(max(df.proposal_order) // 100) * 100 + 100
     df.sort_values(by='proposal_order', inplace=True)
     df['squeeze_order'] = np.arange(len(df))
@@ -3096,19 +3097,57 @@ def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
 plt.show()
 
 
-def cond_test(d, sel, plot_all_jobs=False, max_mnum=110,
+def cond_test(d, opt_sel, plot_all_jobs=False, max_mnum=110,
               basic_jobs=[1, 4], enhanced_jobs=[1, 2, 7, 8]):
     '''visualize selected job counts applicable to computed condition.
     Primary usage is testing, though the function can chart any job level(s).
     title_dict and slice_dict must be customized to match case data.
+
+    inputs
+        d
+            dataset(dataframe) to examine
+        opt_sel
+            integer input (0-5) which selects which employee group(s) to plot.
+
+                    +-------+---------------+
+                    |opt_sel|      plot     |
+                    +-------+---------------+
+                    |   0   |   all grps    |
+                    +-------+---------------+
+                    |   1   |   grp1 only   |
+                    +-------+---------------+
+                    |   2   |   grp2 only   |
+                    +-------+---------------+
+                    |   3   |   grp3 only   |
+                    +-------+---------------+
+                    |   4   | grp2 and grp3 |
+                    +-------+---------------+
+                    |   5   |  special grp  |
+                    +-------+---------------+
+
+        plot_all_jobs
+            option to plot all of the job counts within dataset vs only those
+            contained within the basic_jobs or enhanced_jobs inputs
+        max_mnum
+            integer input, only plot data through selected month
+        basic_jobs
+            job levels to plot if config enhanced_jobs is False
+        enhanced_jobs
+            job levels to plot if config enhanced_jobs is True
+
+    output is 2 charts, first chart is a line chart displaying selected job
+    count information over time, the second is a stacked area chart displaying
+    all job counts for the selected group(s) over time.
     '''
 
+    print("""0: all grps, 1: grp1_only, 2: grp2 only, 3: grp3 only,
+          4: grp2 and grp3, 5: special group""")
     title_dict = {0: 'all groups',
-                  1: 'amer_only',
-                  2: 'east only',
-                  3: 'west only',
-                  4: 'east and west',
-                  5: 'sg group'}
+                  1: 'grp1_only',
+                  2: 'grp2 only',
+                  3: 'grp3 only',
+                  4: 'grp2 and grp3',
+                  5: 'special group'}
 
     slice_dict = {0: 'd.copy()',
                   1: 'd[d.eg == 1].copy()',
@@ -3117,7 +3156,7 @@ def cond_test(d, sel, plot_all_jobs=False, max_mnum=110,
                   4: 'd[(d.eg == 2) | (d.eg == 3)].copy()',
                   5: 'd[d.sg == 1].copy()'}
 
-    segment = slice_dict[sel]
+    segment = slice_dict[opt_sel]
     df = eval(segment)
 
     all_jcnts = df.groupby(['date', 'jnum']).size() \
@@ -3128,7 +3167,7 @@ def cond_test(d, sel, plot_all_jobs=False, max_mnum=110,
     else:
         tgt_cols = basic_jobs
 
-    title = title_dict[sel]
+    title = title_dict[opt_sel]
 
     job_colors = np.array(cf.job_colors)[np.array(tgt_cols) - 1]
 
@@ -3167,7 +3206,8 @@ def cond_test(d, sel, plot_all_jobs=False, max_mnum=110,
     all_jcnts[out][:max_mnum].plot(kind='area',
                                    color=cf.job_colors,
                                    stacked=True,
-                                   linewidth=0.1)
+                                   linewidth=0.1,
+                                   alpha=.6)
     plt.title(title)
     fig = plt.gca()
     fig.invert_yaxis()

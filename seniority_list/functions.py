@@ -1002,6 +1002,7 @@ def assign_jobs_nbnf_job_changes(df,
     if 'count' in condition_list:
         count_cond = np.array(cf.count_cond)
         count_jobs = np.transpose(count_cond)[1]
+        quota_dict = cf.quota_dict
         # count_cond_start_month = count_cond[0][3]
         count_month_range = np.arange(np.min(count_cond[:, 3]),
                                       np.max(count_cond[:, 4]))
@@ -1130,6 +1131,7 @@ def assign_jobs_nbnf_job_changes(df,
                                                  this_job_count,
                                                  np.array((1)),
                                                  np.array((2)),
+                                                 quota_dict,
                                                  orig_job_range,
                                                  assign_range,
                                                  eg_range,
@@ -1916,7 +1918,7 @@ def assign_cond_ratio(job, this_job_count, eg_num,
 
 # ASSIGN JOBS BY RATIO for FIRST n JOBS
 def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
-                             orig_range, assign_range,
+                             quota_dict, orig_range, assign_range,
                              eg_range, fur_range, exclude_eg_range):
     '''distribute job assignments to employee groups by ratio for the first
     n jobs specified. Any jobs remaining are not distributed with
@@ -1932,6 +1934,11 @@ def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
             np.array containing the employee group codes within ratio group 1
         eg_2_arr
             np.array containing the employee group codes within ratio group 2
+        quota_dict
+            case-specific dictionary imported by the config file.  this
+            dictionary has tuple keys (job, enhanced_jobs) and tuple values
+            (weights: i.e. ratios, condition count cap, percentage to divide
+            count cap if enhanced jobs used in model)
         orig_range
             current month slice of original job array
         assign_range
@@ -1949,8 +1956,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
     '''
     eg_1_count = 0
     eg_2_count = 0
-    full_time_pcnt = cf.full_time_pcnt1
-    reserve_pcnt = 1 - full_time_pcnt
+    enhanced_jobs = cf.enhanced_jobs
 
     # find the indexes of each ratio group
     eg_1_indexes = np.in1d(eg_range, eg_1_arr)
@@ -1988,46 +1994,9 @@ def assign_cond_ratio_capped(job, this_job_count, eg_1_arr, eg_2_arr,
     eg_1_count = np.where((assign_range == job) & (eg_1_indexes))[0].size
     eg_2_count = np.where((assign_range == job) & (eg_2_indexes))[0].size
 
-    # calculate 'available' (total job count to split between egs
-    # affected by cond)
-    # and assign proper weighting per proposal
-    if cf.enhanced_jobs:
-
-        if job in [1, 2]:
-
-            weights = [2.48, 1]
-            limit = 637
-
-            if job == 1:
-                limit = limit * full_time_pcnt
-
-            if job == 2:
-                limit = limit * reserve_pcnt
-
-        elif job in [7, 8]:
-
-            weights = [2.46, 1]
-            limit = 1162
-
-            if job == 7:
-                limit = limit * full_time_pcnt
-
-            if job == 8:
-                limit = limit * reserve_pcnt
-
-        max_quota = min(this_job_count, round(limit))
-
-    else:
-
-        if job == 1:
-            weights = [2.48, 1]
-            limit = 637
-
-        elif job == 4:
-            weights = [2.46, 1]
-            limit = 1162
-
-        max_quota = min(this_job_count, limit)
+    weights, limit, pcnt = quota_dict[(job, enhanced_jobs)]
+    limit = limit * pcnt
+    max_quota = min(this_job_count, round(limit))
 
     available = max_quota - exclude_count
     # make list for function below
