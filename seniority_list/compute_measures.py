@@ -293,9 +293,11 @@ ds['jobp'] = (ds['rank_in_job'] / ds['job_count']) + (ds['jnum'] - .001)
 
 # CAT_ORDER
 if cf.compute_job_category_order:
-    ds.sort_values(by=['mnum', 'jnum', 'rank_in_job'], inplace=True)
-    ds['cat_order'] = ds.groupby('mnum').cumcount() + 1
-    ds.sort_values(by=['mnum', 'new_order'], inplace=True)
+    ds['cat_order'] = ds.groupby('mnum',
+                                 sort=False)['jobp'].rank(method='first')
+    # ds.sort_values(by=['mnum', 'jnum', 'rank_in_job'], inplace=True)
+    # ds['cat_order'] = ds.groupby('mnum').cumcount() + 1
+    # ds.sort_values(by=['mnum', 'new_order'], inplace=True)
 
 # PAY - merge with pay table - provides monthly pay
 if cf.compute_pay_measures:

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 '''Create the necessary support files from the input Excel files
-for the program operation.
+for the program operation.  The Excel files are read from the folder
+named for the case within the excel folder.
 
-    stand.pkl, skel.pkl,
+####################################################
+Excel files
 
-from proposals(Excel files):
+from proposals.xlsx:
     p1, p2, p3.pkl etc. for each proposal
-
 
 from master.xlsx:
     master.pkl,
@@ -16,16 +17,18 @@ from master.xlsx:
     last_month.pkl,
     active_each_month.pkl
 
-from pay_tables:
+from pay_tables.xlsx:
     pay_table_with_rsv_with_fur.pkl,
     pay_table_no_rsv_with_fur.pkl,
     idx_pay_table_with_rsv_with_fur.pkl,
     idx_pay_table_no_rsv_with_fur.pkl
 
-initialized:
+#####################################################
+
+initialized with this script:
     slider_vals.pkl*,
 
-created by editor tool:
+created by editor tool (when run):
      ds_edit.pkl,
      slider_vals.pkl*,
      squeeze_vals.pkl,
@@ -33,8 +36,8 @@ created by editor tool:
 
 *persistent values stored when editor tool is used
 
-example usage in jupyter notebook:
-    %run build_files.py master_sample
+example usage to run this script from the jupyter notebook:
+    %run build_program_files
 '''
 
 import pandas as pd
