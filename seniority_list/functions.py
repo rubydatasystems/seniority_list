@@ -3097,9 +3097,11 @@ def assign_standalone_job_changes(df_align,
 def print_config_selections():
     '''grab config file data settings and put it in a dataframe
     '''
-    config_dict = {'lspcnt_calc_on_remaining_population':
+    config_dict = {'case_study': cf.case_study,
+                   'compute_with_job_changes': cf.compute_with_job_changes,
+                   'discount_longev_for_fur': cf.discount_longev_for_fur,
+                   'lspcnt_calc_on_remaining_population':
                    cf.lspcnt_calc_on_remaining_population,
-                   'case_study': cf.case_study,
                    'edit_mode': cf.edit_mode,
                    'enhanced_jobs': cf.enhanced_jobs,
                    'starting_date': cf.starting_date,
@@ -3108,6 +3110,7 @@ def print_config_selections():
                    'full_time_pcnt2': cf.full_time_pcnt2,
                    'implementation_date': cf.implementation_date,
                    'no_bump': cf.no_bump,
+                   'ret_age': cf.ret_age,
                    'recall': cf.recall,
                    'actives_only': cf.actives_only,
                    'pay_raise': cf.pay_raise,

@@ -333,7 +333,7 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
         legend_labels = []
         legend_colors = []
 
-    for jnum in np.unique(sa_ds.jnum):
+    for jnum in pd.unique(sa_ds.jnum):
         legend_labels.append(job_str_list[jnum - 1])
         legend_colors.append(color_list[jnum - 1])
 
@@ -681,7 +681,7 @@ def age_kde_dist(df, color_list, eg_dict,
                  mnum=0, chart_example=False):
 
     frame = df[df.mnum == mnum]
-    eg_set = np.unique(frame.eg)
+    eg_set = pd.unique(frame.eg)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -870,7 +870,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
 
     df = df[['mnum', 'cat_order', 'jnum', 'eg']].copy()
     data = df[df.mnum == mnum]
-    eg_set = np.unique(data.eg)
+    eg_set = pd.unique(data.eg)
     max_eg_plus_one = max(eg_set) + 1
 
     adjust_y_axis = False
@@ -979,7 +979,7 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
         eg_counts = job_counts
 
     jcnts_arr = f.make_jcnts(eg_counts)
-    table = f.job_gain_loss_table(np.unique(ds.mnum).size,
+    table = f.job_gain_loss_table(pd.unique(ds.mnum).size,
                                   job_levels,
                                   jcnts_arr,
                                   j_changes,
@@ -997,7 +997,7 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
                                       columns=['count'])
     df_monthly_non_ret.set_index(
         pd.date_range(cf.starting_date,
-                      periods=np.unique(df_monthly_non_ret.index).size,
+                      periods=pd.unique(df_monthly_non_ret.index).size,
                       freq='M'), inplace=True)
 
     non_ret_count = df_monthly_non_ret[:through_date]
@@ -1094,25 +1094,12 @@ def differential_scatter(base_ds, compare_ds_list,
 
     cols = [measure, 'new_order']
 
-    # try:
-    #     p_egs_and_order = prop_ds[prop_ds[filter_measure] == filter_val][
-    #         ['eg', 'new_order']]
-    # except:
-    #     p_egs_and_order = prop_ds[prop_ds[filter_measure] == filter_val][
-    #         ['eg', 'idx']]
-
     df = base_ds[base_ds[filter_measure] == filter_val][[measure, 'eg']].copy()
     df.rename(columns={measure: measure + '_s'}, inplace=True)
 
-    yval_list = ['avs', 'evs', 'wvs']
+    yval_dict = cf.eg_dict_verbose
 
-    yval_dict = {'avs': 'AASIC',
-                 'evs': 'EAST',
-                 'wvs': 'WEST'}
-
-    order_dict = {'avs': 'order1',
-                  'evs': 'order2',
-                  'wvs': 'order3'}
+    order_dict = {}
 
     i = 1
     for ds in compare_ds_list:
@@ -1120,14 +1107,17 @@ def differential_scatter(base_ds, compare_ds_list,
         ds.rename(columns={measure: measure + '_' + str(i),
                            'new_order': 'order' + str(i)}, inplace=True)
         df = df.join(ds)
+        order_dict[i] = 'order' + str(i)
         i += 1
 
     df.sort_values(by='order1', inplace=True)
+
     df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
     eg_sep_order = np.array(df.eg_sep_order)
-    eg_arr = np.array(df.eg)
     eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
-    eg_set = np.unique(df.eg)
+
+    eg_arr = np.array(df.eg)
+    eg_set = pd.unique(eg_arr)
     denoms = np.zeros(eg_arr.size)
 
     for eg in eg_set:
@@ -1138,29 +1128,31 @@ def differential_scatter(base_ds, compare_ds_list,
     if measure in ['spcnt', 'lspcnt', 'snum', 'lnum', 'cat_order',
                    'jobp', 'jnum']:
 
-        df['avs'] = df[measure + '_s'] - df[measure + '_1']
-        df['evs'] = df[measure + '_s'] - df[measure + '_2']
-        df['wvs'] = df[measure + '_s'] - df[measure + '_3']
+        for key in list(order_dict.keys()):
+            df[str(key) + 'vs'] = df[measure + '_s'] - \
+                df[measure + '_' + str(key)]
     else:
-        df['avs'] = df[measure + '_1'] - df[measure + '_s']
-        df['evs'] = df[measure + '_2'] - df[measure + '_s']
-        df['wvs'] = df[measure + '_3'] - df[measure + '_s']
+
+        for key in list(order_dict.keys()):
+            df[str(key) + 'vs'] = df[measure + '_' + str(key)] - \
+                df[measure + '_s']
 
     with sns.axes_style(chart_style):
-        for yval in yval_list:
-            df.sort_values(by=order_dict[yval], inplace=True)
+
+        for prop_num in np.arange(len(compare_ds_list)) + 1:
+            df.sort_values(by=order_dict[prop_num], inplace=True)
 
             if prop_order:
-                xval = order_dict[yval]
-
+                xax = order_dict[prop_num]
             else:
-                xval = 'sep_eg_pcnt'
+                xax = 'sep_eg_pcnt'
 
             fig, ax = plt.subplots()
 
             for eg in eg_list:
                 data = df[df.eg == eg].copy()
-                x_limit = max(data[xval]) + 100
+                x_limit = max(data[xax]) + 100
+                yax = str(prop_num) + 'vs'
 
                 if chart_example:
                     label = str(eg)
@@ -1168,14 +1160,15 @@ def differential_scatter(base_ds, compare_ds_list,
                     label = cf.eg_dict[eg]
 
                 if show_scatter:
-                    data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
+                    data.plot(x=xax, y=yax, kind='scatter',
+                              linewidth=0.1,
                               color=cf.eg_colors[eg - 1], s=dot_size,
                               label=label,
                               ax=ax)
 
                 if show_mean:
-                    data['ma'] = data[yval].rolling(mean_len).mean()
-                    data.plot(x=xval, y='ma', lw=5,
+                    data['ma'] = data[eg].rolling(mean_len).mean()
+                    data.plot(x=xax, y='ma', lw=5,
                               color=cf.mean_colors[eg - 1],
                               label=label,
                               alpha=.6, ax=ax)
@@ -1186,7 +1179,7 @@ def differential_scatter(base_ds, compare_ds_list,
                         lin_reg_colors = cf.lin_reg_colors
                     else:
                         lin_reg_colors = cf.lin_reg_colors2
-                    sns.regplot(x=xval, y=yval, data=data,
+                    sns.regplot(x=xax, y=yax, data=data,
                                 color=lin_reg_colors[eg - 1],
                                 label=label,
                                 scatter=False, truncate=True, ci=50,
@@ -1197,8 +1190,8 @@ def differential_scatter(base_ds, compare_ds_list,
                     plt.xlim(0, x_limit)
 
             if measure == 'jobp':
-                ymin = math.floor(min(df[yval]))
-                ymax = math.ceil(max(df[yval]))
+                ymin = math.floor(min(df[yax]))
+                ymax = math.ceil(max(df[yax]))
                 scale_lim = max(abs(ymin), ymax)
                 plt.yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
                 if ylimit:
@@ -1210,13 +1203,13 @@ def differential_scatter(base_ds, compare_ds_list,
             if chart_example:
                 plt.title('Proposal 1' + ' differential: ' + measure)
             else:
-                plt.title(yval_dict[yval] + ' differential: ' + measure)
+                plt.title(yval_dict[prop_num] + ' differential: ' + measure)
             plt.xlim(xmin=0)
 
             if measure in ['spcnt', 'lspcnt']:
                 plt.gca().yaxis.set_major_formatter(formatter)
 
-            if xval == 'sep_eg_pcnt':
+            if xax == 'sep_eg_pcnt':
                 plt.gca().xaxis.set_major_formatter(formatter)
                 plt.xticks(np.arange(0, 1.1, .1))
                 plt.xlim(xmax=1)
@@ -1553,12 +1546,12 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
         eg = np.array(data.eg)
         jnums = np.array(data.jnum)
 
-        for eg_num in np.unique(eg):
+        for eg_num in pd.unique(eg):
             np.put(heat_data, np.where(eg == eg_num)[0], eg_num)
         np.put(heat_data, np.where(jnums != jnum)[0], 0)
         # if jnum input is not in the list of available job numbers:
-        if jnum not in np.unique(jnums):
-            jnum = np.unique(jnums)[0]
+        if jnum not in pd.unique(jnums):
+            jnum = pd.unique(jnums)[0]
 
         if chart_example:
             title = 'Proposal 1' + ' month ' + str(mnum) + \
@@ -1575,7 +1568,7 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
 
                 measure = np.array(data[measure])
 
-                for val in np.unique(measure):
+                for val in pd.unique(measure):
                     np.put(heat_data, np.where(measure == val)[0], i)
                     i += 1
 
@@ -1648,7 +1641,7 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
     eg_df['year'] = eg_df.date.dt.year
 
     bin_lims = np.linspace(0, 1, num=bins + 1, endpoint=True, retstep=False)
-    years = np.unique(eg_df.year)
+    years = pd.unique(eg_df.year)
 
     result_arr = np.zeros((years.size, bin_lims.size - 1))
 
@@ -2023,7 +2016,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     data_reorder = compare_ds[compare_ds.mnum == 0][['eg']].copy()
     data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int)
     # for drop_eg selection widget:
-    drop_eg_options = list(np.unique(data_reorder.eg).astype(str))
+    drop_eg_options = list(pd.unique(data_reorder.eg).astype(str))
 
     to_join_ds = compare_ds[
         compare_ds[filter_measure] == filter_val][cols].copy()
@@ -2039,7 +2032,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     eg_sep_order = np.array(df.eg_sep_order)
     eg_arr = np.array(df.eg)
     eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
-    eg_set = np.unique(df.eg)
+    eg_set = pd.unique(df.eg)
     max_eg_plus_one = max(eg_set) + 1
     denoms = np.zeros(eg_arr.size)
 
@@ -2312,7 +2305,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
     '''
 
     max_count = df.groupby('mnum').size().max()
-    mnum_count = np.unique(df.mnum).size
+    mnum_count = pd.unique(df.mnum).size
     df = df[df.mnum == mnum].copy()
 
     if measure == 'cat_order':
@@ -3098,7 +3091,8 @@ plt.show()
 
 
 def cond_test(d, opt_sel, plot_all_jobs=False, max_mnum=110,
-              basic_jobs=[1, 4], enhanced_jobs=[1, 2, 7, 8]):
+              basic_jobs=[1, 4], enhanced_jobs=[1, 2, 7, 8],
+              xsize=8, ysize=6):
     '''visualize selected job counts applicable to computed condition.
     Primary usage is testing, though the function can chart any job level(s).
     title_dict and slice_dict must be customized to match case data.
@@ -3194,6 +3188,8 @@ def cond_test(d, opt_sel, plot_all_jobs=False, max_mnum=110,
         jdf[outall].plot(color=cf.job_colors, title=title)
 
     plt.ylim(ymin=0)
+    fig = plt.gcf()
+    fig.set_size_inches(xsize, ysize)
     plt.show()
 
     out = []
@@ -3209,8 +3205,10 @@ def cond_test(d, opt_sel, plot_all_jobs=False, max_mnum=110,
                                    linewidth=0.1,
                                    alpha=.6)
     plt.title(title)
-    fig = plt.gca()
-    fig.invert_yaxis()
+    ax = plt.gca()
+    ax.invert_yaxis()
+    fig = plt.gcf()
+    fig.set_size_inches(xsize, ysize)
     plt.show()
 
 

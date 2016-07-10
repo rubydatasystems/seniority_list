@@ -21,19 +21,11 @@ ds = pd.read_pickle(skeleton_path_string)
 num_of_job_levels = cf.num_of_job_levels
 fur_counts = cf.furlough_count
 num_of_months = np.unique(ds.mnum).size
+egs = pd.unique(ds.eg)
 
 # if cf.actives_only:
 #     ds = ds[ds.fur == 0].copy()
 
-# grab the job counts from the config file
-# todo: change in config to job count array...
-# todo: allow any number of job counts...
-# jcnts_arr = f.make_array_of_job_lists(cf.eg1_job_count,
-#                                       cf.eg2_job_count,
-#                                       cf.eg3_job_count)
-
-# below currently assumes 8 to 16 job level conversion
-# TODO: make conversion function generic
 if cf.enhanced_jobs:
     eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
                                             cf.full_time_pcnt1,
@@ -51,38 +43,31 @@ table = f.job_gain_loss_table(num_of_months,
                               j_changes,
                               standalone=True)
 
-# jcnts_list = [jcnts_arr[0][0], jcnts_arr[0][1], jcnts_arr[0][2]]
 # sort the skeleton by employee group, month, and index
 # (preserves each group's list order)
-
 ds.sort_values(['eg', 'mnum', 'idx'])
 
-ds1 = ds[ds.eg == 1].copy()
-ds2 = ds[ds.eg == 2].copy()
-ds3 = ds[ds.eg == 3].copy()
+ds_dict = {}
+short_ds_dict = {}
 
-short_ds1 = ds1[ds1.mnum == 0].copy()
-short_ds2 = ds2[ds2.mnum == 0].copy()
-short_ds3 = ds3[ds3.mnum == 0].copy()
+for grp in egs:
+    ds_dict[grp] = ds[ds.eg == grp].copy()
+
+for grp in egs:
+    short_ds_dict[grp] = ds_dict[grp][ds_dict[grp].mnum == 0].copy()
 
 ds = pd.DataFrame()
 
-ds_list = [ds1, ds2, ds3]
-short_ds_list = [short_ds1, short_ds2, short_ds3]
+for i in egs - 1:
 
-
-for i in range(len(ds_list)):
-
-    df_long = ds_list[i]
-    df_short = short_ds_list[i]
+    df_long = ds_dict[i + 1]
+    df_short = short_ds_dict[i + 1]
     jcnts = jcnts_arr[0][i]
-    # jcnts = np.take(jcnts, np.where(jcnts != 0)[0])
-    short_len = len(short_ds_list[i])
+    short_len = len(df_short)
     fur_count = fur_counts[i]
     fur_codes = np.array(df_long.fur)
 
     # ORIG_JOB*
-
     cmonths_this_ds = f.career_months_df_in(df_short)
     this_ds_nonret_each_month = f.count_per_month(cmonths_this_ds)
     upper = this_ds_nonret_each_month.cumsum()

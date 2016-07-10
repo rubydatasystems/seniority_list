@@ -267,7 +267,7 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
     for measure in attributes:
         data = np.array(df[measure])
         measure_col = np.empty_like(data)
-        for eg in np.unique(df.eg):
+        for eg in pd.unique(df.eg):
             measure_slice = data[egs == eg]
             measure_slice_index = np.where(egs == eg)[0]
             measure_slice_sorted = np.sort(measure_slice, axis=0)

@@ -38,7 +38,7 @@ df_order = pd.read_pickle(order_path_string)
 
 joined = df_master.join(df_order, how='outer')
 
-eg_set = np.unique(joined.eg)
+eg_set = pd.unique(joined.eg)
 
 final = pd.DataFrame()
 
