@@ -2,6 +2,7 @@
 
 from config import enhanced_jobs
 from pandas import to_datetime
+from collections import OrderedDict as od
 
 full_time_pcnt1 = .6
 full_time_pcnt2 = .65
@@ -9,6 +10,25 @@ full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
 
 annual_pcnt_raise = .02
 top_of_scale = 12
+
+init_ret_age_years = 65
+init_ret_age_months = 0
+
+init_ret_age = init_ret_age_years + (init_ret_age_months * 1 / 12)
+ret_age_increase = False
+# format for ret_incr:
+# ((end of effective month, age increase in months))
+# all employees in effective month will not retire and will have
+# retirement date adjusted
+ret_incr = (('2018-01-31', 12),
+            ('2020-01-31', 12))
+
+ret_incr_dict = od(ret_incr)
+
+if ret_age_increase:
+    ret_age = init_ret_age + sum(ret_incr_dict.values()) * (1 / 12)
+else:
+    ret_age = init_ret_age
 
 starting_date = '2013-12-31'
 start = to_datetime(starting_date)

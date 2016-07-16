@@ -16,7 +16,6 @@ from numba import jit
 import scipy.stats as st
 
 import config as cf
-import conditions as cond
 
 
 # CAREER MONTHS
@@ -104,7 +103,7 @@ def last_month_mpay_pcnt(ret_list):
 
 
 # AGE AT START DATE
-def starting_age(ret_list, start_date=cf.starting_date, retage=cf.ret_age):
+def starting_age(dob_list, start_date=cf.starting_date, retage=cf.ret_age):
     '''Short_Form
     Returns decimal age at given date.
     Input is list of retirement dates
@@ -115,11 +114,10 @@ def starting_age(ret_list, start_date=cf.starting_date, retage=cf.ret_age):
     s_day = start_date.day
     m_val = 1 / 12
     ages = []
-    for retdate in ret_list:
-        ages.append(m_val *
-                    (((s_year - (retdate.year - retage)) * 12) -
-                     (retdate.month - s_month) +
-                     ((s_day - retdate.day) / s_day)))
+    for dob in dob_list:
+        ages.append(m_val * (((s_year - dob.year) * 12) -
+                             (dob.month - s_month) +
+                             ((s_day - dob.day) / s_day)))
     return ages
 
 
@@ -3143,3 +3141,28 @@ def eval_strings(args):
     for arg in args:
         arg_list.append(eval(arg))
     return arg_list
+
+
+def clip_ret_ages(ret_age_dict, init_ret_age, dates_long_arr, ages_long_arr):
+    '''Clip employee ages in employee final month to proper retirement age if
+    the model includes an increasing retirement age over time
+    '''
+    date_list = []
+    ret_age_list = [init_ret_age]
+    prev = 0
+
+    for date, month_add in ret_age_dict.items():
+        month_yrs = month_add * (1 / 12)
+        date_list.append(np.datetime64(pd.to_datetime(date)))
+        ret_age_list.append(month_yrs + init_ret_age + prev)
+        prev += month_yrs
+    date_list.append(np.datetime64(pd.to_datetime(dates_long_arr.max())))
+    date_arr = np.array(date_list)
+    ret_age_arr = np.array(ret_age_list)
+
+    for date, age in zip(date_arr, ret_age_arr):
+        clip_count = np.where(dates_long_arr < date)[0].size
+        ages_long_arr[:clip_count] = np.clip(ages_long_arr[:clip_count],
+                                             0, age)
+
+    return ages_long_arr

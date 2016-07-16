@@ -65,11 +65,11 @@ long_form_skeleton = f.gen_month_skeleton(nonret_each_month)
 
 skel = pd.DataFrame(long_form_skeleton.astype(int), columns=['mnum'])
 
-freeze_date = pd.to_datetime('2013-12-31')
-month_offset = ((start_date.year - freeze_date.year) * 12) - \
-    (freeze_date.month - start_date.month)
+# freeze_date = pd.to_datetime('2013-12-31')
+# month_offset = ((start_date.year - freeze_date.year) * 12) - \
+#     (freeze_date.month - start_date.month)
 
-skel.mnum = skel.mnum + month_offset
+# skel.mnum = skel.mnum + month_offset
 
 # IDX*
 # grab emp index for each remaining
@@ -85,17 +85,7 @@ skel['empkey'] = pd.Series.map(skel.idx, df.reset_index(drop=True).empkey)
 
 # grab retdates from df column (short_form)
 # used for mth_pcnt and age calc (also mapping retdates)
-rets = list(df['retdate'])
-
-# calculate last month pay percentage for each employee (short_form)
-
-# MTH_PCNT*
-# slow calc - refactor candidate
-
-# lmonth_pcnt = f.last_month_mpay_pcnt(rets)
-
-# Eliminated last_month_mpay_pcnt function.
-# Replaced with precalculated last month percentage dataframe...
+dobs = list(df['dob'])
 
 df_last = pd.read_pickle('dill/last_month.pkl')
 
@@ -109,6 +99,7 @@ lmonth_pcnt = np.array(df.lmonth_pcnt)
 df_dict = {'mth_pcnt': lmonth_pcnt, 'final_month': cmonths}
 
 df_last_month = pd.DataFrame(df_dict)
+
 
 df_last_month['idx'] = df_last_month.index
 
@@ -164,14 +155,14 @@ skel = pd.merge(skel, df_dates, right_index=True, left_on=['mnum'])
 # Merged here so that they could be done together
 # after setting indexes to match.
 
-s_age = f.starting_age(rets)
+s_age = f.starting_age(dobs)
 df['s_age'] = s_age
 
 # data alignment magic...set index to empkey
 skel.set_index('empkey', inplace=True, verify_integrity=False, drop=False)
 
 
-# AGE, RETDATE, EG, DOH, LDATE, LNAME, FUR to long_form skeleton
+# AGE, RETDATE, EG, DOH, LDATE, LNAME, FUR, RET_MONTH to long_form skeleton
 skel['s_age'] = df.s_age
 
 if cf.add_eg_col:
@@ -192,6 +183,15 @@ if cf.add_sg_col:
 if not cf.actives_only:
     skel['fur'] = df.fur
 
+# RET_MARK
+if cf.add_ret_mark:
+    df['ret_month'] = cmonths
+    skel['ret_mark'] = df.ret_month
+    mnums = np.array(skel.mnum)
+    lmonth_arr = np.zeros(mnums.size).astype(int)
+    ret_month = np.array(skel.ret_mark)
+    np.put(lmonth_arr, np.where(ret_month == mnums)[0], 1)
+    skel['ret_mark'] = lmonth_arr
 
 # SCALE*
 
@@ -231,7 +231,11 @@ age_list = np.array(skel.s_age)
 
 corr_ages = f.age_correction(long_form_skeleton, age_list)
 
-skel['age'] = corr_ages
+if cf.ret_age_increase:
+    skel['age'] = f.clip_ret_ages(cf.ret_incr_dict, cf.init_ret_age,
+                                  np.array(skel.date), corr_ages)
+else:
+    skel['age'] = corr_ages
 
 skel.pop('s_age')
 

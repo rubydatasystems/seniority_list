@@ -55,7 +55,16 @@ master = pd.read_excel('excel/' + case + '/master.xlsx')
 master.set_index('empkey', drop=False, inplace=True)
 
 retage = cf.ret_age
-master['retdate'] = master['dob'] + pd.DateOffset(years=retage)
+master['retdate'] = master['dob'] + \
+    pd.DateOffset(years=cf.init_ret_age_years) + \
+    pd.DateOffset(months=cf.init_ret_age_months)
+# calculate future retirement age increase(s)
+if cf.ret_age_increase:
+    ret_incr_dict = cf.ret_incr_dict
+    for date, add_months in ret_incr_dict.items():
+        master.loc[master.retdate > pd.to_datetime(date) +
+                   pd.offsets.MonthEnd(-1), 'retdate'] = \
+            master.retdate + pd.DateOffset(months=add_months)
 
 # only include pilots that are not retired prior to the starting_month
 master = master[master.retdate >= start_date - pd.DateOffset(months=1)]

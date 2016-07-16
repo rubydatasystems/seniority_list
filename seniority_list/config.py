@@ -46,7 +46,14 @@ ratio_final_month = case.ratio_final_month
 no_bump = True
 recall = True
 
-ret_age = 65
+init_ret_age_years = case.init_ret_age_years
+init_ret_age_months = case.init_ret_age_months
+
+init_ret_age = case.init_ret_age
+ret_age = case.ret_age
+ret_age_increase = case.ret_age_increase
+ret_incr_dict = case.ret_incr_dict
+
 actives_only = False
 save_to_pickle = True
 
@@ -57,6 +64,7 @@ add_ldate_col = True
 add_lname_col = True
 add_line_col = True
 add_sg_col = True
+add_ret_mark = True
 
 # PAY RELATED (skeleton):
 

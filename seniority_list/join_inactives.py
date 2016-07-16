@@ -10,6 +10,10 @@ placed within the combined list relative to their same employee group
 active cohorts, just senior to the closest junior cohort or just junior to
 closest senior cohort.
 
+"ffill" - inactives attached to just *senior* same-group cohort
+
+"bfill" - inactives attached to just *junior* same-group cohort
+
 Writes results to a pickle file and an Excel file.
 
 example jupyter notebook usage:

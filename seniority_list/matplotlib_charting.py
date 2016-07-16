@@ -415,7 +415,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
                        label=eg_dict[grp])
 
     plt.ylim(1, 0)
-    plt.xlim(25, 65)
+    plt.xlim(25, cf.ret_age)
     plt.tight_layout()
     ax.yaxis.set_major_formatter(formatter)
     ax.set_yticks(np.arange(0, 1.05, .05))
@@ -490,7 +490,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
         frame = frame[frame.jnum <= cf.num_of_job_levels]
     if measure in ['mpay']:
-        frame = frame[frame.age < 65]
+        frame = frame[frame.age < cf.ret_age]
 
     i = 0
 
@@ -556,7 +556,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
         frame = frame[(frame.jnum >= 1) & (frame.jnum <= job_levels)]
 
     if measure == 'mpay':
-        frame = frame[frame.age < 65]
+        frame = frame[frame.age < cf.ret_age]
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -646,7 +646,7 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
     frame.reset_index(drop=True, inplace=True)
 
     if measure == 'mpay':
-        frame = frame[frame.age < 65]
+        frame = frame[frame.age < cf.ret_age]
 
     sns.violinplot(frame.eg, frame[measure],
                    cut=0, scale=scale, inner='box',
@@ -703,7 +703,7 @@ def age_kde_dist(df, color_list, eg_dict,
         except:
             continue
 
-    ax.set_xlim(25, 65)
+    ax.set_xlim(25, cf.ret_age)
     fig.set_size_inches(10, 8)
     plt.title('Age Distribution Comparison - Month ' + str(mnum), y=1.02)
     plt.show()
@@ -1229,7 +1229,7 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
                            formatter, plt_kind='bar', rets_only=True,
                            ret_age=cf.ret_age,
                            measure_subset='age', measure_val=55,
-                           measure_val2=65, operator='equals',
+                           measure_val2=cf.ret_age, operator='equals',
                            time_group='A', display_yrs=40, legend_loc=4,
                            xsize=12, ysize=10, chart_example=False):
 
@@ -1247,6 +1247,11 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
 
     The 'measure_val2' input is only used and applicable when the 'between'
     operator is selected.
+
+    developer TODO: fix x axis scaling and labeling when quarterly ("Q") or
+    monthly ("M") time group option selected.  Also consider modifying
+    "measure_subset" option to averages of attribute when non-job count
+    measure selected.
 
     inputs
 
@@ -1313,8 +1318,18 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
     '''
 
     if rets_only:
-        df_sub = proposal[proposal.age == ret_age][
-            ['eg', 'date', 'jnum']].copy()
+        try:
+            df_sub = proposal[proposal.ret_mark == 1][
+                ['eg', 'date', 'jnum']].copy()
+        except:
+            if cf.ret_age_increase:
+                print('''Please set "add_ret_mark" option to True
+                      in config file''')
+                return
+            else:
+                df_sub = proposal[proposal.age == cf.ret_age][
+                    ['eg', 'date', 'jnum']].copy()
+
     else:
         if operator == 'equals':
             df_sub = proposal[proposal[measure_subset] ==
@@ -2024,7 +2039,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     to_join_ds.rename(columns={measure: measure + '_c',
                                'new_order': 'proposal_order'}, inplace=True)
     df = df.join(to_join_ds)
-    print(df.proposal_order)
+
     x_limit = int(max(df.proposal_order) // 100) * 100 + 100
     df.sort_values(by='proposal_order', inplace=True)
     df['squeeze_order'] = np.arange(len(df))
@@ -2498,7 +2513,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
         plt.xticks(np.arange(0, 1.1, .1))
         plt.xlim(1, 0)
     if xax == 'age':
-        plt.xlim(xmax=65)
+        plt.xlim(xmax=cf.ret_age)
     if xax in ['ylong']:
         plt.xticks(np.arange(0, 55, 5))
         plt.xlim(-0.5, max(df.ylong) + 1)
