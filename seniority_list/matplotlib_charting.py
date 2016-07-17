@@ -2008,21 +2008,49 @@ def editor(base_ds, compare_ds_text, prop_order=True,
                                              'lspcnt', 'snum', 'lnum',
                                              'cat_order', 'mpay', 'cpay'],
                                     value=persist['drop_msr'].value,
-                                    description='msr')
-    drop_filter = widgets.Dropdown(options=['age', 'mnum'],
+                                    description='attr')
+    drop_operator = widgets.Dropdown(options=['<', '<=',
+                                              '==', '>=', '>'],
+                                     value=persist['drop_opr'].value,
+                                     description='operator')
+    drop_filter = widgets.Dropdown(options=['jnum', 'mnum', 'eg', 'sg', 'age',
+                                            'scale', 's_lmonths',
+                                            'orig_job', 'lnum', 'snum', 'mnum',
+                                            'rank_in_job', 'mpay', 'cpay',
+                                            'ret_mark'],
                                    value=persist['drop_filter'].value,
-                                   description='fltr')
-    int_val = widgets.IntText(min=0,
-                              max=max_month,
-                              value=persist['int_sel'].value,
-                              description='val')
+                                   description='attr filter')
 
+    int_val = widgets.Text(min=0,
+                           max=max_month,
+                           value=persist['int_sel'].value,
+                           description='value')
+
+    mnum_operator = widgets.Dropdown(options=['<', '<=',
+                                              '==', '>=', '>'],
+                                     value=persist['mnum_opr'].value,
+                                     description='mnum')
+    mnum_input = widgets.Dropdown(options=list(np.arange(0, max_month)
+                                               .astype(int)),
+                                  value=persist['int_mnum'].value,
+                                  description='value')
+
+    mnum_val = mnum_input.value
+    mnum_oper = mnum_operator.value
     measure = drop_measure.value
     filter_measure = drop_filter.value
+    filter_operator = drop_operator.value
     filter_val = int_val.value
 
     cols = [measure, 'new_order']
-    df = base_ds[base_ds[filter_measure] == filter_val][[measure, 'eg']].copy()
+
+    df = base_ds[eval('(base_ds[filter_measure]' +
+                      filter_operator +
+                      filter_val +
+                      ') & (base_ds.mnum' +
+                      mnum_oper + str(mnum_val) +
+                      ')')][[measure, 'eg']].copy()
+
     df.rename(columns={measure: measure + '_b'}, inplace=True)
 
     yval = 'differential'
@@ -2033,8 +2061,13 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     # for drop_eg selection widget:
     drop_eg_options = list(pd.unique(data_reorder.eg).astype(str))
 
-    to_join_ds = compare_ds[
-        compare_ds[filter_measure] == filter_val][cols].copy()
+    to_join_ds = compare_ds[eval('(compare_ds[filter_measure]' +
+                                 filter_operator +
+                                 filter_val +
+                                 ') & (compare_ds.mnum' +
+                                 mnum_oper +
+                                 str(mnum_val) +
+                                 ')')][cols].copy()
 
     to_join_ds.rename(columns={measure: measure + '_c',
                                'new_order': 'proposal_order'}, inplace=True)
@@ -2117,9 +2150,6 @@ def editor(base_ds, compare_ds_text, prop_order=True,
             else:
                 plt.ylim(-scale_lim, scale_lim)
 
-        if measure in ['cat_order', 'snum', 'lnum']:
-            ax.invert_yaxis()
-
         plt.gcf().set_size_inches(width, height)
         plt.title('Differential: ' + measure)
         plt.xlim(xmin=0)
@@ -2166,21 +2196,21 @@ def editor(base_ds, compare_ds_text, prop_order=True,
 
         drop_eg = widgets.Dropdown(options=drop_eg_options,
                                    value=persist['drop_eg_val'].value,
-                                   description='eg')
+                                   description='emp grp')
 
         drop_dir = widgets.Dropdown(options=['u  >>', '<<  d'],
                                     value=persist['drop_dir_val'].value,
-                                    description='dir')
+                                    description='sqz dir')
 
         drop_squeeze = widgets.Dropdown(options=['log', 'slide'],
                                         value=persist['drop_sq_val'].value,
-                                        description='sq')
+                                        description='sq type')
 
         slide_factor = widgets.IntSlider(value=persist['slide_fac_val'].value,
                                          min=1,
                                          max=400,
                                          step=1,
-                                         description='factor')
+                                         description='sqz force')
 
         def set_cursor(junior=junior_init, senior=senior_init,):
             v1line.set_xdata((junior, junior))
@@ -2243,9 +2273,6 @@ def editor(base_ds, compare_ds_text, prop_order=True,
 
             data_reorder[['new_order']].to_pickle('dill/new_order.pkl')
 
-            # junior_val = range_sel.children[0].value
-            # senior_val = range_sel.children[1].value
-
             store_vals()
 
         def store_vals():
@@ -2257,7 +2284,10 @@ def editor(base_ds, compare_ds_text, prop_order=True,
                                        'fit_val': chk_fit.value,
                                        'mean_val': chk_mean.value,
                                        'drop_msr': drop_measure.value,
+                                       'drop_opr': drop_operator.value,
                                        'drop_filter': drop_filter.value,
+                                       'mnum_opr': mnum_operator.value,
+                                       'int_mnum': mnum_input.value,
                                        'int_sel': int_val.value,
                                        'junior': range_sel.children[0].value,
                                        'senior': range_sel.children[1].value},
@@ -2274,31 +2304,55 @@ def editor(base_ds, compare_ds_text, prop_order=True,
             display(Javascript('IPython.notebook.execute_cell()'))
 
         button_calc = Button(description="calculate",
-                             background_color='#80ffff')
+                             background_color='#80ffff', width='80px')
         button_calc.on_click(run_cell)
 
         button_draw = Button(description="draw",
-                             background_color='#dab3ff')
+                             background_color='#dab3ff', width='80px')
         button_draw.on_click(redraw)
-        # display(button)
 
         if prop_order:
             range_sel = interactive(set_cursor, junior=(0, x_limit),
-                                    senior=(0, x_limit))
+                                    senior=(0, x_limit), width='800px')
         else:
             range_sel = interactive(set_cursor, junior=(0, 1, .001),
                                     senior=(0, 1, .001))
 
         button = Button(description='squeeze',
-                        background_color='#b3ffd9')
+                        background_color='#b3ffd9', width='80px')
         button.on_click(perform_squeeze)
 
-        hbox1 = widgets.HBox((button, button_calc, button_draw))
-        vbox1 = widgets.VBox((slide_factor, hbox1, range_sel))
-        vbox2 = widgets.VBox((chk_scatter, chk_fit, chk_mean))
-        vbox3 = widgets.VBox((drop_squeeze, drop_eg, drop_dir))
-        vbox4 = widgets.VBox((drop_measure, drop_filter, int_val))
-        display(widgets.HBox((vbox1, vbox2, vbox3, vbox4)))
+        hbox1 = widgets.HBox((range_sel, button, button_calc,
+                              button_draw, slide_factor))
+        vbox1 = widgets.VBox((chk_scatter, chk_fit, chk_mean))
+        vbox2 = widgets.VBox((drop_squeeze, drop_eg, drop_dir))
+        vbox3 = widgets.VBox((drop_measure,
+                              mnum_operator, mnum_input))
+        vbox4 = widgets.VBox((drop_filter,
+                              drop_operator, int_val))
+        hbox2 = widgets.HBox((vbox1, vbox2, vbox3, vbox4))
+        display(widgets.VBox((hbox2, hbox1)))
+
+
+def reset_editor():
+    '''reset widget selections to default.
+    (for use when invalid input is selected resulting in an exception)
+    '''
+
+    init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark', 'spcnt', 'log',
+                                    False, '==', '1', 5000, False, True,
+                                    1000, 100, '>=', 0]],
+                                    columns=['drop_dir_val', 'drop_eg_val',
+                                             'drop_filter', 'drop_msr',
+                                             'drop_sq_val', 'fit_val',
+                                             'drop_opr',
+                                             'int_sel', 'junior', 'mean_val',
+                                             'scat_val', 'senior',
+                                             'slide_fac_val',
+                                             'mnum_opr', 'int_mnum'],
+                                    index=['value'])
+
+    init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
 
 
 def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
