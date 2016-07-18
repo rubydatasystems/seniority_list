@@ -15,6 +15,10 @@ print(conditions)
 pre, suf = 'dill/', '.pkl'
 
 skeleton_path_string = (pre + 'skel' + suf)
+
+if cf.edit_mode:
+    proposal_name = 'new_order'
+
 proposal_order_string = (pre + proposal_name + suf)
 stand_path_string = (pre + 'stand' + suf)
 
@@ -66,7 +70,7 @@ jcnts_arr = f.make_jcnts(eg_counts)
 # new_order column from an edited list to the skeleton
 
 if cf.edit_mode:
-    df_new_order = pd.read_pickle('dill/new_order.pkl')
+    df_new_order = pd.read_pickle(proposal_order_string)
     ds['new_order'] = df_new_order['new_order']
     dataset_path_string = (pre + 'ds_edit' + suf)
 else:
@@ -295,6 +299,7 @@ ds['jobp'] = (ds['rank_in_job'] / ds['job_count']) + (ds['jnum'] - .001)
 if cf.compute_job_category_order:
     ds['cat_order'] = ds.groupby('mnum',
                                  sort=False)['jobp'].rank(method='first')
+    # TODO - Code below scheduled to be removed pending testing
     # ds.sort_values(by=['mnum', 'jnum', 'rank_in_job'], inplace=True)
     # ds['cat_order'] = ds.groupby('mnum').cumcount() + 1
     # ds.sort_values(by=['mnum', 'new_order'], inplace=True)
