@@ -128,18 +128,19 @@ date_series = pd.to_datetime(list(df_dates['date']))
 # The second column is either 1.0 or
 # a calculated percentage pay raise after the last contract year.
 
-year_and_scale = \
-    f.contract_pay_year_and_raise(date_series,
-                                  exception=True,
-                                  future_raise=cf.pay_raise,
-                                  date_exception='2014-12-31',
-                                  year_additive=.1,
-                                  annual_raise=cf.annual_pcnt_raise,
-                                  last_contract_year=2019.0)
+if cf.compute_pay_measures:
+    year_and_scale = \
+        f.contract_pay_year_and_raise(date_series,
+                                      exception=True,
+                                      future_raise=cf.pay_raise,
+                                      date_exception='2014-12-31',
+                                      year_additive=.1,
+                                      annual_raise=cf.annual_pcnt_raise,
+                                      last_contract_year=2019.0)
 
-df_dates['year'] = year_and_scale[0]
+    df_dates['year'] = year_and_scale[0]
 
-df_dates['pay_raise'] = year_and_scale[1]
+    df_dates['pay_raise'] = year_and_scale[1]
 
 # the merge below brings in 3 columns - date, year, and pay_raise
 # - from month_form to long_form
