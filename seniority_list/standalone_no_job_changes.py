@@ -77,7 +77,7 @@ for i in egs - 1:
     this_table = table[0][i]
     this_month_counts = table[1][i]
 
-    if (i == 0) and ('supc' in conditions):  # i == 0 >> eg1 from skeleton
+    if (i == 0) and ('prex' in conditions):  # i == 0 >> eg1 from skeleton
 
         sg_rights = np.array(cf.sg_rights)
         sg_jobs = np.transpose(sg_rights)[1]
@@ -94,7 +94,7 @@ for i in egs - 1:
 
         amer_job_counts = jcnts_arr[0][0]
 
-        sg = f.make_amer_standalone_long_supc(lower,
+        sg = f.make_amer_standalone_long_prex(lower,
                                               upper,
                                               df_align,
                                               amer_job_counts,

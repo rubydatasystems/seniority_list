@@ -416,7 +416,7 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr, eg_arr,
 
 # MAKE AMER_STOVEPIPE_JOBS_WITH_SUP_C
 # (Stovepipe with internal condition stovepiped, SHORT_FORM)
-def make_amer_stovepipe_short_supc(job_list, sg_codes,
+def make_amer_stovepipe_short_prex(job_list, sg_codes,
                                    sg_rights, fur_codes):
     '''Creates a 'stovepipe' job assignment within a single eg (american)
     which also includes a condition of certain job counts allocated
@@ -487,7 +487,7 @@ def make_amer_stovepipe_short_supc(job_list, sg_codes,
 
 # MAKE AMER_STOVEPIPE_JOBS_WITH_SUP_C
 # (Stovepipe with internal condition stovepiped, LONG_FORM)
-def make_amer_standalone_long_supc(lower, upper,
+def make_amer_standalone_long_prex(lower, upper,
                                    df_align,
                                    amer_job_counts,
                                    sg_job_nums,
@@ -515,7 +515,7 @@ def make_amer_standalone_long_supc(lower, upper,
             either an array of lists (job_changes=True) or
             a single list of job counts (job_changes=False)
         sg_job_nums
-            job levels included within amer supc condition
+            job levels included within amer prex condition
         sg_dict
             dictionary
             sg job to allotment dictionary
@@ -541,7 +541,7 @@ def make_amer_standalone_long_supc(lower, upper,
     sg_arr = np.array(df_align.sg, dtype=int)
     long_assign_column = np.zeros(sg_arr.size, dtype=int)
 
-    long_supc = np.zeros(sg_arr.size, dtype=int)
+    long_prex = np.zeros(sg_arr.size, dtype=int)
     index_data = np.array(df_align.index)
 
     lower_next = lower[1:]
@@ -559,7 +559,7 @@ def make_amer_standalone_long_supc(lower, upper,
         U_next = upper_next[month]
 
         assign_range = long_assign_column[L:U]
-        long_range = long_supc[L:U]
+        long_range = long_prex[L:U]
         fur_range = fur_arr[L:U]
         sg_range = sg_arr[L:U]
         index_range = index_data[L:U]
@@ -613,14 +613,14 @@ def make_amer_standalone_long_supc(lower, upper,
                                     (fur_range == 0))[0][:remaining],
                            job)
 
-        # long_supc = align(L, U, long_df, assign_range, long_supc)
-        supc_next = align_next(index_range, index_range_next, assign_range)
-        np.copyto(long_supc[L_next:U_next], supc_next)
+        # long_prex = align(L, U, long_df, assign_range, long_prex)
+        prex_next = align_next(index_range, index_range_next, assign_range)
+        np.copyto(long_prex[L_next:U_next], prex_next)
 
     # assign fur job level to unassigned
-    np.put(long_supc, np.where(long_supc == 0)[0], fur_level)
+    np.put(long_prex, np.where(long_prex == 0)[0], fur_level)
 
-    return long_supc.astype(int), long_supc[:upper[0]]
+    return long_prex.astype(int), long_prex[:upper[0]]
 
 
 # MAKE LIST OF ORIGINAL JOBS
@@ -970,7 +970,7 @@ def assign_jobs_nbnf_job_changes(df,
         long_assign_column[:upper[start_month]] = \
             orig[:upper[start_month]]
 
-    if 'supc' in condition_list:
+    if 'prex' in condition_list:
 
         sg_rights = np.array(cf.sg_rights)
 
@@ -978,7 +978,7 @@ def assign_jobs_nbnf_job_changes(df,
         sg_counts = np.transpose(sg_rights)[2]
         sg_dict = dict(zip(sg_jobs, sg_counts))
 
-        # calc sg supc condition month range and concat
+        # calc sg prex condition month range and concat
         sg_month_range = np.arange(np.min(sg_rights[:, 3]),
                                    np.max(sg_rights[:, 4]))
         job_change_months = np.concatenate((job_change_months,
@@ -1056,11 +1056,11 @@ def assign_jobs_nbnf_job_changes(df,
 
             if month in job_change_months:
 
-                if 'supc' in condition_list:
+                if 'prex' in condition_list:
 
                     if month in sg_month_range and job in sg_jobs:
 
-                        # assign SupC condition jobs to sg employees
+                        # assign prex condition jobs to sg employees
                         sg_jobs_avail = min(sg_dict[job], this_job_count)
                         np.put(assign_range,
                                np.where((assign_range == 0) &
@@ -2846,7 +2846,7 @@ def convert_jcnts_to_enhanced(eg_cnts, blk_int_pcnt, blk_dom_pcnt):
     return k
 
 
-# ASSIGN JOBS STANDALONE WITH JOB CHANGES and SUPC option
+# ASSIGN JOBS STANDALONE WITH JOB CHANGES and prex option
 def assign_standalone_job_changes(df_align,
                                   lower,
                                   upper,
@@ -3024,7 +3024,7 @@ def assign_standalone_job_changes(df_align,
 
                     if month in sg_month_range and job in sg_jobs:
 
-                        # assign SupC condition jobs to sg employees
+                        # assign prex condition jobs to sg employees
                         sg_jobs_avail = min(sg_dict[job], this_job_count)
                         np.put(assign_range,
                                np.where((assign_range == 0) &
