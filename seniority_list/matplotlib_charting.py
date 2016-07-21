@@ -960,10 +960,61 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
     plt.show()
 
 
-def job_level_progression(ds, emp_list, through_date, job_levels,
-                          eg_colors, band_colors,
-                          job_counts, job_change_lists, alpha=.12,
+def job_level_progression(ds, emp_list, through_date,
+                          job_levels=cf.num_of_job_levels,
+                          eg_colors=cf.eg_colors,
+                          band_colors=cf.job_colors,
+                          job_counts=cf.eg_counts,
+                          job_change_lists=cf.j_changes,
+                          alpha=.12,
                           chart_example=False):
+    '''show employee(s) career progression through job levels regardless of
+    actual positioning within integrated seniority list.
+
+    This x axis of this chart represents rank within job category.  There is
+    an underlying stacked area chart representing job level bands,
+    adjusted to reflect job count changes over time.
+
+    This chart reveals actual career path considering no bump no flush,
+    special job assignment rights/restrictions, and furlough/recall events.
+
+    Actual jobs held may not be correlated to jobs normally associated with
+    a certain list percentage for many years due to job assignment factors.
+
+    inputs
+        ds
+            dataset
+
+        emp_list
+            list of empkeys to plot
+
+        through_date
+            string representation of y axis date limit, ex. '2025-12-31'
+
+        job levels
+            number of job levels in model
+
+        eg_colors
+            colors to be used for employee line plots corresponding
+            to employee group membership
+
+        band_colors
+            list of colors to be used for stacked area chart which represent
+            job level bands
+
+        job_counts
+            list of lists containing job counts for each employee group
+
+        job_change_lists
+            list of job changes data (originally from case-specific
+            configuration file)
+
+        alpha
+            opacity level of background job bands stacked area chart
+
+        chart_example
+            set true to remove casse-specific data from chart output
+    '''
 
     through_date = pd.to_datetime(through_date)
     fur_lvl = job_levels + 1
@@ -1027,18 +1078,22 @@ def job_level_progression(ds, emp_list, through_date, job_levels,
         axis2_lbls.append(jobs_dict[job_num])
         i += 1
 
+    egs = ds[ds.mnum == 0].eg
+
     with sns.axes_style("white"):
         i = 0
         if chart_example:
             for emp in emp_list:
+                c_idx = egs.loc[emp] - 1
                 ax1 = ds[ds.empkey == emp].set_index('date')[:through_date] \
-                    .cat_order.plot(lw=3, color=eg_colors[i],
+                    .cat_order.plot(lw=3, color=eg_colors[c_idx],
                                     label='Employee ' + str(i + 1))
                 i += 1
         else:
             for emp in emp_list:
+                c_idx = egs.loc[emp] - 1
                 ax1 = ds[ds.empkey == emp].set_index('date')[:through_date] \
-                    .cat_order.plot(lw=3, color=eg_colors[i], label=emp)
+                    .cat_order.plot(lw=3, color=eg_colors[c_idx], label=emp)
                 i += 1
         non_ret_count['count'].plot(c='k', ls='--',
                                     label='active count', ax=ax1)
