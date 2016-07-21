@@ -967,6 +967,7 @@ def job_level_progression(ds, emp_list, through_date,
                           job_counts=cf.eg_counts,
                           job_change_lists=cf.j_changes,
                           alpha=.12,
+                          max_plots_for_legend=5,
                           chart_example=False):
     '''show employee(s) career progression through job levels regardless of
     actual positioning within integrated seniority list.
@@ -1080,24 +1081,32 @@ def job_level_progression(ds, emp_list, through_date,
 
     egs = ds[ds.mnum == 0].eg
 
+    if len(emp_list) > max_plots_for_legend:
+        lw = 1
+    else:
+        lw = 3
+
     with sns.axes_style("white"):
         i = 0
         if chart_example:
             for emp in emp_list:
                 c_idx = egs.loc[emp] - 1
                 ax1 = ds[ds.empkey == emp].set_index('date')[:through_date] \
-                    .cat_order.plot(lw=3, color=eg_colors[c_idx],
+                    .cat_order.plot(lw=lw, color=eg_colors[c_idx],
                                     label='Employee ' + str(i + 1))
                 i += 1
         else:
             for emp in emp_list:
                 c_idx = egs.loc[emp] - 1
                 ax1 = ds[ds.empkey == emp].set_index('date')[:through_date] \
-                    .cat_order.plot(lw=3, color=eg_colors[c_idx], label=emp)
+                    .cat_order.plot(lw=lw, color=eg_colors[c_idx], label=emp)
                 i += 1
-        non_ret_count['count'].plot(c='k', ls='--',
+
+        non_ret_count['count'].plot(c='grey', ls='--',
                                     label='active count', ax=ax1)
-        ax1.legend()
+
+        if len(emp_list) <= max_plots_for_legend:
+            ax1.legend()
 
         plt.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
 
@@ -1114,7 +1123,7 @@ def job_level_progression(ds, emp_list, through_date,
     plt.gca().invert_yaxis()
     plt.ylim(max(df_monthly_non_ret['count']), 0)
 
-    plt.title('cumulative job level bands, full active count', y=1.02)
+    plt.title('job level progression', y=1.02)
 
     if lowest_cat == fur_lvl:
         plt.axhspan(cnts[-2], cnts[-1], facecolor='#fbfbea', alpha=0.9)
