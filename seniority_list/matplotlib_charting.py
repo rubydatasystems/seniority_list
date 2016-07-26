@@ -12,6 +12,7 @@ from ipywidgets import interactive, Button, widgets
 from IPython.display import display, Javascript
 import math
 from os import system
+from collections import OrderedDict as od
 
 import pandas as pd
 from pandas.tools.plotting import parallel_coordinates
@@ -709,13 +710,25 @@ def age_kde_dist(df, color_list, eg_dict,
     plt.show()
 
 
-def eg_diff_boxplot(df_list, formatter, measure='spcnt',
+def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
+                    measure='spcnt',
                     comparison='standalone', year_clip=2035,
+                    exclude_fur=False,
+                    use_eg_colors=False,
+                    width=.8,
+                    job_diff_clip=cf.num_of_job_levels + 1,
                     xsize=18, ysize=10, chart_example=False):
-    '''
+    '''create a differential box plot chart comparing a selected measure from
+    computed integrated dataset(s) vs. standalone dataset or with other
+    integrated datasets.
+
     df_list
-        currently hard-coded for a dataframe list of amer, east, west, and
-        standalone dataframes
+        list of datasets to compare, plot will reference by list order
+    standalone_df
+        standalone dataset
+    eg_list
+        list of integers for employee groups to be included in analysis
+        example: [1, 2, 3]
     formatter
         matplotlib percentage y scale formatter
     measure
@@ -724,135 +737,173 @@ def eg_diff_boxplot(df_list, formatter, measure='spcnt',
         either 'standalone' or 'p2p' (proposal to proposal)
     year_clip
         only present results through this year
+    exclude_fur
+        remove all employees from analysis who are furloughed within the
+        data model at any time
+    use_eg_colors
+        use case-specific employee group colors vs. default colors
+    job_diff_clip
+        if measure is jnum or jobp, limit y axis range to +/- this value
     xsize, ysize
         plot size in inches'''
 
-    yval_dict = {'s_a': 'Group 1 PROPOSAL vs. standalone ' +
-                 measure.upper(),
-                 's_e': 'Group 2 PROPOSAL vs. standalone ' +
-                 measure.upper(),
-                 's_w': 'Group 3 PROPOSAL vs. standalone ' +
-                 measure.upper(),
-                 'a_e': 'Group 2 vs. Group 1 ' + measure.upper(),
-                 'a_w': 'Group 3 vs. Group 1 ' + measure.upper(),
-                 'e_a': 'Group 1 vs. Group 2 ' + measure.upper(),
-                 'e_w': 'Group 3 vs. Group 2 ' + measure.upper(),
-                 'w_a': 'Group 1 vs. Group 3 ' + measure.upper(),
-                 'w_e': 'Group 2 vs. Group 3 ' + measure.upper(),
-                 }
-
-    chart_pad = {'jnum': .3,
-                 'jobp': .3,
-                 'spcnt': .03,
+    chart_pad = {'spcnt': .03,
                  'lspcnt': .03,
                  'mpay': 1,
-                 'cpay': 10,
-                 }
+                 'cpay': 10}
 
-    suffix_list = ['_a', '_e', '_w', '_s']
+    if use_eg_colors:
+        colors = cf.eg_colors
+    else:
+        colors = ['grey', '#66b3ff', '#ff884d', '#00ff99']
 
+    # set boxplot color to match employee group(s) color
+    color_index = np.array(eg_list) - 1
+    color_arr = np.array(colors)
+    colors = list(color_arr[color_index])
+
+    ds_dict = od()
+
+    i = 1
+    for ds in df_list:
+        # filter to only include desired employee groups
+        ds = ds[ds['eg'].isin(eg_list)]
+        # create ordered dictionary containing input dataframes with
+        # columns to create 'key' and the measure column for comparisons
+        if exclude_fur:
+            idx = np.array(ds.index)
+            fur = np.array(ds.fur)
+            furs = np.where(fur == 1)[0]
+            ds_nofur = ds[~np.in1d(ds.index, pd.unique(idx[furs]))]
+            ds_dict[str(i)] = ds_nofur[['empkey', 'mnum', measure]].copy()
+        else:
+            ds_dict[str(i)] = ds[['empkey', 'mnum', measure]].copy()
+        i += 1
+
+    dict_nums = ds_dict.keys()
+    yval_list = []
+    # make list of comparison columns
     if comparison == 'standalone':
-        yval_list = ['s_a', 's_e', 's_w']
+        for num1 in dict_nums:
+            yval_list.append('s_' + num1)
     elif comparison == 'p2p':
-        yval_list = ['e_a', 'w_a', 'a_e', 'w_e', 'a_w', 'e_w']
+        for num1 in dict_nums:
+            for num2 in dict_nums:
+                if num1 != num2:
+                    yval_list.append(num2 + '_' + num1)
 
-    colors = ['grey', '#66b3ff', '#ff884d', '#00ff99']
-
-    ds1_ = df_list[0][['empkey', 'mnum', measure]].copy()
-    ds2_ = df_list[1][['empkey', 'mnum', measure]].copy()
-    ds3_ = df_list[2][['empkey', 'mnum', measure]].copy()
-    ds4_ = df_list[3][['empkey', 'mnum', 'date', 'eg', measure]].copy()
-
-    i = 0
-    for df in [ds1_, ds2_, ds3_, ds4_]:
-
-        df.rename(columns={measure: measure + suffix_list[i]}, inplace=True)
+    i = 1
+    for df in ds_dict.values():
+        # rename measure columuns to be unique in each dataframe
+        # and make a unique key column in each dataframe for joining
+        df.rename(columns={measure: measure + '_' + str(i)}, inplace=True)
         df['key'] = (df.empkey * 1000) + df.mnum
         df.drop(['mnum', 'empkey'], inplace=True, axis=1)
         df.set_index('key', inplace=True)
         i += 1
 
-    compare = ds4_.join(ds1_).join(ds2_).join(ds3_)
+    # repeat for standalone dataframe
+    compare = standalone_df[standalone_df['eg'].isin(eg_list)][
+        ['empkey', 'mnum', 'date', 'eg', measure]].copy()
+    compare.rename(columns={measure: measure + '_s'}, inplace=True)
+    compare['key'] = (compare.empkey * 1000) + compare.mnum
+    compare.drop(['mnum', 'empkey'], inplace=True, axis=1)
+    compare.set_index('key', inplace=True)
 
+    # join dataframes (auto-aligned by index)
+    for df in ds_dict.values():
+        compare = compare.join(df)
+
+    # perform the differential calculation
     if measure in ['mpay', 'cpay']:
 
-        if comparison == 'standalone':
-            compare['s_a'] = compare[measure + '_a'] - compare[measure + '_s']
-            compare['s_e'] = compare[measure + '_e'] - compare[measure + '_s']
-            compare['s_w'] = compare[measure + '_w'] - compare[measure + '_s']
+        for num1 in dict_nums:
+            if comparison == 'standalone':
+                compare['s' + '_' + num1] = \
+                    compare[measure + '_' + num1] - compare[measure + '_s']
 
-        if comparison == 'p2p':
-            # compare['a_s'] = compare[measure + '_s']
-            # - compare[measure + '_a']
-            compare['a_e'] = compare[measure + '_e'] - compare[measure + '_a']
-            compare['a_w'] = compare[measure + '_w'] - compare[measure + '_a']
+            if comparison == 'p2p':
 
-            # compare['e_s'] = compare[measure + '_s']
-            # - compare[measure + '_e']
-            compare['e_a'] = compare[measure + '_a'] - compare[measure + '_e']
-            compare['e_w'] = compare[measure + '_w'] - compare[measure + '_e']
-
-            # compare['w_s'] = compare[measure + '_s']
-            # - compare[measure + '_w']
-            compare['w_a'] = compare[measure + '_a'] - compare[measure + '_w']
-            compare['w_e'] = compare[measure + '_e'] - compare[measure + '_w']
+                for num2 in dict_nums:
+                    if num2 != num1:
+                        compare[num1 + '_' + num2] = \
+                            compare[measure + '_' + num2] - \
+                            compare[measure + '_' + num1]
 
     else:
 
-        if comparison == 'standalone':
-            compare['s_a'] = compare[measure + '_s'] - compare[measure + '_a']
-            compare['s_e'] = compare[measure + '_s'] - compare[measure + '_e']
-            compare['s_w'] = compare[measure + '_s'] - compare[measure + '_w']
+        for num1 in dict_nums:
+            if comparison == 'standalone':
+                compare['s' + '_' + num1] = \
+                    compare[measure + '_s'] - compare[measure + '_' + num1]
 
-        if comparison == 'p2p':
-            # compare['a_s'] = compare[measure + '_a']
-            # - compare[measure + '_s']
-            compare['a_e'] = compare[measure + '_a'] - compare[measure + '_e']
-            compare['a_w'] = compare[measure + '_a'] - compare[measure + '_w']
+            if comparison == 'p2p':
 
-            # compare['e_s'] = compare[measure + '_e']
-            # - compare[measure + '_s']
-            compare['e_a'] = compare[measure + '_e'] - compare[measure + '_a']
-            compare['e_w'] = compare[measure + '_e'] - compare[measure + '_w']
+                for num2 in dict_nums:
+                        if num2 != num1:
+                            compare[num1 + '_' + num2] = \
+                                compare[measure + '_' + num1] -\
+                                compare[measure + '_' + num2]
 
-            # compare['w_s'] = compare[measure + '_w']
-            # - compare[measure + '_s']
-            compare['w_a'] = compare[measure + '_w'] - compare[measure + '_a']
-            compare['w_e'] = compare[measure + '_w'] - compare[measure + '_e']
+    for num1 in dict_nums:
+        compare.drop(measure + '_' + num1, inplace=True, axis=1)
 
-    compare.drop([measure + '_s',
-                  measure + '_a',
-                  measure + '_e',
-                  measure + '_w'],
-                 inplace=True, axis=1)
+    compare.drop(measure + '_s', inplace=True, axis=1)
 
+    # make a 'date' column containing date year
     compare.set_index('date', drop=True, inplace=True)
     compare['date'] = compare.index.year
     y_clip = compare[compare.date <= year_clip]
 
-    for v in yval_list:
-        pad = chart_pad[measure]
-        yval = v
-        ylimit = max(abs(max(y_clip[yval])), abs(min(y_clip[yval]))) + pad
+    # create a dictionary containing plot titles
+    yval_dict = od()
+    if comparison == 'p2p':
+
+        for num1 in dict_nums:
+            for num2 in dict_nums:
+                yval_dict[num1 + '_' + num2] = 'proposal ' + num2 + \
+                    ' vs. proposal ' + num1 + ' ' + measure.upper()
+
+    if comparison == 'standalone':
+        for num1 in dict_nums:
+            yval_dict['s_' + num1] = \
+                'Group ' + num1 + ' proposal vs. standalone ' + measure.upper()
+
+    for yval in yval_list:
+        # determine y axis chart limits
+        try:
+            pad = chart_pad[measure]
+            ylimit = max(abs(max(y_clip[yval])), abs(min(y_clip[yval]))) + pad
+        except:
+            ylimit = max(abs(max(y_clip[yval])), abs(min(y_clip[yval])))
+        # create seaborn boxplot
         sns.boxplot(x='date', y=yval,
                     hue='eg', data=y_clip,
-                    palette=colors, width=.8,
+                    palette=colors, width=width,
                     linewidth=1.0, fliersize=1.5)
         fig = plt.gcf()
+        # set chart size
         fig.set_size_inches(xsize, ysize)
-        plt.axhline(y=0, c='r', zorder=.5, alpha=.3, lw=3)
+        # add zero line
+        plt.axhline(y=0, c='r', zorder=.9, alpha=.35, lw=2)
         plt.ylim(-ylimit, ylimit)
         if measure in ['spcnt', 'lspcnt']:
+            # format percentage y axis scale
             plt.gca().yaxis.set_major_formatter(formatter)
+        if measure in ['jnum', 'jobp']:
+            # if job level measure, set scaling and limit y range
+            plt.gca().set_yticks(np.arange(int(-ylimit - 1), int(ylimit + 2)))
+            plt.ylim(max(-job_diff_clip, int(-ylimit - 1)),
+                     min(job_diff_clip, int(ylimit + 1)))
         if chart_example:
-            plt.title('PROPOSAL 3 vs. standalone ' + measure.upper(),
+            plt.title('PROPOSAL vs. standalone ' + measure.upper(),
                       y=1.02)
         else:
             plt.title(yval_dict[yval], y=1.02)
+        plt.ylabel('differential')
         plt.show()
 
 
-#
 # DISTRIBUTION WITHIN JOB LEVEL (NBNF effect)
 def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
                                        eg_colors, band_colors, jobs_dict,
