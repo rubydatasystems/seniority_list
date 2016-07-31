@@ -137,10 +137,11 @@ if cf.delayed_implementation:
     imp_high = cumulative[imp_month]
 
     dstand = pd.read_pickle(stand_path_string)
-    ds_option = dstand[['job_count', 'lspcnt',
-                        'spcnt', 'rank_in_job', 'jobp']]
-    dstand = dstand[['mnum', 'jnum', 'empkey', 'fur']][:imp_high]
-    dstand.rename(columns={'jnum': 'stand_jobs'}, inplace=True)
+    # ds_option = dstand[['job_count', 'lspcnt',
+    #                     'spcnt', 'rank_in_job', 'jobp']]
+    dstand = dstand[['mnum', 'empkey', 'jnum', 'fur', 'cat_order']][:imp_high]
+    dstand.rename(columns={'jnum': 'stand_jobs',
+                           'cat_order': 'stand_cat_order'}, inplace=True)
     dstand['key'] = (dstand.empkey * 1000) + dstand.mnum
     dstand.drop(['mnum', 'empkey'], inplace=True, axis=1)
 
@@ -177,6 +178,13 @@ if cf.delayed_implementation:
 
     delayed_fur[imp_low:] = aligned_fur[imp_low:]
     ds['fur'] = delayed_fur
+
+    # CAT_ORDER preliminary
+    if cf.compute_job_category_order:
+        temp_cat = np.array(ds_temp.stand_cat_order)
+        delayed_cat = np.zeros(all_months)
+        delayed_cat[:imp_high] = temp_cat
+
     # this function assigns combined job counts wiping out
     # standalone counts...refactor to add (skip this?) option
     # to keep standalone job counts
@@ -295,10 +303,12 @@ else:
 
 ds['jobp'] = (ds['rank_in_job'] / ds['job_count']) + (ds['jnum'] - .001)
 
-# CAT_ORDER
+# CAT_ORDER final
 if cf.compute_job_category_order:
-    ds['cat_order'] = ds.groupby('mnum',
-                                 sort=False)['jobp'].rank(method='first')
+    cat_arr = np.array(ds.groupby('mnum', sort=False)['jobp']
+                       .rank(method='first'))
+    delayed_cat[imp_high:] = cat_arr[imp_high:]
+    ds['cat_order'] = delayed_cat
 
 # PAY - merge with pay table - provides monthly pay
 if cf.compute_pay_measures:

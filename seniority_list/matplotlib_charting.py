@@ -742,6 +742,9 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
         data model at any time
     use_eg_colors
         use case-specific employee group colors vs. default colors
+    width
+        plotting width of boxplot or grouped boxplots for each year.
+        a width of 1 leaves no gap between groups
     job_diff_clip
         if measure is jnum or jobp, limit y axis range to +/- this value
     xsize, ysize
@@ -1878,7 +1881,7 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
         if alt_bg_color:
             ax.set_axis_bgcolor(bg_color)
 
-        plt.title('<group name> quartile change over time',
+        plt.title('group ' + str(eg) + ' quartile change over time',
                   fontsize=16, y=1.02)
 
         quartiles = np.arange(1, bins + 1)
@@ -2422,9 +2425,9 @@ def editor(base_ds, compare_ds_text, prop_order=True,
                              background_color='#80ffff', width='80px')
         button_calc.on_click(run_cell)
 
-        button_draw = Button(description="draw",
+        button_plot = Button(description="plot",
                              background_color='#dab3ff', width='80px')
-        button_draw.on_click(redraw)
+        button_plot.on_click(redraw)
 
         if prop_order:
             range_sel = interactive(set_cursor, junior=(0, x_limit),
@@ -2438,7 +2441,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
         button.on_click(perform_squeeze)
 
         hbox1 = widgets.HBox((range_sel, button, button_calc,
-                              button_draw, slide_factor))
+                              button_plot, slide_factor))
         vbox1 = widgets.VBox((chk_scatter, chk_fit, chk_mean))
         vbox2 = widgets.VBox((drop_squeeze, drop_eg, drop_dir))
         vbox3 = widgets.VBox((drop_measure,
@@ -3438,10 +3441,11 @@ def single_emp_compare(emp, measure, ds_list, xax, formatter,
     '''
     if chart_example:
         for i in range(0, len(ds_list)):
+            label = 'proposal ' + str(i + 1)
             ax = ds_list[i][ds_list[i].empkey == emp].set_index(xax)[measure] \
-                .plot(label=str(i + 1), lw=3,
+                .plot(label=label, lw=3,
                       color=eg_colors[i], alpha=.6)
-        plt.title('Employee  ' + '< number >' + '  -  ' + str.upper(measure),
+        plt.title('Employee  ' + '123456' + '  -  ' + str.upper(measure),
                   y=1.02)
     else:
         for i in range(0, len(ds_list)):

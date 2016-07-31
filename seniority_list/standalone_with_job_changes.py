@@ -160,6 +160,10 @@ for i in egs - 1:
     df_long['jobp'] = (df_long['rank_in_job'] /
                        df_long['job_count']) + (df_long['jnum'] - .0001)
 
+    # if cf.compute_job_category_order:
+    #     df_long['cat_order'] = df_long.groupby('mnum', sort=False)['jobp'] \
+    #         .rank(method='first') * len(ds) / len(df_long)
+
     # PAY - merge with pay table - provides monthly pay
     if cf.compute_pay_measures:
 
@@ -207,6 +211,10 @@ for i in egs - 1:
         df_long['cpay'] = df_long.groupby('idx')['mpay'].cumsum()
 
     ds = pd.concat([ds, df_long], ignore_index=True)
+
+if cf.compute_job_category_order:
+        ds['cat_order'] = ds.groupby('mnum', sort=False)['jobp'] \
+            .rank(method='first')
 
 ds.sort_values(by=['mnum', 'snum'], inplace=True)
 ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
