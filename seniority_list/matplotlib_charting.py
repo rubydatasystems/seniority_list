@@ -1641,7 +1641,7 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
 
             ax.set_yticklabels(yticks, fontsize=12)
 
-        if measure in ['snum', 'lnum']:
+        if measure in ['snum', 'lnum', 'cat_order']:
             ax.invert_yaxis()
         ax.grid()
         ax.legend_.remove()
