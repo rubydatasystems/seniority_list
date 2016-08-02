@@ -1522,9 +1522,9 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
             plt.show()
 
 
-def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
-             formatter, left='sa', a_stride=50, e_stride=30, w_stride=20,
-             xsize=6, ysize=8):
+def parallel_old(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
+                 formatter, left='sa', a_stride=50, e_stride=30, w_stride=20,
+                 xsize=6, ysize=8):
     '''Compare positional or value differences for various proposals
     with a baseline position or value for selected months.
 
@@ -1619,6 +1619,149 @@ def parallel(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
                                      color=color_dict[3])
 
                 plt.title('Group ' + group_dict[3].upper() + ' ' +
+                          measure.upper() +
+                          ' ' + str(month) + ' mths', fontsize=16, y=1.02)
+
+    fig = plt.gcf()
+    for ax in fig.axes:
+
+        if measure in ['spcnt', 'lspcnt']:
+            ax.set_yticks(np.arange(1, 0, -.05))
+            ax.invert_yaxis()
+            ax.yaxis.set_major_formatter(formatter)
+
+        if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
+
+            ax.set_yticks(np.arange(0, job_levels + 2, 1))
+            ax.set_ylim(job_levels + .5, 0.5)
+            yticks = ax.get_yticks().tolist()
+
+            for i in np.arange(1, len(yticks)):
+                yticks[i] = jobs[i - 1]
+
+            ax.set_yticklabels(yticks, fontsize=12)
+
+        if measure in ['snum', 'lnum', 'cat_order']:
+            ax.invert_yaxis()
+        ax.grid()
+        ax.legend_.remove()
+
+    plt.tight_layout()
+    plt.show()
+
+
+def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
+             formatter, left=0, stride_list=None,
+             facecolor='#f5f5dc', xsize=6, ysize=8):
+    '''Compare positional or value differences for various proposals
+    with a baseline position or value for selected months.
+
+    The vertical lines represent different proposed lists, in the order
+    from the df_list list input.
+
+    inputs
+        standalone df
+            standalone dataset
+        df_list
+            list of datasets to compare.
+            the order of the list is reflected in the chart
+            x axis lables
+        eg_list
+            list of employee group integer codes to compare
+            example: [1, 2]
+        measure
+            dataset attribute to compare
+        month_list
+            list of month numbers for analysis.
+            the function will plot comparative data from each month listed
+        job_levels
+            number of job levels in data model
+        formatter
+            matplotlib percentage formatter for y axis when comparing
+            list percentage
+        left
+            integer representing the list comparison to plot on left side
+            of the chart(s).
+            zero (0) represents the standalone results and is the default.
+            1, 2, or 3 etc. represent the first, second, third, etc. dataset
+            results in df_list input order
+        stride_list
+            optional list of dataframe strides for plotting every other
+            nth result
+        facecolor
+            chart background color
+        xsize, ysize
+            size of individual subplots
+    '''
+
+    group_dict = cf.eg_dict
+    color_dict = dict(enumerate(cf.eg_colors))
+
+    jobs = cf.job_strs
+
+    num_egplots = len(eg_list)
+    num_months = len(month_list)
+
+    fig, ax = plt.subplots(num_months, num_egplots)
+
+    fig = plt.gcf()
+    fig.set_size_inches(xsize * num_egplots, ysize * num_months)
+
+    plot_num = 0
+
+    for month in month_list:
+
+        ds_dict = od()
+        col_dict = od()
+
+        ds_dict[0] = standalone_df[(standalone_df.mnum == month) &
+                                   (standalone_df.fur == 0)][
+                                  ['eg', measure]].copy()
+        col_dict[0] = ['eg', 'StandAlone']
+
+        i = 1
+        for ds in df_list:
+            ds = ds[ds['fur'] == 0]
+            ds_dict[i] = ds[ds.mnum == month][[measure]].copy()
+            col_dict[i] = ['List' + str(i)]
+            i += 1
+
+        dict_nums = list(ds_dict.keys())
+
+        col_list = []
+        col_list.extend(col_dict[left])
+
+        df_joined = ds_dict[left]
+
+        i = 1
+        for num in dict_nums:
+            if num != left:
+                df_joined = df_joined.join(ds_dict[num],
+                                           rsuffix=('_' + str(num)))
+                col_list.extend(col_dict[num])
+
+        df_joined.columns = col_list
+
+        with sns.axes_style('whitegrid', {'axes.facecolor': facecolor,
+                                          'axes.axisbelow': True,
+                                          'axes.edgecolor': '.2',
+                                          'axes.linewidth': 1.0,
+                                          'grid.color': '.7',
+                                          'grid.linestyle': u'--'}):
+
+            for eg in eg_list:
+                plot_num += 1
+                plt.subplot(num_months, num_egplots, plot_num)
+                df = df_joined[df_joined.eg == eg]
+                try:
+                    stride = stride_list[eg - 1]
+                    df = df[::stride]
+                except:
+                    df = df[::(int(len(df) * .015))]
+                parallel_coordinates(df, 'eg', lw=1.5, alpha=.7,
+                                     color=color_dict[eg - 1])
+
+                plt.title('Group ' + group_dict[eg].upper() + ' ' +
                           measure.upper() +
                           ' ' + str(month) + ' mths', fontsize=16, y=1.02)
 
@@ -1909,22 +2052,79 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
         plt.show()
 
 
-def job_transfer(p_df, p_text, comp_df, comp_df_text, eg, colors,
+def job_transfer(p_df, p_text, base_df, base_df_text, eg, colors,
                  job_levels,
                  measure='jnum', gb_period='M',
                  custom_color=True, cm_name='Paired',
                  start=0, stop=.95, job_alpha=1, chart_style='white',
-                 start_date=cf.starting_date, yticks_lim=5000,
+                 yticks_lim=5000,
+                 draw_face_color=True, draw_grid=True,
                  ytick_interval=100, legend_xadj=1.62,
                  legend_yadj=.78, annotate=False,
                  xsize=10, ysize=8):
+    '''plot a differential stacked bar chart displaying color-coded job
+    transfer counts over time.  Result appears to be stacked area chart.
+
+    inputs
+        p_df
+            proposal dataset
+        p_text
+            proposal dataset string name
+        base_df
+            baseline dataset; proposal dataset is compared to this
+            dataset
+        base_df_text
+            baseline dataset string name
+        eg
+            integer code for employee group
+        colors
+            list of colors for job levels
+        job_levels
+            number of job levels in data model
+        measure
+            currently only 'jnum' is applicable
+        gb_period
+            group_by period. default is 'M' for monthly, other options
+            are 'Q' for quarterly and 'A' for annual
+        custom_color
+            create custom color map
+        cm_name
+            color map name
+        start
+            custom color linspace start
+        stop
+            custom color linspace stop
+        job_alpha
+            chart alpha level for job transfer plotting
+        chart_style
+            seaborn plotting library style
+        yticks_lim
+            limit for y tick labeling
+        draw_face_color
+            apply a transparent background to the chart, red below zero
+            and green above zero
+        draw_grid
+            show major tick label grid lines
+        ytick_interval
+            ytick spacing
+        legend_xadj
+            horizontal addjustment for legend placement
+        legend_yadj
+            vertical adjustment for legend placement
+        annotate
+            add text to chart, 'job count increase' and 'job count decrease'
+        xsize
+            horizontal size of chart
+        ysize
+            vertical size of chart
+    '''
 
     p_df = p_df[p_df.eg == eg][['date', measure]].copy()
-    comp_df = comp_df[comp_df.eg == eg][['date', measure]].copy()
+    base_df = base_df[base_df.eg == eg][['date', measure]].copy()
 
     pg = pd.DataFrame(p_df.groupby(['date', measure]).size()
                       .unstack().fillna(0).resample(gb_period).mean())
-    cg = pd.DataFrame(comp_df.groupby(['date', measure]).size()
+    cg = pd.DataFrame(base_df.groupby(['date', measure]).size()
                       .unstack().fillna(0).resample(gb_period).mean())
 
     for job_level in np.arange(1, cf.num_of_job_levels + 1):
@@ -1975,24 +2175,29 @@ def job_transfer(p_df, p_text, comp_df, comp_df_text, eg, colors,
         else:
             ax.set_xticklabels(xticklabels, rotation=90)
 
-        for xmaj in xtick_locs:
-            try:
-                if i % interval == 0:
-                    ax.axvline(xtick_locs[i], ls='-', color='grey',
-                               lw=1, alpha=.2, zorder=7)
-                i += 1
-            except:
-                pass
         if gb_period in ['Q', 'A']:
             ax.axvline(xtick_locs[0], ls='-', color='grey',
                        lw=1, alpha=.2, zorder=7)
 
-        yticks = np.arange(-yticks_lim, yticks_lim, ytick_interval)
+        yticks = np.arange(-yticks_lim,
+                           yticks_lim + ytick_interval,
+                           ytick_interval)
+
         ax.set_yticks(yticks)
         plt.ylim(-v_crop, v_crop)
         ymin, ymax = ax.get_ylim()
-        for i in yticks:
-            ax.axhline(i, ls='-', color='grey', lw=1, alpha=.2, zorder=7)
+
+        if draw_grid:
+            for xmaj in xtick_locs:
+                try:
+                    if i % interval == 0:
+                        ax.axvline(xtick_locs[i], ls='-', color='grey',
+                                   lw=1, alpha=.2, zorder=7)
+                    i += 1
+                except:
+                    pass
+            for i in yticks:
+                ax.axhline(i, ls='-', color='grey', lw=1, alpha=.2, zorder=7)
 
         recs = []
         job_labels = []
@@ -2023,8 +2228,9 @@ def job_transfer(p_df, p_text, comp_df, comp_df_text, eg, colors,
                             xytext=(50, -v_crop + ytick_interval), fontsize=14)
 
         ax.axhline(color='grey', alpha=.7)
-        plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=8)
-        plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
+        if draw_face_color:
+            plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=8)
+            plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
         plt.ylabel('change in job count', fontsize=16)
         plt.xlabel('date', fontsize=16, labelpad=15)
 
@@ -2032,14 +2238,14 @@ def job_transfer(p_df, p_text, comp_df, comp_df_text, eg, colors,
             title_string = 'GROUP ' + cf.eg_dict[eg] + \
                 ' Jobs Exchange' + '\n' + \
                 cf.proposal_dict[p_text] + \
-                ' compared to ' + cf.proposal_dict[comp_df_text]
+                ' compared to ' + cf.proposal_dict[base_df_text]
             plt.title(title_string,
                       fontsize=16, y=1.02)
         except:
             title_string = 'GROUP ' + cf.eg_dict[eg] + \
                 ' Jobs Exchange' + '\n' + \
                 p_text + \
-                ' compared to ' + comp_df_text
+                ' compared to ' + base_df_text
             plt.title(title_string,
                       fontsize=16, y=1.02)
 
