@@ -545,11 +545,47 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     plt.show()
 
 
-def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
+def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                          proposal, proposal_dict,
                          job_levels, colors, formatter, mnum=0,
                          scatter=False, exclude_fur=False,
                          full_pcnt_xscale=False, chart_example=False):
+    '''plot separate selected employee group data for a specific month.
+
+    chart type may be line or scatter.
+
+    inputs
+        df
+            dataframe
+        measure
+            attribute to plot on y axis
+        xax
+            x axis attribute
+        eg_list
+            list of employee groups to plot (integer codes)
+        job_strs
+            job text labels for y axis when job number measure selected
+        proposal
+            df text name
+        proposal_dict
+            proposal to string chart title
+        job_levels
+            number of job levels in model
+        colors
+            colors for eg plots
+        formatter
+            matplotlib percent formatter
+        mnum
+            month number for analysis
+        scatter
+            plot a scatter chart (vs. default line chart)
+        exclude_fur
+            do not plot furoughed employees
+        full_pcnt_xscale
+            plot x axis percentage from 0 to 100 percent
+        chart_example
+            remove case-specific text from chart
+    '''
 
     frame = df[(df.mnum == mnum)]
 
@@ -590,7 +626,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
         ytick_labels = list(ax.get_yticks())
 
         for i in np.arange(1, len(ytick_labels)):
-            ytick_labels[i] = job_dict[i - 1]
+            ytick_labels[i] = job_strs[i - 1]
 
         plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.3)
         ax.set_yticklabels(ytick_labels)
@@ -637,8 +673,43 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_dict,
 
 
 def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
-                     mnum=0, bw=.1, linewidth=1.5, chart_example=False,
+                     mnum=0, linewidth=1.5, chart_example=False,
                      scale='count'):
+    '''From the seaborn website:
+    Draw a combination of boxplot and kernel density estimate.
+
+    A violin plot plays a similar role as a box and whisker plot.
+    It shows the distribution of quantitative data across several
+    levels of one (or more) categorical variables such that those
+    distributions can be compared. Unlike a box plot, in which all
+    of the plot components correspond to actual datapoints, the violin
+    plot features a kernel density estimation of the underlying distribution.
+
+    inputs
+        df
+            dataframe
+        measure
+            attribute to plot
+        proposal
+            string name of df
+        proposal_dict
+            proposal to string title name
+        formatter
+            matplotlib percentile axis label formatter
+        mnum
+            month number to analyze
+        linewidth
+            width of line surrounding each violin plot
+        chart_example
+            remove case-specific text data from chart
+        scale
+            From the seaborn website:
+            The method used to scale the width of each violin.
+            If 'area', each violin will have the same area.
+            If 'count', the width of the violins will be scaled by
+            the number of observations in that bin.
+            If 'width', each violin will have the same width.
+    '''
 
     if measure == 'age':
         frame = df[df.mnum == mnum][['eg', measure]].copy()
@@ -669,7 +740,7 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
     fig = plt.gca()
     if measure == 'age':
         plt.ylim(25, 70)
-    if measure in ['snum', 'spcnt', 'jnum', 'jobp']:
+    if measure in ['snum', 'spcnt', 'lspcnt', 'jnum', 'jobp', 'cat_order']:
         fig.invert_yaxis()
         if measure in ['spcnt', 'lspcnt']:
             fig.yaxis.set_major_formatter(formatter)
@@ -680,6 +751,21 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
 
 def age_kde_dist(df, color_list, eg_dict,
                  mnum=0, chart_example=False):
+    '''From the seaborn website:
+    Fit and plot a univariate or bivariate kernel density estimate.
+
+    inputs
+        df
+            dataframe
+        color_list
+            list of colors for employee group plots
+        eg_dict
+            eg to string dict for plot labels
+        mnum
+            month number to analyze
+        chart_example
+            remove case-specific text from chart
+    '''
 
     frame = df[df.mnum == mnum]
     eg_set = pd.unique(frame.eg)
@@ -908,12 +994,45 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
 
 
 # DISTRIBUTION WITHIN JOB LEVEL (NBNF effect)
-def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
-                                       eg_colors, band_colors, jobs_dict,
+def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
+                                       eg_colors, band_colors, job_strs,
                                        eg_dict, bg_alpha=.12,
-                                       show_rsv_lvl=True,
-                                       adjust_y_axis=False,
+                                       show_part_time_lvl=True,
+                                       size=3,
                                        chart_example=False):
+    '''visually display employee group distribution concentration within
+    accurately sized job bands for a selected month.
+
+    This chart reveals how evenly or unevenly the employee groups share
+    the jobs available within each job category.
+
+    inputs
+        df
+            dataframe
+        job_levels
+            number of job levels in the data model
+        mnum
+            month number - analyze data from this month
+        full_time_pcnt
+            percentage of each job level which is full time
+        eg_colors
+            list of colors for eg plots
+        band_colors
+            list of colors for background job band colors
+        job_strs
+            list of job strings for job description labels
+        eg_dict
+            eg to group string label
+        bg_alpha
+            color alpha for background job level color
+        show_part_time_lvl
+            draw a line within each job band representing the boundry
+            between full and part-time jobs
+        size
+            size of markers
+        chart_example
+            remove case-specific text from plot
+    '''
 
     fur_lvl = job_levels + 1
     if job_levels == 16:
@@ -927,11 +1046,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
     eg_set = pd.unique(data.eg)
     max_eg_plus_one = max(eg_set) + 1
 
-    adjust_y_axis = False
-    if adjust_y_axis:
-        y_count = len(data)
-    else:
-        y_count = len(data[data.mnum == mnum])
+    y_count = len(data)
 
     cum_job_counts = data.jnum.value_counts().sort_index().cumsum()
     lowest_cat = max(cum_job_counts.index)
@@ -946,7 +1061,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
         fig, ax1 = plt.subplots()
         ax1 = sns.stripplot(y='cat_order', x='eg', data=data, jitter=.5,
                             order=np.arange(1, max_eg_plus_one),
-                            palette=eg_colors, size=3,
+                            palette=eg_colors, size=size,
                             linewidth=0, split=True)
 
         plt.yticks = (np.arange(0, ((len(df) + 1000) % 1000) * 1000, 1000))
@@ -957,16 +1072,17 @@ def stripplot_distribution_in_category(df, job_levels, mnum, blk_pcnt,
         ax1.axhline(job_zone, c='magenta', ls='-', alpha=1, lw=.8)
         ax1.axhspan(cnts[i], cnts[i + 1], facecolor=band_colors[i],
                     alpha=bg_alpha,)
-        if show_rsv_lvl:
-            rsv_lvl = (round((cnts[i + 1] - cnts[i]) * blk_pcnt)) + cnts[i]
-            ax1.axhline(rsv_lvl, c='#66ff99', ls='--', alpha=1, lw=1)
+        if show_part_time_lvl:
+            part_time_lvl = (round((cnts[i + 1] - cnts[i]) *
+                             full_time_pcnt)) + cnts[i]
+            ax1.axhline(part_time_lvl, c='#66ff99', ls='--', alpha=1, lw=1)
         i += 1
 
     i = 0
     for job_num in cum_job_counts.index:
         axis2_lbl_locs.append(round((cnts[i] + cnts[i + 1]) / 2))
         axis2_lbl_locs[i] += adjust[job_num - 1]
-        axis2_lbls.append(jobs_dict[job_num])
+        axis2_lbls.append(job_strs[job_num])
         i += 1
 
     counter = 0
@@ -1209,6 +1325,65 @@ def differential_scatter(base_ds, compare_ds_list,
                          dot_size=15, lin_reg_order=15, ylimit=False, ylim=5,
                          width=22, height=14, bright_bg=False,
                          chart_style='whitegrid', chart_example=False):
+    '''plot an attribute differential between datasets filtered with another
+    attribute if desired.
+
+    Example:  plot the difference in cat_order (job rank number) between all
+    integrated datasets vs. standalone for all employee groups, applicable to
+    month 57.
+
+    The chart may be set to use proposal order or native list percentage for
+    the x axis.
+
+    The scatter markers are selectable on/off, as well as an average line
+    and a linear regression line.
+
+    inputs
+        base_ds
+            the base dataset (dataframe) to compare against
+        compare_ds_list
+            a list of datasets to compare to the base_ds
+        measure
+            attribute to analyze
+        filter_measure
+            further reduce or filter the measure by this attribute
+        filter_val
+            value to apply to the filter_measure
+            example: if filter_measure is 'mnum', filter_val would be
+            an interger representing the month number
+        eg_list
+            a list of employee groups to analyze
+        formatter
+            matplotlib percentile axis formatter
+        prop_order
+            if True, organize x axis by proposal list order,
+            otherwise use native list percent
+        show_scatter
+            if True, draw the scatter chart markers
+        show_lin_reg
+            if True, draw linear regression lines
+        show_mean
+            if True, draw average lines
+        mean_len
+            moving average length for average lines
+        dot_size
+            scatter marker size
+        lin_reg_order
+            regression line is actually a polynomial regression
+            lin_reg_order is the degree of the fitting polynomial
+        ylimit
+            if True, set chart y axis limit to ylim (below)
+        ylim
+            y axis limit positive and negative if ylimit is True
+        width, height
+            size of chart
+        bright_bg
+            use a bright yellow tint chart background
+        chart_style
+            style for chart, valid inputs are any seaborn chart style
+        chart_example
+            set True to remove casse-specific data from chart output
+    '''
 
     cols = [measure, 'new_order']
 
@@ -1313,7 +1488,7 @@ def differential_scatter(base_ds, compare_ds_list,
                 scale_lim = max(abs(ymin), ymax)
                 plt.yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
                 if ylimit:
-                    plt.ylim(-5, 5)
+                    plt.ylim(-ylim, ylim)
                 else:
                     plt.ylim(-scale_lim, scale_lim)
 
@@ -1520,134 +1695,6 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
                     plt.title('Proposal' + ' group ' + cf.eg_dict[eg], y=1.01)
             plt.gcf().set_size_inches(xsize, ysize)
             plt.show()
-
-
-def parallel_old(dsa, dsb, dsc, dsd, eg_list, measure, month_list, job_levels,
-                 formatter, left='sa', a_stride=50, e_stride=30, w_stride=20,
-                 xsize=6, ysize=8):
-    '''Compare positional or value differences for various proposals
-    with a baseline position or value for selected months.
-
-    The vertical lines represent different proposed lists.
-    '''
-
-    group_dict = cf.eg_dict
-    color_dict = {1: 'black', 2: 'blue', 3: 'red'}
-
-    jobs = cf.job_strs
-
-    num_egplots = len(eg_list)
-    num_months = len(month_list)
-
-    fig, ax = plt.subplots(num_months, num_egplots)
-
-    fig = plt.gcf()
-    fig.set_size_inches(xsize * num_egplots, ysize * num_months)
-
-    plot_num = 0
-
-    for month in month_list:
-
-        ds1 = dsa[(dsa.mnum == month) & (dsa.fur == 0)][[measure]].copy()
-        ds2 = dsb[(dsb.mnum == month) & (dsb.fur == 0)][[measure]].copy()
-        ds3 = dsc[(dsc.mnum == month) & (dsc.fur == 0)][[measure]].copy()
-        ds4 = dsd[(dsd.mnum == month) & (dsd.fur == 0)][['eg', measure]].copy()
-
-        if left == 'sa':
-            df_joined = ds4.join(ds2, rsuffix=('_2')) \
-                .join(ds3, rsuffix=('_3')) \
-                .join(ds1, rsuffix=('_1'))
-
-            df_joined.columns = ['eg', 'StandAlone',
-                                 'List2', 'List3', 'List1']
-
-        if left == '1':
-            df_joined = ds1.join(ds4, lsuffix=('_1')) \
-                .join(ds2, rsuffix=('_2')) \
-                .join(ds3, rsuffix=('_3'))
-            df_joined.columns = ['List1', 'eg', 'StandAlone', 'List2', 'List3']
-
-        if left == '2':
-            df_joined = ds2.join(ds4, lsuffix=('_2')) \
-                .join(ds1, rsuffix=('_1')) \
-                .join(ds3, rsuffix=('_3'))
-            df_joined.columns = ['List2', 'eg', 'StandAlone', 'List1', 'List3']
-
-        if left == '3':
-            df_joined = ds3.join(ds4, lsuffix=('_3')) \
-                .join(ds1, rsuffix=('_1')) \
-                .join(ds2, rsuffix=('_2'))
-            df_joined.columns = ['List3', 'eg', 'StandAlone', 'List1', 'List2']
-
-        with sns.axes_style('whitegrid', {'axes.facecolor': '#f5f5dc',
-                                          'axes.axisbelow': True,
-                                          'axes.edgecolor': '.2',
-                                          'axes.linewidth': 1.0,
-                                          'grid.color': '.7',
-                                          'grid.linestyle': u'--'}):
-
-            if 1 in eg_list:
-                plot_num += 1
-                plt.subplot(num_months, num_egplots, plot_num)
-                df_1 = df_joined[df_joined.eg == 1]
-                df_1 = df_1[::a_stride]
-                parallel_coordinates(df_1, 'eg', lw=1.5, alpha=.7,
-                                     color=color_dict[1])
-
-                plt.title('Group ' + group_dict[1].upper() + ' ' +
-                          measure.upper() +
-                          ' ' + str(month) + ' mths', fontsize=16, y=1.02)
-
-            if 2 in eg_list:
-                plot_num += 1
-                plt.subplot(num_months, num_egplots, plot_num)
-                df_2 = df_joined[df_joined.eg == 2]
-                df_2 = df_2[::e_stride]
-                parallel_coordinates(df_2, 'eg', lw=1.5, alpha=.7,
-                                     color=color_dict[2])
-
-                plt.title('Group ' + group_dict[2].upper() + ' ' +
-                          measure.upper() +
-                          ' ' + str(month) + ' mths', fontsize=16, y=1.02)
-
-            if 3 in eg_list:
-                plot_num += 1
-                plt.subplot(num_months, num_egplots, plot_num)
-                df_3 = df_joined[df_joined.eg == 3]
-                df_3 = df_3[::w_stride]
-                parallel_coordinates(df_3, 'eg', lw=1.5, alpha=.7,
-                                     color=color_dict[3])
-
-                plt.title('Group ' + group_dict[3].upper() + ' ' +
-                          measure.upper() +
-                          ' ' + str(month) + ' mths', fontsize=16, y=1.02)
-
-    fig = plt.gcf()
-    for ax in fig.axes:
-
-        if measure in ['spcnt', 'lspcnt']:
-            ax.set_yticks(np.arange(1, 0, -.05))
-            ax.invert_yaxis()
-            ax.yaxis.set_major_formatter(formatter)
-
-        if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
-
-            ax.set_yticks(np.arange(0, job_levels + 2, 1))
-            ax.set_ylim(job_levels + .5, 0.5)
-            yticks = ax.get_yticks().tolist()
-
-            for i in np.arange(1, len(yticks)):
-                yticks[i] = jobs[i - 1]
-
-            ax.set_yticklabels(yticks, fontsize=12)
-
-        if measure in ['snum', 'lnum', 'cat_order']:
-            ax.invert_yaxis()
-        ax.grid()
-        ax.legend_.remove()
-
-    plt.tight_layout()
-    plt.show()
 
 
 def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
@@ -3114,6 +3161,8 @@ def build_subplotting_order(rows, cols):
 
 def emp_quick_glance(empkey, proposal, xsize=8, ysize=48, lw=4):
     '''view basic stats for selected employee and proposal
+
+    A separate chart is produced for each measure.
     '''
 
     one_emp = proposal[proposal.empkey == empkey].set_index('date')

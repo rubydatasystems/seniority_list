@@ -47,7 +47,7 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
     New columns added: ['age', 's_lmonths', 'jnum', 'job_count', 'rank_in_job',
     'jobp', 'eg_number', 'eg_spcnt']
 
-    input
+    inputs
 
         name_int_demo
             if True, lname strings are converted to an integer then a
@@ -157,7 +157,9 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
     The output is the resultant dataframe and also a list order is written to
     disk as 'dill/hybrid.pkl'.
 
-    input
+
+    inputs
+
         df
             the prepared dataframe output of the prepare_master_list function
 
@@ -329,7 +331,7 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
     '''convert a list of string names (i.e. last names) into integers
     for numerical sorting
 
-    input
+    inputs
 
         names
             List of strings for conversion to integers
