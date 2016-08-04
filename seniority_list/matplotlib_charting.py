@@ -2251,7 +2251,6 @@ def job_transfer(p_df, p_text, base_df, base_df_text, eg, colors,
         legend_font_size = 12
         legend_position = 1.12
         legend_title = 'job'
-
         for i in diff2.columns:
             recs.append(mpatches.Rectangle((0, 0), 1, 1,
                                            fc=colors[i - 1],
@@ -3734,3 +3733,147 @@ def single_emp_compare(emp, measure, ds_list, xax, formatter,
     plt.xlabel(xax.upper())
     plt.ylabel(measure.upper())
     plt.show()
+
+
+def job_time_change(base_df, compare_ds_list, eg_list,
+                    xax, colors=cf.job_colors,
+                    job_list=np.arange(cf.num_of_job_levels, 0, -1),
+                    marker='o', edgecolor='k', linewidth=.15, size=50,
+                    alpha=.95, bg_color=None, xmax=1.02,
+                    limit_yax=False, ylimit=40, zeroline_color='m',
+                    zeroline_width=1.5, pos_neg_face=True,
+                    legend_position=1.15, legend_marker_size=100,
+                    xsize=12, ysize=8):
+    '''Plots a scatter plot displaying monthly time in job
+    differential, by proposal and employee group.
+
+    inputs
+
+        base_df
+            baseline dataframe (dataset) for comparison
+        compare_ds_list
+            list of datasets to compare against the base_df
+        eg_list
+            list of integer employee codes to analyze
+        xax
+            list percentage attrubute, i.e. spcnt or lspcnt
+        colors
+            chart color for the job levels
+        job_list
+            list of integers representing job levels in model
+        marker
+            scatter chart matplotlib marker type
+        edgecolor
+            matplotlib marker edge color
+        linewidth
+            matplotlib marker edge line size
+        size
+            size of markers
+        alpha
+            marker alpha (transparency) value
+        bg_color
+            background color of chart if not None
+        xmax
+            high limit of chart x axis
+        limit_yax
+            if True, restrict plot y scale to this value
+            may be used to prevent outliers from exagerating chart scaling
+        ylimit
+            y axis limit if limit_yax is True
+        zeroline_color
+            color for zeroline on chart
+        zeroline_width
+            width of zeroline
+        pos_neg_face
+            if True, apply a light green tint to the chart area above the
+            zero line, and a light red tint below the line
+        legend_position
+            controls the horizontal position of the legend
+        legend_marker_size
+            adjusts the size of the legend markers
+        xsize, ysize
+            x and y size of each plot
+    '''
+
+    formatter = FuncFormatter(to_percent)
+    df_frames = od()
+    df_dict = od()
+    df_dict[0] = base_df.groupby(['empkey', 'jnum']).size().unstack().fillna(0)
+    i = 1
+    for df in compare_ds_list:
+        df_frames[i] = df[df.mnum == 0][[xax, 'eg']]
+        df_dict[i] = df.groupby(['empkey', 'jnum']).size().unstack().fillna(0)
+        i += 1
+
+    compare_keys = [x for x in list(df_dict.keys()) if x > 0]
+    diff_dict = od()
+    joined_dict = od()
+    for i in compare_keys:
+        diff_dict[i] = df_dict[i] - df_dict[0]
+        empty = df_frames[i][[]]
+        joined_dict[i] = empty.join(diff_dict[i])
+        joined_dict[i].sort_index(axis=1, inplace=True, ascending=False)
+        joined_dict[i] = joined_dict[i] \
+            .join(df_frames[i])
+        joined_dict[i] = joined_dict[i].replace(0, np.nan)
+
+    eg_count = len(eg_list)
+    diff_keys = list(joined_dict.keys())
+    diff_count = len(diff_keys)
+    fig, ax = plt.subplots(eg_count * diff_count, 1)
+    fig.set_size_inches(xsize, ysize * eg_count * diff_count)
+
+    plot_num = 0
+
+    for j in diff_keys:
+        for eg in eg_list:
+            plot_num += 1
+            ax = plt.subplot(eg_count * diff_count, 1, plot_num)
+            eg_df = joined_dict[j][joined_dict[j].eg == eg]
+            for i in job_list:
+                eg_df.plot(kind='scatter',
+                           x=xax,
+                           y=i,
+                           color=colors[i - 1],
+                           edgecolor=edgecolor,
+                           marker=marker,
+                           linewidth=linewidth,
+                           s=size,
+                           alpha=alpha,
+                           label=str(i),
+                           ax=ax)
+
+            plt.legend()
+
+            box = ax.get_position()
+            legend_title = 'job'
+            ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
+            lgnd = ax.legend(bbox_to_anchor=(legend_position, 1),
+                             title=legend_title, fontsize=12)
+            ax.get_legend().get_title().set_fontsize('16')
+            for mark in lgnd.legendHandles:
+                mark._sizes = [legend_marker_size]
+
+            plt.xlim(xmin=0, xmax=1.02)
+            plt.axhline(c=zeroline_color, lw=zeroline_width)
+
+            ax.xaxis.set_major_formatter(formatter)
+            ax.set_xticks(np.arange(0, 1.05, .05))
+
+            plt.tick_params(labelsize=13, labelright=True)
+            plt.ylabel('months differential', fontsize=16)
+            plt.xlabel('proposed list percentage', fontsize=16)
+            plt.title('Months in job differential, ' +
+                      'proposal ' + str(j) + ', group ' + str(eg), fontsize=20)
+            if limit_yax:
+                plt.ylim(-ylimit, ylimit)
+            if pos_neg_face:
+                ymin, ymax = ax.get_ylim()
+                plt.ylim(ymin, ymax)
+                plt.axhspan(0, ymax, facecolor='g', alpha=0.02, zorder=8)
+                plt.axhspan(0, ymin, facecolor='r', alpha=0.02, zorder=8)
+            if bg_color:
+                ax.set_axis_bgcolor(bg_color)
+            plt.grid(linestyle='dotted', lw=1.5)
+            ax.invert_xaxis()
+
