@@ -3798,28 +3798,38 @@ def job_time_change(base_df, compare_ds_list, eg_list,
     formatter = FuncFormatter(to_percent)
     df_frames = od()
     df_dict = od()
+    # sorts index by empkey, this is base df with key 0
     df_dict[0] = base_df.groupby(['empkey', 'jnum']).size().unstack().fillna(0)
     i = 1
     for df in compare_ds_list:
         df_frames[i] = df[df.mnum == 0][[xax, 'eg']]
+        # sorts index by empkey
         df_dict[i] = df.groupby(['empkey', 'jnum']).size().unstack().fillna(0)
         i += 1
 
+    # get keys for comparative dataframes (all but key 0)
     compare_keys = [x for x in list(df_dict.keys()) if x > 0]
     diff_dict = od()
     joined_dict = od()
     for i in compare_keys:
+        # create diff dataframes - all comparative dataframes minus base
         diff_dict[i] = df_dict[i] - df_dict[0]
+        # bring in index from original dataframes
         empty = df_frames[i][[]]
+        # auto-align (order) with index-only dataframes with join
         joined_dict[i] = empty.join(diff_dict[i])
+        # sort columns
         joined_dict[i].sort_index(axis=1, inplace=True, ascending=False)
+        # add xax and eg columns
         joined_dict[i] = joined_dict[i] \
             .join(df_frames[i])
+        # do not include employees with no change (0) in chart
         joined_dict[i] = joined_dict[i].replace(0, np.nan)
 
     eg_count = len(eg_list)
     diff_keys = list(joined_dict.keys())
     diff_count = len(diff_keys)
+    # set up subplot count
     fig, ax = plt.subplots(eg_count * diff_count, 1)
     fig.set_size_inches(xsize, ysize * eg_count * diff_count)
 
@@ -3827,8 +3837,10 @@ def job_time_change(base_df, compare_ds_list, eg_list,
 
     for j in diff_keys:
         for eg in eg_list:
+            # increment plot number
             plot_num += 1
             ax = plt.subplot(eg_count * diff_count, 1, plot_num)
+            # filter for eg
             eg_df = joined_dict[j][joined_dict[j].eg == eg]
             for i in job_list:
                 eg_df.plot(kind='scatter',
@@ -3851,6 +3863,7 @@ def job_time_change(base_df, compare_ds_list, eg_list,
             lgnd = ax.legend(bbox_to_anchor=(legend_position, 1),
                              title=legend_title, fontsize=12)
             ax.get_legend().get_title().set_fontsize('16')
+            # set legend marker size
             for mark in lgnd.legendHandles:
                 mark._sizes = [legend_marker_size]
 
