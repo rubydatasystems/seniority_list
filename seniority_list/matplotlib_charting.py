@@ -3738,11 +3738,13 @@ def single_emp_compare(emp, measure, ds_list, xax, formatter,
 def job_time_change(base_df, compare_ds_list, eg_list,
                     xax, colors=cf.job_colors,
                     job_list=np.arange(cf.num_of_job_levels, 0, -1),
+                    jobs_dict=cf.jobs_dict,
                     marker='o', edgecolor='k', linewidth=.15, size=50,
                     alpha=.95, bg_color=None, xmax=1.02,
                     limit_yax=False, ylimit=40, zeroline_color='m',
                     zeroline_width=1.5, pos_neg_face=True,
-                    legend_position=1.15, legend_marker_size=100,
+                    legend_job_strings=True,
+                    legend_position=1.18, legend_marker_size=130,
                     xsize=12, ysize=8):
     '''Plots a scatter plot displaying monthly time in job
     differential, by proposal and employee group.
@@ -3761,6 +3763,8 @@ def job_time_change(base_df, compare_ds_list, eg_list,
             chart color for the job levels
         job_list
             list of integers representing job levels in model
+            (a descending list will plot best jobs last, or on
+            top of other jobs on chart)
         marker
             scatter chart matplotlib marker type
         edgecolor
@@ -3787,6 +3791,8 @@ def job_time_change(base_df, compare_ds_list, eg_list,
         pos_neg_face
             if True, apply a light green tint to the chart area above the
             zero line, and a light red tint below the line
+        legend_job_strings
+            if True, use job description strings in legend vs. job numbers
         legend_position
             controls the horizontal position of the legend
         legend_marker_size
@@ -3834,6 +3840,8 @@ def job_time_change(base_df, compare_ds_list, eg_list,
     fig.set_size_inches(xsize, ysize * eg_count * diff_count)
 
     plot_num = 0
+    if legend_job_strings:
+        legend_position = legend_position + .05
 
     for j in diff_keys:
         for eg in eg_list:
@@ -3855,14 +3863,30 @@ def job_time_change(base_df, compare_ds_list, eg_list,
                            label=str(i),
                            ax=ax)
 
-            plt.legend()
-
+            handles, labels = ax.get_legend_handles_labels()
+            # sort both labels and handles by labels (converted to int)
+            # from lowest job number(best) to highest (worst) for
+            # for legend
+            handles, labels = zip(*sorted(zip(handles, labels),
+                                  key=lambda x: int(x[1])))
+            # use job string descriptions in legend vs. job numbers
+            if legend_job_strings:
+                label_strs = []
+                for label in labels:
+                    label_strs.append(jobs_dict[int(label)])
+                    labels = label_strs
+            # move legend off of chart face to right
             box = ax.get_position()
             legend_title = 'job'
             ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
-            lgnd = ax.legend(bbox_to_anchor=(legend_position, 1),
+            # use sorted labels and handlers as legend input
+            # and position legend
+            lgnd = ax.legend(handles, labels,
+                             bbox_to_anchor=(legend_position, 1),
                              title=legend_title, fontsize=12)
-            ax.get_legend().get_title().set_fontsize('16')
+
+            lgnd.get_title().set_fontsize('16')
+
             # set legend marker size
             for mark in lgnd.legendHandles:
                 mark._sizes = [legend_marker_size]
