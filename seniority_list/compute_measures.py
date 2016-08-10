@@ -17,9 +17,6 @@ pre, suf = 'dill/', '.pkl'
 
 skeleton_path_string = (pre + 'skel' + suf)
 
-if cf.edit_mode:
-    proposal_name = 'new_order'
-
 proposal_order_string = (pre + proposal_name + suf)
 stand_path_string = (pre + 'stand' + suf)
 
@@ -70,7 +67,7 @@ jcnts_arr = f.make_jcnts(eg_counts)
 # the idx (order) column from the proposed list or the
 # new_order column from an edited list to the skeleton
 
-if cf.edit_mode:
+if 'edit' in conditions:
     df_new_order = pd.read_pickle(proposal_order_string)
     ds['new_order'] = df_new_order['new_order']
     dataset_path_string = (pre + 'ds_edit' + suf)
@@ -78,8 +75,8 @@ else:
     order_key = df_order.idx
     ds['new_order'] = order_key
     dataset_path_string = (pre + output_name + suf)
-# sort the skeleton by month and proposed list order
 
+# sort the skeleton by month and proposed list order
 ds.sort_values(['mnum', 'new_order'], inplace=True)
 
 # ORIG_JOB*

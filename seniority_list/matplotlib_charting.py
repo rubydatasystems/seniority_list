@@ -2299,21 +2299,21 @@ def job_transfer(p_df, p_text, base_df, base_df_text, eg, colors,
         plt.show()
 
 
-def editor(base_ds, compare_ds_text, prop_order=True,
+def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
            mean_len=80,
            dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
            width=17.5, height=10, strip_height=3.5, bright_bg=True,
-           chart_style='whitegrid', bg_clr='#fffff0', show_grid=True):
+           chart_style='whitegrid', bg_clr='white', show_grid=True):
     '''compare specific proposal attributes and interactively adjust
     list order.  may be used to minimize distortions.  utilizes ipywidgets.
 
     inputs
 
         base_ds
-            baseline dataset
+            baseline dataset string name
 
-        compare_ds_text
-            string representation of comparison dataset variable
+        compare_ds
+            comparison dataset string name
 
         prop_order
             order the output differential chart x axis in proposal
@@ -2360,10 +2360,20 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     '''
 
     try:
-        # assert len(base_ds) == len(eval(compare_ds_text))
-        compare_ds = pd.read_pickle('dill/' + compare_ds_text + '.pkl')
+        compare_ds = pd.read_pickle('dill/' + compare_ds + '.pkl')
     except:
-        compare_ds = pd.read_pickle('dill/ds1.pkl')
+        try:
+            compare_ds = pd.read_pickle('dill/ds_edit.pkl')
+            print('invalid "compare_ds" name input, using ds_edit.pkl')
+        except:
+            compare_ds = pd.read_pickle('dill/ds1.pkl')
+            print('invalid "compare_ds" name input, using ds1.pkl')
+
+    try:
+        base_ds = pd.read_pickle('dill/' + base_ds + '.pkl')
+    except:
+        base_ds = pd.read_pickle('dill/stand.pkl')
+        print('invalid "base_ds" name input, using stand.pkl')
 
     max_month = max(compare_ds.mnum)
     persist = pd.read_pickle('dill/squeeze_vals.pkl')
@@ -2450,7 +2460,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     eg_sep_order = np.array(df.eg_sep_order)
     eg_arr = np.array(df.eg)
     eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
-    eg_set = pd.unique(df.eg)
+    eg_set = sorted(list(pd.unique(df.eg)))
     max_eg_plus_one = max(eg_set) + 1
     denoms = np.zeros(eg_arr.size)
 
@@ -2467,9 +2477,9 @@ def editor(base_ds, compare_ds_text, prop_order=True,
     else:
         df[yval] = df[measure + '_c'] - df[measure + '_b']
 
-    fig, ax = plt.subplots(figsize=(width, height))
-
     with sns.axes_style(chart_style):
+
+        fig, ax = plt.subplots(figsize=(width, height))
 
         df.sort_values(by='proposal_order', inplace=True)
 
@@ -2521,7 +2531,12 @@ def editor(base_ds, compare_ds_text, prop_order=True,
                 plt.ylim(-scale_lim, scale_lim)
 
         plt.gcf().set_size_inches(width, height)
-        plt.title('Differential: ' + measure)
+        plt.tick_params(labelsize=13)
+
+        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label]):
+            item.set_fontsize(15)
+
+        plt.title('Differential: ' + measure, fontsize=16)
         plt.xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
@@ -2533,6 +2548,7 @@ def editor(base_ds, compare_ds_text, prop_order=True,
 
         ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
         ax.invert_xaxis()
+        ax.legend(markerscale=1.5, fontsize=14)
         if bright_bg:
             # ax.set_axis_bgcolor('#faf6eb')
             ax.set_axis_bgcolor(bg_clr)
@@ -2666,7 +2682,8 @@ def editor(base_ds, compare_ds_text, prop_order=True,
             persist_df.to_pickle('dill/squeeze_vals.pkl')
 
         def run_cell(ev):
-            system('python compute_measures.py p1')
+            # 'new_order' is simply a placeholder here
+            system('python compute_measures.py new_order edit')
             display(Javascript('IPython.notebook.execute_cell()'))
 
         def redraw(ev):
@@ -2708,21 +2725,29 @@ def reset_editor():
     '''reset widget selections to default.
     (for use when invalid input is selected resulting in an exception)
     '''
+    def reset(x):
+        init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark',
+                                        'spcnt', 'log',
+                                         False, '==', '1',
+                                         5000, False, True,
+                                         1000, 100, '>=', 0]],
+                                        columns=['drop_dir_val', 'drop_eg_val',
+                                                 'drop_filter', 'drop_msr',
+                                                 'drop_sq_val', 'fit_val',
+                                                 'drop_opr',
+                                                 'int_sel', 'junior',
+                                                 'mean_val',
+                                                 'scat_val', 'senior',
+                                                 'slide_fac_val',
+                                                 'mnum_opr', 'int_mnum'],
+                                        index=['value'])
 
-    init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark', 'spcnt', 'log',
-                                    False, '==', '1', 5000, False, True,
-                                    1000, 100, '>=', 0]],
-                                    columns=['drop_dir_val', 'drop_eg_val',
-                                             'drop_filter', 'drop_msr',
-                                             'drop_sq_val', 'fit_val',
-                                             'drop_opr',
-                                             'int_sel', 'junior', 'mean_val',
-                                             'scat_val', 'senior',
-                                             'slide_fac_val',
-                                             'mnum_opr', 'int_mnum'],
-                                    index=['value'])
+        init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
 
-    init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
+    button_reset = Button(description='reset editor',
+                          background_color='#80ffff', width='120px')
+    button_reset.on_click(reset)
+    display(button_reset)
 
 
 def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,

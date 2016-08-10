@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''Build list orderings from master list data as a starting point for
@@ -38,8 +39,9 @@ import warnings
 
 
 def prepare_master_list(name_int_demo=False, pre_sort=True):
-    '''Add attribute columns to master list which can be used as factors
-    to construct a list ordering.
+    '''Add attribute columns to a master list.  One or more of these columns
+    will be used by the build_list function to construct
+    a "hybrid" list ordering.
 
     Employee groups must be listed in seniority order in relation to employees
     from the same group.  Order between groups is uninmportant at this step.
@@ -516,7 +518,10 @@ def compare_dataframes(base, compare, return_orphans=True,
     and common columns.  The routine will report the common columns and
     any unique index rows when the print_info option is selected (True).
 
-    Inputs are pandas dataframes and/or pandas series
+    Inputs are pandas dataframes and/or pandas series.
+
+    This function works well when comparing initial data lists, such as
+    those which may be received from opposing parties.
 
     inputs
 

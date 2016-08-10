@@ -12,8 +12,6 @@ this_module = 'case_files.' + case_study
 
 enhanced_jobs = True
 
-edit_mode = False
-
 # ********************************************************************
 # This impport must come after any variable assignment that is used by the
 # case-specific modules...

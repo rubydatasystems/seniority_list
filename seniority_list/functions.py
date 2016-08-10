@@ -414,7 +414,7 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr, eg_arr,
     return result_jobs_arr.astype(int)
 
 
-# MAKE AMER_STOVEPIPE_JOBS_WITH_SUP_C
+# MAKE AMER_STOVEPIPE_JOBS_WITH_PRE=EXISTING CONDITION
 # (Stovepipe with internal condition stovepiped, SHORT_FORM)
 def make_amer_stovepipe_short_prex(job_list, sg_codes,
                                    sg_rights, fur_codes):
@@ -485,7 +485,7 @@ def make_amer_stovepipe_short_prex(job_list, sg_codes,
     return o_job.astype(int)
 
 
-# MAKE AMER_STOVEPIPE_JOBS_WITH_SUP_C
+# MAKE AMER_STOVEPIPE_JOBS_WITH_PRE-EXISTING CONDITION
 # (Stovepipe with internal condition stovepiped, LONG_FORM)
 def make_amer_standalone_long_prex(lower, upper,
                                    df_align,
@@ -3100,7 +3100,6 @@ def print_config_selections():
                    'discount_longev_for_fur': cf.discount_longev_for_fur,
                    'lspcnt_calc_on_remaining_population':
                    cf.lspcnt_calc_on_remaining_population,
-                   'edit_mode': cf.edit_mode,
                    'enhanced_jobs': cf.enhanced_jobs,
                    'starting_date': cf.starting_date,
                    'delayed_implementation': cf.delayed_implementation,
