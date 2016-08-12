@@ -510,7 +510,8 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                     .set_index(xax)[measure].plot(label=emp)
             i += 1
 
-    if measure in ['snum', 'spcnt', 'lspcnt', 'jnum', 'jobp', 'fbff']:
+    if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
+                   'lnum', 'jobp', 'fbff', 'cat_order']:
         ax.invert_yaxis()
     if measure in ['lspcnt', 'spcnt']:
         ax.yaxis.set_major_formatter(formatter)
@@ -614,7 +615,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                    'lspcnt', 'rank_in_job', 'cat_order']:
         ax.invert_yaxis()
     if measure in ['spcnt', 'lspcnt']:
-        fig.yaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(formatter)
         plt.yticks = (np.arange(0, 1.05, .05))
     if xax in ['spcnt', 'lspcnt']:
         ax.xaxis.set_major_formatter(formatter)
@@ -720,7 +721,7 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
     if measure == 'mpay':
         frame = frame[frame.age < cf.ret_age]
 
-    sns.violinplot(frame.eg, frame[measure],
+    sns.violinplot(x=frame.eg, y=frame[measure],
                    cut=0, scale=scale, inner='box',
                    bw=.1, linewidth=linewidth,
                    palette=['gray', '#3399ff', '#ff8000'])
@@ -2404,14 +2405,15 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
     int_val = widgets.Text(min=0,
                            max=max_month,
                            value=persist['int_sel'].value,
-                           description='value')
+                           description='value', width='150px')
 
     mnum_operator = widgets.Dropdown(options=['<', '<=',
                                               '==', '>=', '>'],
                                      value=persist['mnum_opr'].value,
                                      description='mnum')
+
     mnum_input = widgets.Dropdown(options=list(np.arange(0, max_month)
-                                               .astype(int)),
+                                               .astype(str)),
                                   value=persist['int_mnum'].value,
                                   description='value')
 
@@ -2428,7 +2430,7 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
                       filter_operator +
                       filter_val +
                       ') & (base_ds.mnum' +
-                      mnum_oper + str(mnum_val) +
+                      mnum_oper + mnum_val +
                       ')')][[measure, 'eg']].copy()
 
     df.rename(columns={measure: measure + '_b'}, inplace=True)
@@ -2446,7 +2448,7 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
                                  filter_val +
                                  ') & (compare_ds.mnum' +
                                  mnum_oper +
-                                 str(mnum_val) +
+                                 mnum_val +
                                  ')')][cols].copy()
 
     to_join_ds.rename(columns={measure: measure + '_c',
@@ -2550,7 +2552,6 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
         ax.invert_xaxis()
         ax.legend(markerscale=1.5, fontsize=14)
         if bright_bg:
-            # ax.set_axis_bgcolor('#faf6eb')
             ax.set_axis_bgcolor(bg_clr)
         if show_grid:
             ax.grid(lw=1, ls='-', c='grey', alpha=.25)
@@ -2596,7 +2597,9 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
                                          min=1,
                                          max=400,
                                          step=1,
-                                         description='sqz force')
+                                         description='squeeze force / slide',
+                                         margin='15px',
+                                         width='600px')
 
         def set_cursor(junior=junior_init, senior=senior_init,):
             v1line.set_xdata((junior, junior))
@@ -2635,7 +2638,8 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
             data_reorder['new_order'] = np.arange(len(data_reorder),
                                                   dtype='int')
 
-            fig, ax2 = plt.subplots(figsize=(width, strip_height))
+            with sns.axes_style(chart_style):
+                fig, ax2 = plt.subplots(figsize=(width, strip_height))
 
             ax2 = sns.stripplot(x='new_order', y='eg',
                                 data=data_reorder, jitter=.5,
@@ -2645,8 +2649,11 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
                                 palette=cf.eg_colors, size=3,
                                 linewidth=0, split=True)
 
+            for item in ([ax2.xaxis.label, ax2.yaxis.label] +
+                         ax2.get_xticklabels() + ax2.get_yticklabels()):
+                item.set_fontsize(12)
+
             if bright_bg:
-                # ax2.set_axis_bgcolor('#fff5e5')
                 ax2.set_axis_bgcolor(bg_clr)
 
             plt.xticks(np.arange(0, len(data_reorder), 1000))
@@ -2691,26 +2698,31 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
             display(Javascript('IPython.notebook.execute_cell()'))
 
         button_calc = Button(description="calculate",
-                             background_color='#80ffff', width='80px')
+                             background_color='#80ffff', width='80px',
+                             margin='15px')
         button_calc.on_click(run_cell)
 
         button_plot = Button(description="plot",
-                             background_color='#dab3ff', width='80px')
+                             background_color='#dab3ff', width='80px',
+                             margin='15px')
         button_plot.on_click(redraw)
 
         if prop_order:
             range_sel = interactive(set_cursor, junior=(0, x_limit),
-                                    senior=(0, x_limit), width='800px')
+                                    senior=(0, x_limit), width='600px')
         else:
             range_sel = interactive(set_cursor, junior=(0, 1, .001),
-                                    senior=(0, 1, .001))
+                                    senior=(0, 1, .001), width='600px')
 
         button = Button(description='squeeze',
-                        background_color='#b3ffd9', width='80px')
+                        background_color='#b3ffd9', width='80px',
+                        margin='15px')
         button.on_click(perform_squeeze)
 
-        hbox1 = widgets.HBox((range_sel, button, button_calc,
-                              button_plot, slide_factor))
+        hbox8 = widgets.HBox((button, button_calc,
+                              button_plot))
+        hbox1 = widgets.HBox((range_sel, hbox8))
+
         vbox1 = widgets.VBox((chk_scatter, chk_fit, chk_mean))
         vbox2 = widgets.VBox((drop_squeeze, drop_eg, drop_dir))
         vbox3 = widgets.VBox((drop_measure,
@@ -2718,7 +2730,7 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
         vbox4 = widgets.VBox((drop_filter,
                               drop_operator, int_val))
         hbox2 = widgets.HBox((vbox1, vbox2, vbox3, vbox4))
-        display(widgets.VBox((hbox2, hbox1)))
+        display(widgets.VBox((slide_factor, hbox2, hbox1)))
 
 
 def reset_editor():
@@ -2730,7 +2742,7 @@ def reset_editor():
                                         'spcnt', 'log',
                                          False, '==', '1',
                                          5000, False, True,
-                                         1000, 100, '>=', 0]],
+                                         1000, 100, '>=', '0']],
                                         columns=['drop_dir_val', 'drop_eg_val',
                                                  'drop_filter', 'drop_msr',
                                                  'drop_sq_val', 'fit_val',
@@ -2745,7 +2757,7 @@ def reset_editor():
         init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
 
     button_reset = Button(description='reset editor',
-                          background_color='#80ffff', width='120px')
+                          background_color='#ffff99', width='120px')
     button_reset.on_click(reset)
     display(button_reset)
 
@@ -3236,8 +3248,8 @@ def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
                                proposal, proposal_dict, eg_dict, color_list,
                                style='bar', plot_differential=True,
                                custom_color=False, cm_name='Dark2', start=0.0,
-                               stop=1.0, flip_x=False, flip_y=False,
-                               rotate=False, gain_loss_bg=False, bg_alpha=.05,
+                               stop=1.0, flip_x=True, flip_y=False,
+                               rotate=True, gain_loss_bg=False, bg_alpha=.05,
                                normalize_yr_scale=False, year_clip=30,
                                xsize=8, ysize=6):
     '''stacked bar or area chart presenting the time spent in the various
@@ -3306,7 +3318,7 @@ def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
     # ds_sel_cols = ds_sel_cols[(ds_sel_cols.doh > '1989-07-01')]
     egs = sorted(list(set(ds_sel_cols.eg)))
     legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
-    ytick_fontsize = (np.clip(int(ysize * 1.55), 9, 14))
+    tick_fontsize = (np.clip(int(ysize * 1.55), 9, 14))
 
     for eg in egs:
 
@@ -3478,7 +3490,7 @@ def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
                       fontsize=legend_font_size)
             # plt.yticks(fontsize=14)
             # plt.yticks(fontsize=ytick_fontsize)
-            plt.tick_params(axis='y', labelsize=ytick_fontsize)
+            plt.tick_params(labelsize=tick_fontsize)
             fig = plt.gcf()
             fig.set_size_inches(xsize, ysize)
             plt.show()
@@ -3499,6 +3511,8 @@ def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
                               stacked=True, color=colors)
 
                 ax = plt.gca()
+                if not flip_x:
+                    ax.invert_xaxis()
 
                 if rotate:
                     plt.xlabel('years')
@@ -3550,7 +3564,7 @@ def quartile_yrs_in_pos_single(prop_ds, sa_ds, job_levels, num_bins,
                           str(num_bins) + '-quantiles',
                           y=1.02)
                 # plt.yticks(fontsize=ytick_fontsize)
-                plt.tick_params(axis='y', labelsize=ytick_fontsize)
+                plt.tick_params(labelsize=tick_fontsize)
                 fig = plt.gcf()
                 fig.set_size_inches(xsize, ysize)
 plt.show()
@@ -3901,9 +3915,7 @@ def job_time_change(base_df, compare_ds_list, eg_list,
                     label_strs.append(jobs_dict[int(label)])
                     labels = label_strs
             # move legend off of chart face to right
-            box = ax.get_position()
             legend_title = 'job'
-            ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
             # use sorted labels and handlers as legend input
             # and position legend
             lgnd = ax.legend(handles, labels,
@@ -3939,3 +3951,232 @@ def job_time_change(base_df, compare_ds_list, eg_list,
             plt.grid(linestyle='dotted', lw=1.5)
             ax.invert_xaxis()
 
+
+# EMPLOYEE_GROUP_ATTRIBUTE_AVERAGE_AND_MEDIAN
+def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
+                             measure, job_levels, job_dict, proposal_dict,
+                             attr1=None,
+                             oper1='>=', val1='0',
+                             attr2=None,
+                             oper2='>=', val2='0',
+                             attr3=None,
+                             oper3='>=', val3='0',
+                             plot_median=False, plot_average=True,
+                             compare_to_dfb=True,
+                             use_filtered_results=True,
+                             max_date=None, chart_style='whitegrid'):
+    '''Plot group average and/or median for a selected attribute over time
+    for compare and/or base datasets.  Standalone data may be used as compare
+    or baseline data.
+
+    Results may be further filtered/sliced by up to 3 constraints,
+    such as age, longevity, or job level.
+
+    This function can plot basic data such as average list percentage or could,
+    for example, plot the average job category rank for employees hired prior
+    to a certain date who are over or under a certain age, for a selected
+    integrated dataset and/or standalone data (or for two integrated datasets).
+
+    inputs
+        dfa
+            main dataset for analysis
+        dfa_text
+            text name of proposal dataset (i.e. ds1 would be 'ds1')
+        dfb
+            secondary dataset to plot (likely use standalone dataset here for
+            comparison, but may plot and compare any dataset)
+        eg_list
+            list of integers representing the employee groups to analyze
+            (i.e. [1, 2])
+        colors
+            list of colors for plotting, normally cf.eg_colors
+        measure
+            attribute (column) to compare, such as 'spcnt' or 'jobp'
+        job_levels
+            number of job levels in the model, normally cf.num_of_job_levels
+        job_dict
+            dictionary of integer job codes to string description.
+            normally cf.jobs_dict
+        proposal_dict
+            dictionary of proposal string name to string decription.
+            normally cf.proposal_dict
+        attr1
+            filter attribute or dataset column as string
+        oper1
+            operator (i.e. <, >, ==, etc.) for attr1 as string
+        val1
+            attr1 limiting value (combined with oper1) as string
+        attr2, attr3, oper2, oper3, val2, val3
+            additional filters, same as attr1, oper1, and val1 above.
+        plot_meadian
+            plot the median of the measure for each employee group
+        plot_average
+            plot the average(mean) of the measure for each employee group
+        compare_to_dfb
+            plot average dfb[measure] data as dashed line.
+            (likely show standalone data with dfb, or reverse and show
+            standalone as primary and integrated as dfb)
+        use_filtered_results
+            if True, use the same employees from the filtered proposal list.
+            For example, if the dfa list is filtered by age only, the
+            dfb list could be filtered by the same age and return the
+            same employees.  However, if the dfa list is filtered by
+            an attribute which diverges from the dfb measurements for
+            the same attribute, a different set of employees could be returned.
+            This option ensures that the same group of employees from both the
+            dfa (filtered first) list and the dfb list are compared.
+        max_date
+            maximum chart date.  If set to 'None', the maximum chart date will
+            be the maximum date within the list data.
+        chart_style
+            option to specify alternate seaborn chart style
+    '''
+    # helper function to provide proper input for eval statements
+    def numeric_test(value):
+        try:
+            float(value)
+            return True
+        except:
+            return False
+
+    if max_date:
+        dfa = dfa[dfa.date <= max_date]
+        dfb = dfb[dfb.date <= max_date]
+
+    title_string = ''
+
+    if attr1:
+        title_string = title_string + attr1 + ' ' + oper1 + ' ' + val1
+        if not numeric_test(val1):
+            val1_text = "'" + val1 + "'"
+        else:
+            val1_text = val1
+        try:
+            # slice proposal dataset according to attr1 inputs
+            dfa = dfa[eval('dfa[attr1]' + oper1 + val1_text)]
+        except:
+            print('''attr1 filter error - filter ignored
+                  ensure filter inputs are strings''')
+    if attr2:
+        title_string = title_string + ', ' + attr2 + ' ' + oper2 + ' ' + val2
+        if not numeric_test(val2):
+            val2_text = "'" + val2 + "'"
+        else:
+            val2_text = val2
+        try:
+            dfa = dfa[eval('dfa[attr2]' + oper2 + val2_text)]
+        except:
+            print('''attr2 filter error - filter ignored
+                  ensure filter inputs are strings''')
+    if attr3:
+        title_string = title_string + ', ' + attr3 + ' ' + oper3 + ' ' + val3
+        if not numeric_test(val3):
+            val3_text = "'" + val3 + "'"
+        else:
+            val3_text = val3
+        try:
+            dfa = dfa[eval('dfa[attr3]' + oper3 + val3_text)]
+        except:
+            print('''attr3 filter error - filter ignored
+                  ensure filter inputs are strings''')
+
+    if measure == 'mpay':
+        # eliminate variable employee last month partial pay
+        dfa = dfa[dfa.ret_mark == 0]
+
+    with sns.axes_style(chart_style):
+        fig, ax = plt.subplots()
+
+    for eg in eg_list:
+        # for each employee group, group by date and plot avg/median of measure
+        if plot_average:
+            dfa[dfa.eg == eg].groupby('date')[measure] \
+                .mean().plot(color=colors[eg - 1], lw=3,
+                             ax=ax, label='g' + cf.eg_dict[eg] + ' dfa_avg')
+        if plot_median:
+            dfa[dfa.eg == eg].groupby('date')[measure] \
+                .median().plot(color=colors[eg - 1],
+                               ax=ax, lw=1,
+                               label='g' + cf.eg_dict[eg] + ' dfa_median')
+
+    if compare_to_dfb:
+
+        if use_filtered_results:
+
+            title_string = title_string + \
+                '  (dfb employees match dfa filtered group)'
+            # perform join to grab same employees as filtered proposal list
+            dfb = dfa.set_index(['mnum', 'empkey'],
+                                verify_integrity=False)[['date', 'eg']] \
+                .join(dfb.set_index(['mnum', 'empkey'],
+                                    verify_integrity=False)[measure])
+
+        else:
+            # if join above not needed...
+            title_string = title_string + \
+                '  (dfb employees independently filtered)'
+            if attr1:
+                try:
+                    dfb = dfb[eval('dfb[attr1]' + oper1 + val1)]
+                except:
+                    print('''attr1 filter error dfb- filter ignored
+                          ensure filter inputs are strings''')
+            if attr2:
+                try:
+                    dfb = dfb[eval('dfb[attr2]' + oper2 + val2)]
+                except:
+                    print('''attr2 filter error dfb- filter ignored
+                          ensure filter inputs are strings''')
+            if attr3:
+                try:
+                    dfb = dfb[eval('dfb[attr3]' + oper3 + val3)]
+                except:
+                    print('''attr3 filter error dfb- filter ignored
+                          ensure filter inputs are strings''')
+
+            if measure == 'mpay':
+                dfb = dfb[dfb.ret_mark == 0]
+
+        for eg in eg_list:
+            dfb[dfb.eg == eg].groupby('date')[measure]\
+                .mean().plot(label='g' + cf.eg_dict[eg] + ' dfb_avg',
+                             color=colors[eg - 1],
+                             ls='dashed',
+                             lw=2,
+                             alpha=.5,
+                             ax=ax)
+
+        # snippit below for no label with plots...
+        # label='_nolabel_',
+
+    if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
+                   'lnum', 'jobp', 'fbff', 'cat_order']:
+        ax.invert_yaxis()
+
+    if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
+
+        ax.set_yticks(np.arange(0, job_levels + 2, 1))
+        yticks = ax.get_yticks().tolist()
+
+        for i in np.arange(1, len(yticks)):
+            yticks[i] = job_dict[i]
+        plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.9)
+        ax.set_yticklabels(yticks)
+        plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
+        plt.ylim(job_levels + 1.5, 0.5)
+
+    if cf.delayed_implementation:
+        # plot vertical line at implementation date
+        plt.axvline(cf.imp_date, c='m', alpha=1, lw=1,
+                    label='implementation date', zorder=1)
+
+    plt.suptitle(proposal_dict[dfa_text] +
+                 ' - average ' + measure, fontsize=16)
+    plt.title(title_string, y=1.02, fontsize=14)
+    handles, labels = ax.get_legend_handles_labels()
+    # move legend off of chart face to right
+    ax.legend(handles, labels,
+              bbox_to_anchor=(1.3, .8),
+              fontsize=14)
+
+    plt.show()
