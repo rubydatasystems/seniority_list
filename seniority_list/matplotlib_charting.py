@@ -1139,6 +1139,7 @@ def job_level_progression(ds, emp_list, through_date,
                           job_change_lists=cf.j_changes,
                           alpha=.12,
                           max_plots_for_legend=5,
+                          xsize=12, ysize=8,
                           chart_example=False):
     '''show employee(s) career progression through job levels regardless of
     actual positioning within integrated seniority list.
@@ -1314,7 +1315,7 @@ def job_level_progression(ds, emp_list, through_date,
 
     ax1.xaxis.grid(True)
     ax1.set_axisbelow(True)
-
+    plt.gcf().set_size_inches(xsize, ysize)
     plt.show()
 
 
@@ -3953,7 +3954,7 @@ def job_time_change(base_df, compare_ds_list, eg_list,
 
 
 # EMPLOYEE_GROUP_ATTRIBUTE_AVERAGE_AND_MEDIAN
-def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
+def group_average_and_median(dfa, dfa_text, dfb, dfb_text, eg_list, colors,
                              measure, job_levels, job_dict, proposal_dict,
                              attr1=None,
                              oper1='>=', val1='0',
@@ -3964,7 +3965,9 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
                              plot_median=False, plot_average=True,
                              compare_to_dfb=True,
                              use_filtered_results=True,
-                             max_date=None, chart_style='whitegrid'):
+                             max_date=None, chart_style='whitegrid',
+                             legend_horizontal_position=1.4,
+                             xsize=12, ysize=8,):
     '''Plot group average and/or median for a selected attribute over time
     for compare and/or base datasets.  Standalone data may be used as compare
     or baseline data.
@@ -4043,6 +4046,17 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
         dfa = dfa[dfa.date <= max_date]
         dfb = dfb[dfb.date <= max_date]
 
+    if plot_average:
+        if plot_median:
+            plot_string = ' avg/median '
+        else:
+            plot_string = ' average '
+    elif plot_median:
+            plot_string = ' median '
+    else:
+        plot_string = ' <set plot_average or plot_median to True> '
+
+    suptitle_string = ''
     title_string = ''
 
     if attr1:
@@ -4093,13 +4107,16 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
             if plot_average:
                 dfa[dfa.eg == eg].groupby('date')[measure] \
                     .mean().plot(color=colors[eg - 1], lw=3,
-                                 ax=ax, label='g' + cf.eg_dict[eg] +
-                                 ' dfa_avg')
+                                 ax=ax, label=proposal_dict[dfa_text] +
+                                 ', ' +
+                                 'grp' + cf.eg_dict[eg] + ' avg')
             if plot_median:
                 dfa[dfa.eg == eg].groupby('date')[measure] \
                     .median().plot(color=colors[eg - 1],
                                    ax=ax, lw=1,
-                                   label='g' + cf.eg_dict[eg] + ' dfa_median')
+                                   label=proposal_dict[dfa_text] +
+                                   ', ' +
+                                   'grp' + cf.eg_dict[eg] + ' median')
         except:
             print('invalid or missing data - dfa, group ' + str(eg))
 
@@ -4148,7 +4165,10 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
             try:
                 if plot_average:
                     dfb[dfb.eg == eg].groupby('date')[measure]\
-                        .mean().plot(label='g' + cf.eg_dict[eg] + ' dfb_avg',
+                        .mean().plot(label=proposal_dict[dfb_text] +
+                                     ', ' +
+                                     'grp' + cf.eg_dict[eg] +
+                                     ' avg',
                                      color=colors[eg - 1],
                                      ls='dashed',
                                      lw=2.5,
@@ -4156,8 +4176,10 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
                                      ax=ax)
                 if plot_median:
                     dfb[dfb.eg == eg].groupby('date')[measure]\
-                        .median().plot(label='g' + cf.eg_dict[eg] +
-                                       ' dfb_median',
+                        .median().plot(label=proposal_dict[dfb_text] +
+                                       ', ' +
+                                       'grp' + cf.eg_dict[eg] +
+                                       ' median',
                                        color=colors[eg - 1],
                                        ls='dotted',
                                        lw=2.5,
@@ -4190,13 +4212,21 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
         plt.axvline(cf.imp_date, c='#33cc00', ls='dashed', alpha=1, lw=1,
                     label='implementation date', zorder=1)
 
-    plt.suptitle(proposal_dict[dfa_text] +
-                 ' - average ' + measure, fontsize=16)
+    if compare_to_dfb:
+        suptitle_string = (proposal_dict[dfa_text] +
+                           plot_string.upper() + measure.upper() +
+                           ' vs. ' + proposal_dict[dfb_text])
+    else:
+        suptitle_string = (proposal_dict[dfa_text] +
+                           plot_string.upper() + measure.upper())
+
+    plt.suptitle(suptitle_string, fontsize=16)
     plt.title(title_string, y=1.02, fontsize=14)
     handles, labels = ax.get_legend_handles_labels()
     # move legend off of chart face to right
     ax.legend(handles, labels,
-              bbox_to_anchor=(1.3, .8),
+              bbox_to_anchor=(legend_horizontal_position, .8),
               fontsize=14)
+    plt.gcf().set_size_inches(xsize, ysize)
 
     plt.show()
