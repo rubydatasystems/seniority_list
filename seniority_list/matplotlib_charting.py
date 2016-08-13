@@ -4089,15 +4089,19 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
 
     for eg in eg_list:
         # for each employee group, group by date and plot avg/median of measure
-        if plot_average:
-            dfa[dfa.eg == eg].groupby('date')[measure] \
-                .mean().plot(color=colors[eg - 1], lw=3,
-                             ax=ax, label='g' + cf.eg_dict[eg] + ' dfa_avg')
-        if plot_median:
-            dfa[dfa.eg == eg].groupby('date')[measure] \
-                .median().plot(color=colors[eg - 1],
-                               ax=ax, lw=1,
-                               label='g' + cf.eg_dict[eg] + ' dfa_median')
+        try:
+            if plot_average:
+                dfa[dfa.eg == eg].groupby('date')[measure] \
+                    .mean().plot(color=colors[eg - 1], lw=3,
+                                 ax=ax, label='g' + cf.eg_dict[eg] +
+                                 ' dfa_avg')
+            if plot_median:
+                dfa[dfa.eg == eg].groupby('date')[measure] \
+                    .median().plot(color=colors[eg - 1],
+                                   ax=ax, lw=1,
+                                   label='g' + cf.eg_dict[eg] + ' dfa_median')
+        except:
+            print('invalid or missing data - dfa, group ' + str(eg))
 
     if compare_to_dfb:
 
@@ -4106,10 +4110,13 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
             title_string = title_string + \
                 '  (dfb employees match dfa filtered group)'
             # perform join to grab same employees as filtered proposal list
-            dfb = dfa.set_index(['mnum', 'empkey'],
-                                verify_integrity=False)[['date', 'eg']] \
-                .join(dfb.set_index(['mnum', 'empkey'],
-                                    verify_integrity=False)[measure])
+            try:
+                dfb = dfa.set_index(['mnum', 'empkey'],
+                                    verify_integrity=False)[['date', 'eg']] \
+                    .join(dfb.set_index(['mnum', 'empkey'],
+                                        verify_integrity=False)[measure])
+            except:
+                print('dfb data not found')
 
         else:
             # if join above not needed...
@@ -4138,13 +4145,26 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
                 dfb = dfb[dfb.ret_mark == 0]
 
         for eg in eg_list:
-            dfb[dfb.eg == eg].groupby('date')[measure]\
-                .mean().plot(label='g' + cf.eg_dict[eg] + ' dfb_avg',
-                             color=colors[eg - 1],
-                             ls='dashed',
-                             lw=2,
-                             alpha=.5,
-                             ax=ax)
+            try:
+                if plot_average:
+                    dfb[dfb.eg == eg].groupby('date')[measure]\
+                        .mean().plot(label='g' + cf.eg_dict[eg] + ' dfb_avg',
+                                     color=colors[eg - 1],
+                                     ls='dashed',
+                                     lw=2.5,
+                                     alpha=.5,
+                                     ax=ax)
+                if plot_median:
+                    dfb[dfb.eg == eg].groupby('date')[measure]\
+                        .median().plot(label='g' + cf.eg_dict[eg] +
+                                       ' dfb_median',
+                                       color=colors[eg - 1],
+                                       ls='dotted',
+                                       lw=2.5,
+                                       alpha=.5,
+                                       ax=ax)
+            except:
+                print('invalid or missing data - dfb, group ' + str(eg))
 
         # snippit below for no label with plots...
         # label='_nolabel_',
@@ -4167,7 +4187,7 @@ def group_average_and_median(dfa, dfa_text, dfb, eg_list, colors,
 
     if cf.delayed_implementation:
         # plot vertical line at implementation date
-        plt.axvline(cf.imp_date, c='m', alpha=1, lw=1,
+        plt.axvline(cf.imp_date, c='#33cc00', ls='dashed', alpha=1, lw=1,
                     label='implementation date', zorder=1)
 
     plt.suptitle(proposal_dict[dfa_text] +
