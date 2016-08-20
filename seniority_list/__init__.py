@@ -17,5 +17,5 @@ You should have received a copy of the GNU General Public License along with
 the seniority_list library. If not, see http://www.gnu.org/licenses/.
 """
 
-from ._version import __version__
-from .seniority_list import seniority_list, main
+from _version import __version__
+# from .seniority_list import seniority_list, main

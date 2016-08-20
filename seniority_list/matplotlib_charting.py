@@ -1139,7 +1139,7 @@ def job_level_progression(ds, emp_list, through_date,
                           job_change_lists=cf.j_changes,
                           alpha=.12,
                           max_plots_for_legend=5,
-                          xsize=12, ysize=8,
+                          xsize=12, ysize=10,
                           chart_example=False):
     '''show employee(s) career progression through job levels regardless of
     actual positioning within integrated seniority list.
@@ -2301,7 +2301,8 @@ def job_transfer(p_df, p_text, base_df, base_df_text, eg, colors,
         plt.show()
 
 
-def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
+def editor(base_ds='stand', compare_ds='ds_edit', cond_list=None,
+           prop_order=True,
            mean_len=80,
            dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
            width=17.5, height=10, strip_height=3.5, bright_bg=True,
@@ -2316,6 +2317,9 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
 
         compare_ds
             comparison dataset string name
+
+        cond_list
+            conditions to apply when calculating dataset
 
         prop_order
             order the output differential chart x axis in proposal
@@ -2691,7 +2695,12 @@ def editor(base_ds='stand', compare_ds='ds_edit', prop_order=True,
 
         def run_cell(ev):
             # 'new_order' is simply a placeholder here
-            system('python compute_measures.py new_order edit')
+            cmd = 'python compute_measures.py new_order edit'
+            if cond_list:
+                for cond in cond_list:
+                    cmd = cmd + ' ' + cond
+            # run compute_measures script with conditions
+            system(cmd)
             display(Javascript('IPython.notebook.execute_cell()'))
 
         def redraw(ev):
@@ -3965,6 +3974,7 @@ def group_average_and_median(dfa, dfa_text, dfb, dfb_text, eg_list, colors,
                              plot_median=False, plot_average=True,
                              compare_to_dfb=True,
                              use_filtered_results=True,
+                             job_labels=True,
                              max_date=None, chart_style='whitegrid',
                              legend_horizontal_position=1.4,
                              xsize=12, ysize=8,):
@@ -4196,16 +4206,20 @@ def group_average_and_median(dfa, dfa_text, dfb, dfb_text, eg_list, colors,
         ax.invert_yaxis()
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
+        if job_labels:
 
-        ax.set_yticks(np.arange(0, job_levels + 2, 1))
-        yticks = ax.get_yticks().tolist()
+            ax.set_yticks(np.arange(0, job_levels + 2, 1))
+            yticks = ax.get_yticks().tolist()
 
-        for i in np.arange(1, len(yticks)):
-            yticks[i] = job_dict[i]
-        plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.9)
-        ax.set_yticklabels(yticks)
-        plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
-        plt.ylim(job_levels + 1.5, 0.5)
+            for i in np.arange(1, len(yticks)):
+                yticks[i] = job_dict[i]
+            plt.axhspan(job_levels + 1, job_levels + 2,
+                        facecolor='.8', alpha=0.9)
+            ax.set_yticklabels(yticks)
+            plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
+            plt.ylim(job_levels + 1.5, 0.5)
+        else:
+            plt.ylim(ymax=0)
 
     if cf.delayed_implementation:
         # plot vertical line at implementation date
@@ -4230,3 +4244,21 @@ def group_average_and_median(dfa, dfa_text, dfb, dfb_text, eg_list, colors,
     plt.gcf().set_size_inches(xsize, ysize)
 
     plt.show()
+
+
+def stripplot_eg_density(df, mnum, eg_colors, bg_color='white',
+                         xsize=5, ysize=10):
+
+    mnum_p = df[df.mnum == mnum][['eg', 'new_order']].copy()
+    min_eg = min(np.unique(mnum_p.eg))
+    max_eg = max(np.unique(mnum_p.eg))
+    with sns.axes_style("whitegrid"):
+        ax = sns.stripplot(y='new_order', x='eg', data=mnum_p, jitter=.5,
+                           order=np.arange(min_eg, max_eg + 1),
+                           palette=eg_colors, size=3, linewidth=0, split=True)
+        ax.set_axis_bgcolor(bg_color)
+    fig = plt.gcf()
+    fig.set_size_inches(xsize, ysize)
+    plt.ylim(len(mnum_p), 0)
+    plt.show()
+

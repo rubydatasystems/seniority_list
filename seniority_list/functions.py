@@ -907,11 +907,16 @@ def assign_jobs_nbnf_job_changes(df,
         job_reduction_months
             months in which the number of jobs is decreased (list).
             from the get_job_reduction_months function
+        start_month
+            integer representing the month number of integration when
+            there exists a delayed integration (from config file)
         proposal_name_text
             text of proposal file name without the extension.
             This should be the command line input 'input_proposal'
             if file name of proposal is df3.pkl, proposal_name_text = 'df3'
-
+        cond_list
+            list of special job assignment conditions to apply,
+            example: ['prex', 'count', 'ratio']
         furlough_return option -
             allows call to function XXX TODO...
 
@@ -1068,7 +1073,7 @@ def assign_jobs_nbnf_job_changes(df,
                                         (fur_range == 0))[0][:sg_jobs_avail],
                                job)
 
-                # **AMR GRP4 condition**
+                # **ratio condition**
                 if 'ratio' in condition_list:
                     # TODO refactor cond_dict below so it only runs once...
                     # instead of 8 or 16 times...
@@ -1094,7 +1099,7 @@ def assign_jobs_nbnf_job_changes(df,
 
                         # assign_cond_ratio(cond.create_vars(d))
 
-                # **EAST GRP4 condition**
+                # **count condition**
                 if 'count' in condition_list:
 
                     if month in count_month_range and job in count_jobs:
