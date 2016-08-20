@@ -1649,10 +1649,11 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
                 grpby = df_eg.groupby(['date', 'jnum']) \
                     .size().unstack().fillna(0).astype(int)
                 df = grpby.resample(time_group).sum()
+
                 if time_group == 'A':
-                    df = round(df / denom, 3)
+                    df = (df / denom).round(decimals=3)
                 if time_group == 'Q':
-                    df = round(df / .25 * denom, 3)
+                    df = (df / (.25 * denom)).round(decimals=3)
                 ylbl = 'percent of sep list'
 
             else:
