@@ -1843,16 +1843,69 @@ def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
     plt.show()
 
 
-def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
-                  jnum_colors, cols=200,
+def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
+                  jnum_colors, cols=200, eg_list=None,
                   job_only=False, jnum=1, cell_border=True,
                   eg_border_color='.3', job_border_color='.8',
+                  chart_style='ticks',
                   xsize=14, ysize=12, chart_example=False):
-    '''currently will plot egs, fur, jnums, sg
-    TODO: modify to plot additional measures, including graduated coloring
+    '''plot a heatmap with the color of each rectangle representing an
+    employee group or a job level.
+
+    This chart will show a position snapshot indicating the distribution of
+    employees within the entire population, employees holding a certain job,
+    or a combination of the two.
+
+    For example, all employees holding a certain job in month 36 may be plotted
+    with original group delineated by color.  Or, all employees from one group
+    may be shown with the different jobs for that group displayed with
+    different colors.
+
+    inputs
+
+        prop_text
+            text (string) representation of dataset,
+            for example: 'ds1'
+        prop
+            the dataset to be analyzed
+        mnum
+            month number of dataset to analyze
+        measure_list
+            list form input, 'categorical' only such as employee group number
+            or job number, such as ['jnum'], or ['eg']
+            ['eg', 'fur'] is also valid when highlighting furloughees
+        eg_colors
+            colors to use for plotting the employee groups.
+            the first color in the list is used for the plot 'background'
+            and is not an employee group color
+        jnum_colors
+            job level plotting colors, list form
+        cols
+            number of columns to construct for the heatmap plot
+        eg_list
+            employee group integer code list (if used), example: [1, 2]
+        job_only
+            if True, plot only employees holding the job level identified
+            with the jnum input
+        jnum
+            job level distribution to plot if job_only input is True
+        cell_border
+            if True, show a border around the heatmap cells
+        eg_border_color
+            color of cell border if measure_list includes 'eg' (employee group)
+        job_border_color
+            color of cell border when plotting job information
+        chart_style
+            underlying chart style, any valid seaborn chart style (string)
+        xsize, ysize
+            size of chart
+        chart_example
+            if True, produce a chart without case-specific
+            labels (generic example)
     '''
 
     data = prop[prop.mnum == mnum]
+
     rows = int(len(prop[prop.mnum == 0]) / cols) + 1
     heat_data = np.zeros(cols * rows)
 
@@ -1865,11 +1918,14 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
 
     if ('jnum' in measure_list) and (not job_only):
         i = 0
-        cmap_colors = jnum_colors
+        plot_colors = jnum_colors
+    else:
+        plot_colors = eg_colors
+
+    eg = np.array(data.eg)
 
     if job_only:
 
-        eg = np.array(data.eg)
         jnums = np.array(data.jnum)
 
         for eg_num in pd.unique(eg):
@@ -1909,37 +1965,90 @@ def rows_of_color(prop_text, prop, mnum, measure_list, cmap_colors,
                     measure = np.array(data[measure])
                     np.put(heat_data, np.where(measure == 1)[0], i)
                     i += 1
+
         if chart_example:
             title = 'Proposal 1' + ': month ' + str(mnum)
         else:
             title = cf.proposal_dict[prop_text] + ': month ' + str(mnum)
 
+    if eg_list:
+        np.put(heat_data,
+               np.where(np.in1d(eg, np.array(eg_list), invert=True))[0],
+               np.nan)
+
     heat_data = heat_data.reshape(rows, cols)
 
-    cmap = colors.ListedColormap(cmap_colors)
+    cmap = colors.ListedColormap(plot_colors,
+                                 name='chart_cmap',
+                                 N=len(plot_colors))
 
-    with sns.axes_style('ticks'):
+    with sns.axes_style(chart_style):
 
         if cell_border:
-            sns.heatmap(heat_data, vmin=0, vmax=len(cmap_colors),
-                        cbar=False, annot=False,
-                        cmap=cmap, linewidths=0.005, linecolor=border_color)
+            ax = sns.heatmap(heat_data, vmin=0, vmax=len(plot_colors),
+                             cbar=False, annot=False,
+                             cmap=cmap,
+                             linewidths=0.005,
+                             linecolor=border_color)
         else:
-            sns.heatmap(heat_data, vmin=0, vmax=len(cmap_colors),
-                        cbar=False, annot=False,
-                        cmap=cmap)
+            ax = sns.heatmap(heat_data, vmin=0, vmax=len(plot_colors),
+                             cbar=False, annot=False,
+                             cmap=cmap)
 
         plt.gcf().set_size_inches(xsize, ysize)
         plt.xticks([])
-        plt.tick_params(axis='y', labelsize=max(6, (min(12, ysize - 3))))
+        plt.tick_params(axis='y', labelsize=max(9, (min(12, ysize - 3))))
         plt.ylabel(str(cols) + ' per row',
                    fontsize=max(12, min(ysize + 1, 18)))
         plt.title(title, fontsize=18, y=1.01)
-        plt.gca().spines['top'].set_visible(True)
-        plt.gca().spines['bottom'].set_visible(True)
-        plt.gca().spines['left'].set_visible(True)
-        plt.gca().spines['right'].set_visible(True)
-        plt.show()
+        ax.spines['top'].set_visible(True)
+        ax.spines['bottom'].set_visible(True)
+        ax.spines['left'].set_visible(True)
+        ax.spines['right'].set_visible(True)
+
+    if (measure_list == ['jnum'] or measure_list == ['eg']):
+
+        heat_data = heat_data.reshape(rows * cols)
+
+        if measure_list == ['jnum'] and not job_only:
+            clrs = plot_colors[:]
+            label_dict = cf.jobs_dict
+            heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
+                .astype(int) + 1
+            heat_unique = heat_unique[heat_unique > 0]
+
+        if measure_list == ['jnum'] and job_only:
+            clrs = plot_colors[1:]
+            label_dict = cf.eg_dict_verbose
+            if eg_list:
+                heat_unique = np.unique(np.array(eg_list)).astype(int)
+            else:
+                heat_unique = np.unique(eg).astype(int)
+
+        if measure_list == ['eg']:
+            clrs = plot_colors[1:]
+            label_dict = cf.eg_dict_verbose
+            heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
+                .astype(int)
+            heat_unique = heat_unique[heat_unique > 0]
+
+        print(heat_unique)
+        print(pd.unique(heat_data))
+        recs = []
+        legend_labels = []
+
+        for i in heat_unique:
+
+            recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                        fc=clrs[i - 1],
+                        alpha=1))
+            legend_labels.append(label_dict[i])
+
+        ax.legend(recs, legend_labels,
+                  bbox_to_anchor=(1.2, 0.9),
+                  fontsize=14)
+
+    plt.show()
 
 
 def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
@@ -1949,7 +2058,66 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
                              quartile_alpha=.75, grid_alpha=.5,
                              custom_start=0, custom_finish=.75,
                              xsize=10, ysize=8, alt_bg_color=False,
-                             bg_color='#faf6eb'):
+                             bg_color='#faf6eb', legend_xadj=0):
+    '''Visualize quartile distribution for an employee group over time
+    for a selected proposal.
+
+    This chart answers the question of where the different employee groups
+    will be positioned within the seniority list for future months and years.
+
+    Note:  this is not a comparative study.  It is simply a presentation of
+    resultant percentage positioning.
+
+    The chart contains a background grid for reference and may display
+    quartiles as integers or percentages, using a bar or area type display,
+    and includes several chart color options.
+
+    inputs
+        df
+            dataframe(dataset) to examine
+        eg
+            employee group number
+        measure
+            a list percentage input, either 'spcnt' or 'lspcnt'
+        formatter
+            percentage formatter for y axis
+        bins
+            number of quartiles to calculate and display
+        clip
+            if True, limit the chart x axis to year_clip value
+        year_clip
+            integer, maximum year to display on chart (requires 'clip'
+            input to be True)
+        kind
+            type of chart display, either 'area' or 'bar'
+        quartile_ticks
+            if True, display integers along y axis and in legend representing
+            quartiles.  Otherwise, present percentages.
+        custom_color
+            If True, use a matplotlib colormap for chart colors
+        cm_name
+            colormap name (string), example: 'Set1'
+        quartile_alpha
+            alpha (opacity setting) value for quartile plot
+        grid_alpha
+            opacity setting for background grid
+        custom_start
+            custom colormap start level
+            (a section of a standard colormap may be used to create
+            a custom color mapping)
+        custom_finish
+            custom colormap finish level
+        xsize, ysize
+            chart size inputs
+        alt_bg_color
+            if True, set the background chart color to the bg_color input value
+        bg_color
+            color for chart background if 'alt_bg_color' is True (string)
+        legend_xadj
+            (float) small float number (try .2 to start) for use when the
+            legend overlaps the chart.  Moves the legend to the right.
+
+    '''
 
     if custom_color:
         cm_subsection = np.linspace(custom_start, custom_finish, bins)
@@ -2083,15 +2251,16 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
         patch_alpha = min(quartile_alpha + .1, 1)
         legend_font_size = np.clip(int(bins / 1.65), 12, 14)
         legend_cols = int(bins / 30) + 1
-        legend_position = 1 + (legend_cols * .17) + legend_pos_adj
+        legend_position = 1 + (legend_cols * .17) + \
+            legend_pos_adj + legend_xadj
 
         for i in np.arange(bins, dtype='int'):
             recs.append(mpatches.Rectangle((0, 0), 1, 1,
                                            fc=quartile_colors[i],
                                            alpha=patch_alpha))
 
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
+        # box = ax.get_position()
+        # ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
         ax.legend(recs, legend_labels, bbox_to_anchor=(legend_position, 1),
                   title=legend_title, fontsize=legend_font_size,
                   ncol=legend_cols)
