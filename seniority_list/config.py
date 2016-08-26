@@ -112,8 +112,6 @@ lin_reg_colors = case.lin_reg_colors
 lin_reg_colors2 = case.lin_reg_colors2
 mean_colors = case.mean_colors
 
-row_colors = case.row_colors
-
 white_grey = case.white_grey
 
 color1 = case.color1

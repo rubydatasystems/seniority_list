@@ -1844,13 +1844,14 @@ def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
 
 
 def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
-                  jnum_colors, cols=200, eg_list=None,
+                  jnum_colors, cols=150, eg_list=None,
                   job_only=False, jnum=1, cell_border=True,
                   eg_border_color='.3', job_border_color='.8',
-                  chart_style='ticks',
+                  chart_style='whitegrid',
+                  fur_color='.5', empty_color='#ffffff',
                   xsize=14, ysize=12, chart_example=False):
     '''plot a heatmap with the color of each rectangle representing an
-    employee group or a job level.
+    employee group, job level, or status.
 
     This chart will show a position snapshot indicating the distribution of
     employees within the entire population, employees holding a certain job,
@@ -1860,6 +1861,11 @@ def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
     with original group delineated by color.  Or, all employees from one group
     may be shown with the different jobs for that group displayed with
     different colors.
+
+    Also will display any other category such as a special group such as
+    furloughed employees.  Input dataframe must have a numerical representation
+    of the selected measure, i.e. furloughed indicated by a 1, and others with
+    a 0.
 
     inputs
 
@@ -1897,6 +1903,10 @@ def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
             color of cell border when plotting job information
         chart_style
             underlying chart style, any valid seaborn chart style (string)
+        fur_color
+            cell color for furloughed employees
+        empty_color
+            cell color for cells with no data
         xsize, ysize
             size of chart
         chart_example
@@ -1909,26 +1919,28 @@ def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
     rows = int(len(prop[prop.mnum == 0]) / cols) + 1
     heat_data = np.zeros(cols * rows)
 
-    if job_only:
+    if job_only or measure_list == ['fur']:
         border_color = job_border_color
     else:
         border_color = eg_border_color
 
-    i = 1
-
     if ('jnum' in measure_list) and (not job_only):
-        i = 0
-        plot_colors = jnum_colors
+        plot_colors = jnum_colors[:]
     else:
-        plot_colors = eg_colors
+        plot_colors = eg_colors[:]
+
+    plot_colors.append(fur_color)
+    plot_colors.insert(0, empty_color)
+    fur_integer = len(plot_colors) - 1
 
     eg = np.array(data.eg)
+    egs = pd.unique(eg)
 
     if job_only:
 
         jnums = np.array(data.jnum)
 
-        for eg_num in pd.unique(eg):
+        for eg_num in egs:
             np.put(heat_data, np.where(eg == eg_num)[0], eg_num)
         np.put(heat_data, np.where(jnums != jnum)[0], 0)
         # if jnum input is not in the list of available job numbers:
@@ -1949,22 +1961,20 @@ def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
             if measure in ['eg', 'jnum']:
 
                 measure = np.array(data[measure])
-
                 for val in pd.unique(measure):
-                    np.put(heat_data, np.where(measure == val)[0], i)
-                    i += 1
+                    np.put(heat_data, np.where(measure == val)[0], val)
 
             else:
 
                 if measure == 'fur':
                     measure = np.array(data[measure])
                     np.put(heat_data, np.where(measure == 1)[0],
-                           len(cf.row_colors))
+                           fur_integer)
 
                 else:
                     measure = np.array(data[measure])
-                    np.put(heat_data, np.where(measure == 1)[0], i)
-                    i += 1
+                    for v in pd.unique(measure):
+                        np.put(heat_data, np.where(measure == v)[0], v)
 
         if chart_example:
             title = 'Proposal 1' + ': month ' + str(mnum)
@@ -2006,47 +2016,62 @@ def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
         ax.spines['left'].set_visible(True)
         ax.spines['right'].set_visible(True)
 
-    if (measure_list == ['jnum'] or measure_list == ['eg']):
+    heat_data = heat_data.reshape(rows * cols)
 
-        heat_data = heat_data.reshape(rows * cols)
+    recs = []
+    legend_labels = []
 
-        if measure_list == ['jnum'] and not job_only:
-            clrs = plot_colors[:]
-            label_dict = cf.jobs_dict
-            heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
-                .astype(int) + 1
-            heat_unique = heat_unique[heat_unique > 0]
+    if 'jnum' in measure_list:
 
-        if measure_list == ['jnum'] and job_only:
-            clrs = plot_colors[1:]
+        if job_only:
+
             label_dict = cf.eg_dict_verbose
             if eg_list:
                 heat_unique = np.unique(np.array(eg_list)).astype(int)
             else:
                 heat_unique = np.unique(eg).astype(int)
 
-        if measure_list == ['eg']:
-            clrs = plot_colors[1:]
-            label_dict = cf.eg_dict_verbose
+        if not job_only:
+
+            label_dict = cf.jobs_dict
             heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
                 .astype(int)
-            heat_unique = heat_unique[heat_unique > 0]
 
-        # print(heat_unique)
-        # print(pd.unique(heat_data))
-        recs = []
-        legend_labels = []
+    if 'eg' in measure_list:
 
-        for i in heat_unique:
+        label_dict = cf.eg_dict_verbose.copy()
+        label_dict[max(egs) + 1] = 'FUR'
+        heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
+            .astype(int)
+        heat_unique = heat_unique[heat_unique > 0]
 
-            recs.append(mpatches.Rectangle((0, 0), 1, 1,
-                        fc=clrs[i - 1],
-                        alpha=1))
-            legend_labels.append(label_dict[i])
+    if measure_list == ['fur']:
+        label_dict = {max(egs) + 1: 'FUR'}
+        heat_unique = np.unique(heat_data[~np.isnan(heat_data)]).astype(int)
 
-        ax.legend(recs, legend_labels,
-                  bbox_to_anchor=(1.2, 0.9),
-                  fontsize=14)
+    try:
+        heat_unique
+    except:
+        heat_unique = np.unique(heat_data[~np.isnan(heat_data)]).astype(int)
+        label_dict = {}
+        for item in heat_unique:
+            label_dict[item] = 'value ' + str(item)
+    else:
+        pass
+
+    for cat in heat_unique:
+        if cat > 0:
+            try:
+                recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                            fc=plot_colors[cat],
+                            alpha=1))
+                legend_labels.append(label_dict[cat])
+            except:
+                pass
+
+    ax.legend(recs, legend_labels,
+              bbox_to_anchor=(1.2, 0.9),
+              fontsize=14)
 
     plt.show()
 
