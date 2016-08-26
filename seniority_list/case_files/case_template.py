@@ -96,7 +96,7 @@ from collections import OrderedDict as od
 
 # # CONDITION DATA
 # if enhanced_jobs:
-#     # sg supc award (all reserve...)  TODO - make function
+#     # sg (special group) pre-existing condition
 #     # sequence = [eg, jnum, count, start_month, end_month]
 #     eg1_sg5 = [1, 5, 43, 0, 67]
 #     eg1_sg6 = [1, 6, 130, 0, 67]
@@ -226,8 +226,7 @@ from collections import OrderedDict as od
 #         [0.82, 0.67, 0.71, 1.0],
 #         [0.6, 0.47, 0.72, 1.0],
 #         [0.5, 0.35, 0.6, 1.0],
-#         [0.9, 0.87, 0.6, 1.0],
-#         [0.4, 0.4, 0.4, 1.0]]
+#         [0.9, 0.87, 0.6, 1.0]]
 
 # else:  # basic 8-level chart colors
 
@@ -249,16 +248,12 @@ from collections import OrderedDict as od
 #                   [0.97, 0.53, 0.53, 1.],
 #                   [0.9, 0.21, 0.16, 1.],
 #                   [0.99, 0.79, 0.49, 1.],
-#                   [0.94, 0.54, 0.2, 1.],
-#                   [0.4, 0.4, 0.4, 1.]]
+#                   [0.94, 0.54, 0.2, 1.]]
 
-# eg_colors = ["#505050", "#0081ff", "#ff6600", '#CC00FF']
+# eg_colors = ['#505050', '#0081ff', '#ff6600']
 # lin_reg_colors = ['#00b300', '#0086b3', '#cc5200']
 # lin_reg_colors2 = ['grey', '#0086b3', '#cc5200']
 # mean_colors = ['#4d4d4d', '#3399ff', '#ff8000']
-
-# row_colors = ['#ffffe6', '#404040', '#3399ff', '#ff8000', '#00cc44',
-#               '#b800e6', '#ff0000', '#996633', '#ff99ff']
 
 # # alternate white, grey
 # white_grey = ['#999999', '#ffffff', '#999999', '#ffffff', '#999999',

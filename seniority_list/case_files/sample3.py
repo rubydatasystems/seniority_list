@@ -94,7 +94,7 @@ recalls = [recall_1, recall_2]
 
 # CONDITION DATA
 if enhanced_jobs:
-    # sg supc award (all reserve...)  TODO - make function
+    # sg prex award (all reserve...)  TODO - make function
     # sequence = [eg, jnum, count, start_month, end_month]
     eg1_sg5 = [1, 5, 43, 0, 67]
     eg1_sg6 = [1, 6, 130, 0, 67]
@@ -132,7 +132,7 @@ if enhanced_jobs:
 
 else:
 
-    # sg supc award (all reserve...)
+    # sg prex award (all reserve...)
     # sequence = [eg, jnum, count, start_month, end_month]
     eg1_sg2 = [1, 2, 43, 0, 67]
     eg1_sg3 = [1, 3, 130, 0, 67]
@@ -157,8 +157,8 @@ else:
 eg_dict = {1: '1', 2: '2', 3: '3', 4: 'sa'}
 eg_dict_verbose = {1: 'Group 1', 2: 'Group 2', 3: 'Group 3',
                    4: 'Standalone'}
-proposal_dict = {'ds1': 'Group 1 PROPOSAL', 'ds2': 'Group 2 PROPOSAL',
-                 'ds3': 'Group 3 PROPOSAL', 'ds4': 'Standalone Data'}
+proposal_dict = {'ds1': 'Group 1 Proposal', 'ds2': 'Group 2 Proposal',
+                 'ds3': 'Group 3 Proposal', 'ds4': 'Standalone Data'}
 
 # detailed job labels...
 if enhanced_jobs:
@@ -222,8 +222,7 @@ if enhanced_jobs:  # enhanced job level chart colors (16)
         [0.82, 0.67, 0.71, 1.0],
         [0.6, 0.47, 0.72, 1.0],
         [0.5, 0.35, 0.6, 1.0],
-        [0.9, 0.87, 0.6, 1.0],
-        [0.4, 0.4, 0.4, 1.0]]
+        [0.9, 0.87, 0.6, 1.0]]
 
 else:  # basic 8-level chart colors
 
@@ -245,16 +244,13 @@ else:  # basic 8-level chart colors
                   [0.97, 0.53, 0.53, 1.],
                   [0.9, 0.21, 0.16, 1.],
                   [0.99, 0.79, 0.49, 1.],
-                  [0.94, 0.54, 0.2, 1.],
-                  [0.4, 0.4, 0.4, 1.]]
+                  [0.94, 0.54, 0.2, 1.]]
 
-eg_colors = ["#505050", "#0081ff", "#ff6600", '#CC00FF']
+eg_colors = ['#505050', '#0081ff', '#ff6600']
+
 lin_reg_colors = ['#00b300', '#0086b3', '#cc5200']
 lin_reg_colors2 = ['grey', '#0086b3', '#cc5200']
 mean_colors = ['#4d4d4d', '#3399ff', '#ff8000']
-
-row_colors = ['#ffffe6', '#404040', '#3399ff', '#ff8000', '#00cc44',
-              '#b800e6', '#ff0000', '#996633', '#ff99ff']
 
 # alternate white, grey
 white_grey = ['#999999', '#ffffff', '#999999', '#ffffff', '#999999',
