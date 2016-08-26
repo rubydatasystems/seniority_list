@@ -41,6 +41,7 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                                job_str_list,
                                proposal, proposal_dict, eg_dict, color_list,
                                style='bar', plot_differential=True,
+                               fur_color='#404040',
                                custom_color=False, cm_name='Dark2', start=0.0,
                                stop=1.0, flip_x=False, flip_y=False,
                                rotate=False, gain_loss_bg=False, bg_alpha=.05,
@@ -122,6 +123,9 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
         ds_sel_cols = prop_ds[['mnum', 'eg', 'jnum', 'empkey',
                                'new_order', 'doh', 'retdate']].copy()
         plot_differential = False
+
+    # add color for furloughed employees...
+    color_list.append(fur_color)
 
     mnum0 = ds_sel_cols[ds_sel_cols.mnum == 0][[]]
     mnum0['order'] = np.arange(len(mnum0)) + 1
@@ -3898,7 +3902,8 @@ def cond_test(d, opt_sel, plot_all_jobs=False, max_mnum=110,
 
 def single_emp_compare(emp, measure, ds_list, xax, formatter,
                        job_strs, eg_colors, eg_dict,
-                       job_levels, chart_example=False):
+                       job_levels, standalone_color='#ff00ff',
+                       chart_example=False):
 
     '''Select a single employee and compare proposal outcome using various
     calculated measures.
@@ -3936,6 +3941,8 @@ def single_emp_compare(emp, measure, ds_list, xax, formatter,
         chart_example
             option to select anonomized results for display purposes
     '''
+    eg_colors.append(standalone_color)
+
     if chart_example:
         for i in range(0, len(ds_list)):
             label = 'proposal ' + str(i + 1)
