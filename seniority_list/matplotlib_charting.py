@@ -2032,8 +2032,8 @@ def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
                 .astype(int)
             heat_unique = heat_unique[heat_unique > 0]
 
-        print(heat_unique)
-        print(pd.unique(heat_data))
+        # print(heat_unique)
+        # print(pd.unique(heat_data))
         recs = []
         legend_labels = []
 
@@ -2534,7 +2534,6 @@ def editor(base_ds='stand', compare_ds='ds_edit', cond_list=None,
             color input for bright_bg option
 
     '''
-
     try:
         compare_ds = pd.read_pickle('dill/' + compare_ds + '.pkl')
     except:
@@ -2772,7 +2771,7 @@ def editor(base_ds='stand', compare_ds='ds_edit', cond_list=None,
                                          min=1,
                                          max=400,
                                          step=1,
-                                         description='squeeze force / slide',
+                                         description='squeeze',
                                          margin='15px',
                                          width='600px')
 

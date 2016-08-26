@@ -13,7 +13,7 @@ this_module = 'case_files.' + case_study
 enhanced_jobs = True
 
 # ********************************************************************
-# This impport must come after any variable assignment that is used by the
+# This import must come after any variable assignment that is used by the
 # case-specific modules...
 case = importlib.import_module(this_module)
 # ********************************************************************

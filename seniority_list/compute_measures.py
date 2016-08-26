@@ -14,8 +14,6 @@ from sys import argv
 
 script, proposal_name, *conditions = argv
 
-print(conditions)
-
 pre, suf = 'dill/', '.pkl'
 
 skeleton_path_string = (pre + 'skel' + suf)
