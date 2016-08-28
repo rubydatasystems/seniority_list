@@ -134,8 +134,9 @@ if cf.compute_pay_measures:
         f.contract_pay_year_and_raise(date_series,
                                       exception=True,
                                       future_raise=cf.pay_raise,
-                                      date_exception='2014-12-31',
-                                      year_additive=.1,
+                                      date_exception_start='2014-12-31',
+                                      date_exception_end='2013-12-31',
+                                      exception_year=1950,
                                       annual_raise=cf.annual_pcnt_raise,
                                       last_contract_year=2019.0)
 

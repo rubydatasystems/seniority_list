@@ -2,34 +2,74 @@
 
 import importlib
 
+# OK to adjust variables within area marked by asterisks:
+# *****************************************************************************
+enhanced_jobs = True
+case_study = 'sample3'
+# *****************************************************************************
+
+
+# Do not change this code within area marked by hyphens:
+# -----------------------------------------------------------------------------
+# This import must come after any variable assignment that is imported
+# by the case-specific modules...(i.e. 'enhanced jobs')
+# Do not change this code
+this_module = 'case_files.' + case_study
+case = importlib.import_module(this_module)
+# -----------------------------------------------------------------------------
+
+
+# OK to adjust variables within area marked by asterisks:
+# *****************************************************************************
 compute_with_job_changes = True
+no_bump = True
+
+actives_only = False
+recall = True
 discount_longev_for_fur = True
+
+# calculate list percentage based on employees remaining
+# in each month including furloughees (True), otherwise
+# percentage calculation denominator is the greater of
+# pilots remaining (incl fur) or jobs available (False)
+# for 'lspcnt' column
 lspcnt_calc_on_remaining_population = False
 
-case_study = 'sample3'
+# for unmerged job assignment calculations:
+delayed_implementation = True
 
-this_module = 'case_files.' + case_study
+save_to_pickle = True
 
-enhanced_jobs = True
+add_eg_col = True
+add_retdate_col = True
+add_doh_col = True
+add_ldate_col = True
+add_lname_col = True
+add_line_col = True
+add_sg_col = True
+add_ret_mark = True
+compute_job_category_order = True
 
-# ********************************************************************
-# This import must come after any variable assignment that is used by the
-# case-specific modules...
-case = importlib.import_module(this_module)
-# ********************************************************************
+# PAY (measures)
+compute_pay_measures = True
+pay_raise = False
+
+# *****************************************************************************
+
+
+# Do not change any code below.
+# These variable assignments are imported from the case-specific config file:
+# -----------------------------------------------------------------------------
 
 num_of_job_levels = case.num_of_job_levels
 
-# full_time_pcnt1 also used for count group 4 cond calculation when
+# full_time_pcnt1 also used for count cond calculation when
 # model contains 16 job levels (assign_cond_ratio_capped function)
 full_time_pcnt1 = case.full_time_pcnt1
 full_time_pcnt2 = case.full_time_pcnt2
 
 starting_date = case.starting_date
 start = case.start
-
-# for separate job assignment calculations:
-delayed_implementation = True
 
 # implementation date is used for proposal conditions even if
 # 'delayed implementation' above is False
@@ -41,9 +81,6 @@ imp_month = case.imp_month
 end_date = case.end_date
 ratio_final_month = case.ratio_final_month
 
-no_bump = True
-recall = True
-
 init_ret_age_years = case.init_ret_age_years
 init_ret_age_months = case.init_ret_age_months
 
@@ -52,29 +89,11 @@ ret_age = case.ret_age
 ret_age_increase = case.ret_age_increase
 ret_incr_dict = case.ret_incr_dict
 
-actives_only = False
-save_to_pickle = True
-
-add_eg_col = True
-add_retdate_col = True
-add_doh_col = True
-add_ldate_col = True
-add_lname_col = True
-add_line_col = True
-add_sg_col = True
-add_ret_mark = True
 
 # PAY RELATED (skeleton):
 
-pay_raise = False
 annual_pcnt_raise = case.annual_pcnt_raise
 top_of_scale = case.top_of_scale
-
-compute_job_category_order = True
-
-# PAY (measures)
-
-compute_pay_measures = True
 
 j_changes = case.j_changes
 eg_counts = case.eg_counts
@@ -86,12 +105,10 @@ if enhanced_jobs:
     jd = case.jd
 
 # JOB ASSIGNMENT CONDITIONS DATA
-############################################
 ratio_cond = case.ratio_cond
 sg_rights = case.sg_rights
 count_cond = case.count_cond
 quota_dict = case.quota_dict
-############################################
 
 # chart label adjustment
 adjust = case.adjust
@@ -117,3 +134,4 @@ white_grey = case.white_grey
 color1 = case.color1
 color2 = case.color2
 color3 = case.color3
+# -----------------------------------------------------------------------------

@@ -63,7 +63,7 @@ def longevity_at_startdate(ldates_list, return_months=False,
     as of the start date
     - input is list of longevity dates
     - float output is longevity in years
-        (+1 added to reflect current 1-based pay year)
+    (+1 added to reflect current 1-based pay year)
     - option for output in months
     '''
     start_date = pd.to_datetime(start_date)
@@ -231,7 +231,9 @@ def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
 # FIND CONTRACT PAY YEAR AND RAISE (contract pay year
 # and optional raise multiplier)
 def contract_pay_year_and_raise(date_list, future_raise=False, exception=False,
-                                date_exception='2014-12-31', year_additive=.1,
+                                date_exception_start='2014-12-31',
+                                date_exception_end='2014-12-31',
+                                exception_year=1950,
                                 annual_raise=.02, last_contract_year=2019.0):
     '''Month_Form
     Generate the contract pay year for indexing into the pay table.
@@ -263,12 +265,21 @@ def contract_pay_year_and_raise(date_list, future_raise=False, exception=False,
         exception
             allows for an outlier pay month to be calculated
 
-        date_exception
-            date representing the month of the outlier pay month
+        date_exception_start
+            date representing the first month of the outlier pay month range
+            as a string, example: '2014-12-31'
 
-        year_additive
-            add this float amount to the regular year float
-            so that it can be distinguished as an outlier pay month
+        date_exception_end
+            date representing the final month of the outlier pay month range
+            as a string, example: '2014-12-31', can be identical to
+            date_exception_start input for a single month exception
+
+        exception_year
+            year value (integer) representing an exception pay rate.  This
+            value must match exception year number from pay table sheets
+            'year' columns within the Excel input workbook, pay_tables.xlsx.
+            This value is simply a placeholder value to mark months with an
+            contract exception pay table.
 
         annual_raise
             yearly raise to calculate beyond the last contract year
@@ -279,6 +290,9 @@ def contract_pay_year_and_raise(date_list, future_raise=False, exception=False,
     '''
     float_years = np.ones(len(date_list) * 2)
     float_years = float_years.reshape(len(date_list), 2)
+    date_exception_range = pd.date_range(date_exception_start,
+                                         date_exception_end,
+                                         freq='M')
 
     for i in np.arange(0, len(date_list)):
 
@@ -294,8 +308,8 @@ def contract_pay_year_and_raise(date_list, future_raise=False, exception=False,
                                         0.0, last_contract_year)
 
         if exception:
-            if date_list[i] == pd.to_datetime(date_exception):
-                float_years[i][0] = date_list[i].year + year_additive
+            if date_list[i] in date_exception_range:
+                float_years[i][0] = exception_year
 
     return float_years.T
 
@@ -1336,7 +1350,7 @@ def create_snum_array(jobs_held, monthly_population_counts):
     return long_snum_array.astype(int)
 
 
-# SNUMS and SPCNT with JOB CHANGES
+# SNUM, SPCNT, LNUM, LSPCNT with JOB CHANGES
 def create_snum_and_spcnt_arrays(jnums, job_level_count,
                                  monthly_population_counts,
                                  monthly_job_counts,

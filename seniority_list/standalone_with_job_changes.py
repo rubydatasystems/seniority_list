@@ -183,7 +183,7 @@ for i in egs - 1:
 
         df_pt_index = pd.DataFrame(
             index=(df_long['scale'] * 100) + df_long['jnum'] +
-            (df_long['year'] * 100000))
+            (df_long['year'] * 10000))
 
         if cf.enhanced_jobs:
             df_pt = pd.read_pickle(
