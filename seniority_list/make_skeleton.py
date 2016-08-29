@@ -131,14 +131,7 @@ date_series = pd.to_datetime(list(df_dates['date']))
 
 if cf.compute_pay_measures:
     year_and_scale = \
-        f.contract_pay_year_and_raise(date_series,
-                                      exception=True,
-                                      future_raise=cf.pay_raise,
-                                      date_exception_start='2014-12-31',
-                                      date_exception_end='2013-12-31',
-                                      exception_year=1950,
-                                      annual_raise=cf.annual_pcnt_raise,
-                                      last_contract_year=2019.0)
+        f.contract_pay_year_and_raise(date_series)
 
     df_dates['year'] = year_and_scale[0]
 

@@ -49,7 +49,7 @@ for i in np.arange(len(table_sheets)):
     pay_melt.reset_index(drop=False, inplace=True)
 
     pay_melt['ptindex'] = (pay_melt.year *
-                           10000 + pay_melt.scale * 100 +
+                           100000 + pay_melt.scale * 100 +
                            pay_melt.jnum)
 
     pay_melt.drop(['scale', 'year', 'jnum'], axis=1, inplace=True)

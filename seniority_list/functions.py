@@ -230,11 +230,12 @@ def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
 
 # FIND CONTRACT PAY YEAR AND RAISE (contract pay year
 # and optional raise multiplier)
-def contract_pay_year_and_raise(date_list, future_raise=False, exception=False,
-                                date_exception_start='2014-12-31',
-                                date_exception_end='2014-12-31',
-                                exception_year=1950,
-                                annual_raise=.02, last_contract_year=2019.0):
+def contract_pay_year_and_raise(date_list, future_raise=cf.future_raise,
+                                date_exception_start=cf.date_exception_start,
+                                date_exception_end=cf.date_exception_end,
+                                exception_year=cf.pay_table_exception_year,
+                                annual_raise=cf.annual_pcnt_raise,
+                                last_contract_year=cf.last_contract_year):
     '''Month_Form
     Generate the contract pay year for indexing into the pay table.
     Pay year is clipped to last year of contract.
@@ -275,8 +276,8 @@ def contract_pay_year_and_raise(date_list, future_raise=False, exception=False,
             date_exception_start input for a single month exception
 
         exception_year
-            year value (integer) representing an exception pay rate.  This
-            value must match exception year number from pay table sheets
+            year value (float) representing an exception pay rate.  This
+            value must match exception year float number from pay table sheets
             'year' columns within the Excel input workbook, pay_tables.xlsx.
             This value is simply a placeholder value to mark months with an
             contract exception pay table.
@@ -307,7 +308,7 @@ def contract_pay_year_and_raise(date_list, future_raise=False, exception=False,
             float_years[i][0] = np.clip(date_list[i].year,
                                         0.0, last_contract_year)
 
-        if exception:
+        if exception_year:
             if date_list[i] in date_exception_range:
                 float_years[i][0] = exception_year
 

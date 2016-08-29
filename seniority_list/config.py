@@ -57,7 +57,7 @@ pay_raise = False
 # *****************************************************************************
 
 
-# Do not change any code below.
+# DO NOT CHANGE ANY CODE BELOW.
 # These variable assignments are imported from the case-specific config file:
 # -----------------------------------------------------------------------------
 
@@ -74,6 +74,13 @@ start = case.start
 # implementation date is used for proposal conditions even if
 # 'delayed implementation' above is False
 implementation_date = case.implementation_date
+
+pay_table_exception_year = case.pay_table_exception_year
+date_exception_start = case.date_exception_start
+date_exception_end = case.date_exception_end
+last_contract_year = case.last_contract_year
+future_raise = case.future_raise
+annual_pcnt_raise = case.annual_pcnt_raise
 
 # imp below refers to 'implementation'
 imp_date = case.imp_date
