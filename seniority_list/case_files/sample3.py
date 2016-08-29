@@ -8,8 +8,15 @@ full_time_pcnt1 = .6
 full_time_pcnt2 = .65
 full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
 
-annual_pcnt_raise = .02
 top_of_scale = 12
+
+pay_table_exception_year = 2014.1
+date_exception_start = '2014-12-31'
+date_exception_end = '2014-12-31'
+
+future_raise = False
+last_contract_year = 2019.0
+annual_pcnt_raise = .02
 
 init_ret_age_years = 65
 init_ret_age_months = 0
