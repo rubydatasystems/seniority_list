@@ -807,7 +807,7 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
                     exclude_fur=False,
                     use_eg_colors=False,
                     width=.8, chart_style='dark',
-                    notch=False,
+                    notch=True,
                     job_diff_clip=cf.num_of_job_levels + 1,
                     xsize=18, ysize=10, chart_example=False):
     '''create a differential box plot chart comparing a selected measure from
@@ -840,7 +840,7 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
     chart_style
         chart styling (string), any valid seaborn chart style
     notch
-        If True, show boxplots with a notch at median point
+        If True, show boxplots with a notch at median point vs. only a line
     job_diff_clip
         if measure is jnum or jobp, limit y axis range to +/- this value
     xsize, ysize
@@ -983,6 +983,7 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
                         notch=notch,
                         linewidth=1.0, fliersize=1.5)
         fig = plt.gcf()
+        ax = plt.gca()
         # set chart size
         fig.set_size_inches(xsize, ysize)
         # add zero line
@@ -990,10 +991,10 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
         plt.ylim(-ylimit, ylimit)
         if measure in ['spcnt', 'lspcnt']:
             # format percentage y axis scale
-            plt.gca().yaxis.set_major_formatter(formatter)
+            ax.yaxis.set_major_formatter(formatter)
         if measure in ['jnum', 'jobp']:
             # if job level measure, set scaling and limit y range
-            plt.gca().set_yticks(np.arange(int(-ylimit - 1), int(ylimit + 2)))
+            ax.set_yticks(np.arange(int(-ylimit - 1), int(ylimit + 2)))
             plt.ylim(max(-job_diff_clip, int(-ylimit - 1)),
                      min(job_diff_clip, int(ylimit + 1)))
         if chart_example:
@@ -1001,6 +1002,7 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
                       y=1.02)
         else:
             plt.title(yval_dict[yval], y=1.02)
+        ax.set_xticklabels(ax.xaxis.get_majorticklabels(), rotation=90)
         plt.ylabel('differential')
         plt.show()
 
@@ -1013,15 +1015,16 @@ def eg_boxplot(df_list, eg_list, formatter,
                saturation=.8,
                chart_style='dark',
                width=.7,
-               notch=False,
+               notch=True,
                show_xgrid=True,
                show_ygrid=True,
                grid_alpha=.4,
                grid_linestyle='solid',
                job_clip=cf.num_of_job_levels + 1,
                xsize=18, ysize=10):
-    '''create a box plot chart displaying a selected measure from
-    computed dataset.
+    '''create a box plot chart displaying actual attribute values
+    (vs. differential values) from a selected dataset(s) for selected
+    employee group(s).
 
     df_list
         list of datasets to compare, plot will reference by list order
