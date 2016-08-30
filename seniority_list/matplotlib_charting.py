@@ -806,7 +806,8 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
                     comparison='standalone', year_clip=2035,
                     exclude_fur=False,
                     use_eg_colors=False,
-                    width=.8,
+                    width=.8, chart_style='dark',
+                    notch=False,
                     job_diff_clip=cf.num_of_job_levels + 1,
                     xsize=18, ysize=10, chart_example=False):
     '''create a differential box plot chart comparing a selected measure from
@@ -836,6 +837,10 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
     width
         plotting width of boxplot or grouped boxplots for each year.
         a width of 1 leaves no gap between groups
+    chart_style
+        chart styling (string), any valid seaborn chart style
+    notch
+        If True, show boxplots with a notch at median point
     job_diff_clip
         if measure is jnum or jobp, limit y axis range to +/- this value
     xsize, ysize
@@ -971,10 +976,12 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
         except:
             ylimit = max(abs(max(y_clip[yval])), abs(min(y_clip[yval])))
         # create seaborn boxplot
-        sns.boxplot(x='date', y=yval,
-                    hue='eg', data=y_clip,
-                    palette=colors, width=width,
-                    linewidth=1.0, fliersize=1.5)
+        with sns.axes_style(chart_style):
+            sns.boxplot(x='date', y=yval,
+                        hue='eg', data=y_clip,
+                        palette=colors, width=width,
+                        notch=notch,
+                        linewidth=1.0, fliersize=1.5)
         fig = plt.gcf()
         # set chart size
         fig.set_size_inches(xsize, ysize)
@@ -995,6 +1002,160 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
         else:
             plt.title(yval_dict[yval], y=1.02)
         plt.ylabel('differential')
+        plt.show()
+
+
+def eg_boxplot(df_list, eg_list, formatter,
+               measure='spcnt',
+               year_clip=2035,
+               exclude_fur=False,
+               use_eg_colors=False,
+               saturation=.8,
+               chart_style='dark',
+               width=.7,
+               notch=False,
+               show_xgrid=True,
+               show_ygrid=True,
+               grid_alpha=.4,
+               grid_linestyle='solid',
+               job_clip=cf.num_of_job_levels + 1,
+               xsize=18, ysize=10):
+    '''create a box plot chart displaying a selected measure from
+    computed dataset.
+
+    df_list
+        list of datasets to compare, plot will reference by list order
+    eg_list
+        list of integers for employee groups to be included in analysis
+        example: [1, 2, 3]
+    formatter
+        matplotlib percentage y scale formatter
+    measure
+        attribute for analysis
+    year_clip
+        only present results through this year
+    exclude_fur
+        remove all employees from analysis who are furloughed within the
+        data model at any time (boolean)
+    use_eg_colors
+        use case-specific employee group colors vs. default colors (boolean)
+    chart_style
+        chart styling (string), any valid seaborn chart style
+    width
+        plotting width of boxplot or grouped boxplots for each year.
+        a width of 1 leaves no gap between groups
+    notch
+        If True, show boxplots with a notch at median point
+    show_xgrid
+        include vertical grid lines on chart
+    show_ygrid
+        include horizontal grid lines on chart
+    grid_alpha
+        opacity value for grid lines
+    grid_linestyle
+        examples: 'solid', 'dotted', 'dashed'
+    job_clip
+        if measure is jnum or jobp, limit max y axis range to this value
+    xsize, ysize
+        plot size in inches
+    '''
+
+    chart_pad = {'spcnt': .03,
+                 'lspcnt': .03,
+                 'mpay': 1,
+                 'cpay': 10,
+                 'cat_order': 50,
+                 'snum': 50,
+                 'lnum': 50,
+                 'jobp': .5}
+
+    if use_eg_colors:
+        colors = cf.eg_colors
+    else:
+        colors = ['grey', '#66b3ff', '#ff884d', '#00ff99']
+
+    # set boxplot color to match employee group(s) color
+    color_index = np.array(eg_list) - 1
+    color_arr = np.array(colors)
+    colors = list(color_arr[color_index])
+
+    temp_frame = df_list[0][['empkey', 'mnum', 'eg', 'date']].copy()
+    temp_frame['year'] = temp_frame.date.dt.year
+    temp_frame['key'] = (temp_frame.empkey * 1000) + temp_frame.mnum
+
+    data = {'eg': np.array(temp_frame.eg), 'year': np.array(temp_frame.year)}
+    frame = pd.DataFrame(data=data, index=temp_frame.key)
+    # filter frame to only include desired employee groups
+    frame = frame[frame['eg'].isin(eg_list)]
+
+    yval_list = []
+    title_dict = od()
+
+    i = 1
+    for ds in df_list:
+        this_measure_col = measure + '_' + str(i)
+        if exclude_fur:
+            ds = ds[ds['eg'].isin(eg_list)][['empkey',
+                                             'mnum', 'fur', measure]].copy()
+            idx = np.array(ds.index)
+            fur = np.array(ds.fur)
+            furs = np.where(fur == 1)[0]
+            ds = ds[~np.in1d(ds.index, pd.unique(idx[furs]))]
+
+        # filter each ds to only include desired employee groups
+        ds = ds[ds['eg'].isin(eg_list)][['empkey', 'mnum', measure]].copy()
+        ds['key'] = (ds.empkey * 1000) + ds.mnum
+
+        ds.set_index('key', drop=True, inplace=True)
+        frame[this_measure_col] = ds[measure]
+        yval_list.append(this_measure_col)
+        title_dict[this_measure_col] = 'Proposal ' + str(i) + ' ' + measure
+
+        i += 1
+
+    y_clip = frame[frame.year <= year_clip]
+
+    # make a chart for each selected column
+    for yval in yval_list:
+        # determine y axis chart limits
+        try:
+            pad = chart_pad[measure]
+            ylimit = max(abs(max(y_clip[yval])), abs(min(y_clip[yval]))) + pad
+        except:
+            ylimit = max(abs(max(y_clip[yval])), abs(min(y_clip[yval])))
+        # create seaborn boxplot
+        with sns.axes_style(chart_style):
+            sns.boxplot(x='year', y=yval,
+                        hue='eg', data=y_clip,
+                        palette=colors,
+                        notch=notch,
+                        saturation=saturation, width=width,
+                        linewidth=1.0, fliersize=1.5)
+        fig = plt.gcf()
+        ax = plt.gca()
+        # set chart size
+        fig.set_size_inches(xsize, ysize)
+
+        plt.ylim(0, ylimit)
+        if measure in ['spcnt', 'lspcnt']:
+            # format percentage y axis scale
+            ax.yaxis.set_major_formatter(formatter)
+            plt.ylim(ylimit, 0)
+        if measure in ['jnum', 'jobp']:
+            # if job level measure, set scaling and limit y range
+            plt.gca().set_yticks(np.arange(0, int(ylimit + 1)))
+            plt.ylim(min(job_clip + 1.5, int(ylimit + 2)), 0.5)
+        if measure in ['cat_order', 'snum', 'lnum']:
+            plt.gca().invert_yaxis()
+
+        plt.title(title_dict[yval], y=1.02)
+        plt.ylabel('absolute values')
+
+        ax.set_xticklabels(ax.xaxis.get_majorticklabels(), rotation=90)
+        if show_xgrid:
+            ax.xaxis.grid(alpha=grid_alpha, ls=grid_linestyle)
+        if show_ygrid:
+            ax.yaxis.grid(alpha=grid_alpha, ls=grid_linestyle)
         plt.show()
 
 
@@ -3276,7 +3437,7 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
                     sa_ds[sa_ds.eg == eg][cols].set_index('date') \
                         .resample('Q').mean().plot(cmap=cmap)
 
-        if measure in ['spcnt', 'lspcnt', 'jobp', 'jnum']:
+        if measure in ['spcnt', 'lspcnt', 'jobp', 'jnum', 'cat_order']:
             plt.gca().invert_yaxis()
 
         plt.title('Employee Group ' + str(eg) + ' ' +
