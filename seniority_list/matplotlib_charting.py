@@ -36,6 +36,8 @@ def to_percent(y, position):
     else:
         return s + '%'
 
+pct_format = FuncFormatter(to_percent)
+
 
 def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
                                job_str_list,
@@ -367,7 +369,8 @@ def quartile_years_in_position(prop_ds, sa_ds, job_levels, num_bins,
 
 def age_vs_spcnt(df, eg_list, mnum, color_list,
                  eg_dict, proposal_text, proposal_dict,
-                 formatter, xsize=10, ysize=8, chart_example=False):
+                 xsize=10, ysize=8,
+                 chart_example=False):
     '''scatter plot with age on x axis and list percentage on y axis.
     note: input df may be prefiltered to plot focus attributes, i.e.
     filter to include only employees at a certain job level, hired
@@ -396,9 +399,6 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
 
         proposal_dict
             dictionary proposal_text to proposal text description
-
-        formatter
-            matplotlib chart formatter for percentage axis display
     '''
 
     fig = plt.figure()
@@ -422,7 +422,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
     plt.ylim(1, 0)
     plt.xlim(25, cf.ret_age)
     plt.tight_layout()
-    ax.yaxis.set_major_formatter(formatter)
+    ax.yaxis.set_major_formatter(pct_format)
     ax.set_yticks(np.arange(0, 1.05, .05))
 
     if chart_example:
@@ -451,7 +451,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
 
 def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                           color_list, job_str_list, proposal,
-                          proposal_dict, formatter,
+                          proposal_dict,
                           chart_example=False):
     '''select example individual employees and plot career measure
     from selected dataset attribute, i.e. list percentage, career
@@ -486,9 +486,6 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
 
         proposal_dict
             dictionary proposal to proposal text description
-
-        formatter
-            matplotlib chart formatter for proper percentage axis display
     '''
 
     frame = df.copy()
@@ -518,7 +515,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                    'lnum', 'jobp', 'fbff', 'cat_order']:
         ax.invert_yaxis()
     if measure in ['lspcnt', 'spcnt']:
-        ax.yaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(pct_format)
         plt.yticks = (np.arange(0, 1.05, .05))
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
@@ -534,7 +531,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         plt.ylim(job_levels + 1.5, 0.5)
 
     if xax in ['spcnt', 'lspcnt']:
-        ax.xaxis.set_major_formatter(formatter)
+        ax.xaxis.set_major_formatter(pct_format)
         plt.xticks(np.arange(0, 1.1, .1))
         plt.xlim(1, 0)
 
@@ -552,7 +549,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
 
 def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                          proposal, proposal_dict,
-                         job_levels, colors, formatter, mnum=0,
+                         job_levels, colors, mnum=0,
                          scatter=False, exclude_fur=False,
                          full_pcnt_xscale=False, chart_example=False):
     '''plot separate selected employee group data for a specific month.
@@ -578,8 +575,6 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             number of job levels in model
         colors
             colors for eg plots
-        formatter
-            matplotlib percent formatter
         mnum
             month number for analysis
         scatter
@@ -619,10 +614,10 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                    'lspcnt', 'rank_in_job', 'cat_order']:
         ax.invert_yaxis()
     if measure in ['spcnt', 'lspcnt']:
-        ax.yaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(pct_format)
         plt.yticks = (np.arange(0, 1.05, .05))
     if xax in ['spcnt', 'lspcnt']:
-        ax.xaxis.set_major_formatter(formatter)
+        ax.xaxis.set_major_formatter(pct_format)
         plt.xticks(np.arange(0, 1.1, .1))
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
@@ -677,7 +672,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
     plt.show()
 
 
-def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
+def violinplot_by_eg(df, measure, proposal, proposal_dict,
                      mnum=0, linewidth=1.5, chart_example=False,
                      scale='count'):
     '''From the seaborn website:
@@ -699,8 +694,6 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
             string name of df
         proposal_dict
             proposal to string title name
-        formatter
-            matplotlib percentile axis label formatter
         mnum
             month number to analyze
         linewidth
@@ -748,7 +741,7 @@ def violinplot_by_eg(df, measure, proposal, proposal_dict, formatter,
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum', 'jobp', 'cat_order']:
         fig.invert_yaxis()
         if measure in ['spcnt', 'lspcnt']:
-            fig.yaxis.set_major_formatter(formatter)
+            fig.yaxis.set_major_formatter(pct_format)
             plt.gca().set_yticks(np.arange(0, 1.05, .05))
             plt.ylim(1.04, -.04)
     plt.show()
@@ -801,7 +794,7 @@ def age_kde_dist(df, color_list, eg_dict,
     plt.show()
 
 
-def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
+def eg_diff_boxplot(df_list, standalone_df, eg_list,
                     measure='spcnt',
                     comparison='standalone', year_clip=2035,
                     exclude_fur=False,
@@ -821,8 +814,6 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
     eg_list
         list of integers for employee groups to be included in analysis
         example: [1, 2, 3]
-    formatter
-        matplotlib percentage y scale formatter
     measure
         differential data to compare
     comparison
@@ -991,7 +982,7 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
         plt.ylim(-ylimit, ylimit)
         if measure in ['spcnt', 'lspcnt']:
             # format percentage y axis scale
-            ax.yaxis.set_major_formatter(formatter)
+            ax.yaxis.set_major_formatter(pct_format)
         if measure in ['jnum', 'jobp']:
             # if job level measure, set scaling and limit y range
             ax.set_yticks(np.arange(int(-ylimit - 1), int(ylimit + 2)))
@@ -1007,7 +998,7 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list, formatter,
         plt.show()
 
 
-def eg_boxplot(df_list, eg_list, formatter,
+def eg_boxplot(df_list, eg_list,
                measure='spcnt',
                year_clip=2035,
                exclude_fur=False,
@@ -1031,8 +1022,6 @@ def eg_boxplot(df_list, eg_list, formatter,
     eg_list
         list of integers for employee groups to be included in analysis
         example: [1, 2, 3]
-    formatter
-        matplotlib percentage y scale formatter
     measure
         attribute for analysis
     year_clip
@@ -1142,7 +1131,7 @@ def eg_boxplot(df_list, eg_list, formatter,
         plt.ylim(0, ylimit)
         if measure in ['spcnt', 'lspcnt']:
             # format percentage y axis scale
-            ax.yaxis.set_major_formatter(formatter)
+            ax.yaxis.set_major_formatter(pct_format)
             plt.ylim(ylimit, 0)
         if measure in ['jnum', 'jobp']:
             # if job level measure, set scaling and limit y range
@@ -1489,7 +1478,7 @@ def job_level_progression(ds, emp_list, through_date,
 
 def differential_scatter(base_ds, compare_ds_list,
                          measure, filter_measure,
-                         filter_val, eg_list, formatter, prop_order=True,
+                         filter_val, eg_list, prop_order=True,
                          show_scatter=True, show_lin_reg=True,
                          show_mean=True, mean_len=50,
                          dot_size=15, lin_reg_order=15, ylimit=False, ylim=5,
@@ -1523,8 +1512,6 @@ def differential_scatter(base_ds, compare_ds_list,
             an interger representing the month number
         eg_list
             a list of employee groups to analyze
-        formatter
-            matplotlib percentile axis formatter
         prop_order
             if True, organize x axis by proposal list order,
             otherwise use native list percent
@@ -1670,10 +1657,10 @@ def differential_scatter(base_ds, compare_ds_list,
             plt.xlim(xmin=0)
 
             if measure in ['spcnt', 'lspcnt']:
-                plt.gca().yaxis.set_major_formatter(formatter)
+                plt.gca().yaxis.set_major_formatter(pct_format)
 
             if xax == 'sep_eg_pcnt':
-                plt.gca().xaxis.set_major_formatter(formatter)
+                plt.gca().xaxis.set_major_formatter(pct_format)
                 plt.xticks(np.arange(0, 1.1, .1))
                 plt.xlim(xmax=1)
 
@@ -1689,7 +1676,7 @@ def differential_scatter(base_ds, compare_ds_list,
 # only age 65 in group, use .sum
 # others, use .mean
 def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
-                           formatter, plt_kind='bar', rets_only=True,
+                           plt_kind='bar', rets_only=True,
                            ret_age=cf.ret_age,
                            measure_subset='age', measure_val=55,
                            measure_val2=cf.ret_age, operator='equals',
@@ -1733,10 +1720,6 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
 
         colors
             list of colors to be used for plotting
-
-        formatter
-            matplotlib formatter, used to set the y-axis scaling to percentage
-            when 'rets_only' is selected
 
         plt_kind
             'bar' or 'area' (bar recommended)
@@ -1850,7 +1833,7 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
 
             if rets_only:
                 plt.gca().set_yticks(np.arange(.08, 0, -.01))
-                plt.gca().yaxis.set_major_formatter(formatter)
+                plt.gca().yaxis.set_major_formatter(pct_format)
             plt.gca().invert_yaxis()
             if plt_kind == 'bar':
                 plt.xlim(0, display_yrs)
@@ -1869,7 +1852,7 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
 
 
 def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
-             formatter, left=0, stride_list=None,
+             left=0, stride_list=None,
              facecolor='#f5f5dc', xsize=6, ysize=8):
     '''Compare positional or value differences for various proposals
     with a baseline position or value for selected months.
@@ -1894,9 +1877,6 @@ def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
             the function will plot comparative data from each month listed
         job_levels
             number of job levels in data model
-        formatter
-            matplotlib percentage formatter for y axis when comparing
-            list percentage
         left
             integer representing the list comparison to plot on left side
             of the chart(s).
@@ -1989,7 +1969,7 @@ def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
         if measure in ['spcnt', 'lspcnt']:
             ax.set_yticks(np.arange(1, 0, -.05))
             ax.invert_yaxis()
-            ax.yaxis.set_major_formatter(formatter)
+            ax.yaxis.set_major_formatter(pct_format)
 
         if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
@@ -2244,7 +2224,7 @@ def rows_of_color(prop_text, prop, mnum, measure_list, eg_colors,
     plt.show()
 
 
-def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
+def quartile_bands_over_time(df, eg, measure, bins=20,
                              clip=True, year_clip=2035, kind='area',
                              quartile_ticks=False,
                              custom_color=True, cm_name='Set1',
@@ -2272,8 +2252,6 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
             employee group number
         measure
             a list percentage input, either 'spcnt' or 'lspcnt'
-        formatter
-            percentage formatter for y axis
         bins
             number of quartiles to calculate and display
         clip
@@ -2423,7 +2401,7 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
             ax.invert_yaxis()
             plt.ylabel('original percentage')
             plt.xlabel('year')
-            plt.gca().yaxis.set_major_formatter(formatter)
+            plt.gca().yaxis.set_major_formatter(pct_format)
             legend_labels = ['{percent:.1f}'
                              .format(percent=((quart * step) - step) * 100) +
                              ' - ' +
@@ -2452,8 +2430,6 @@ def quartile_bands_over_time(df, eg, measure, formatter, bins=20,
                                            fc=quartile_colors[i],
                                            alpha=patch_alpha))
 
-        # box = ax.get_position()
-        # ax.set_position([box.x0, box.y0, box.width * 1.0, box.height])
         ax.legend(recs, legend_labels, bbox_to_anchor=(legend_position, 1),
                   title=legend_title, fontsize=legend_font_size,
                   ncol=legend_cols)
@@ -2909,8 +2885,7 @@ def editor(base_ds='stand', compare_ds='ds_edit', cond_list=None,
         plt.xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
-            formatter = FuncFormatter(to_percent)
-            plt.gca().yaxis.set_major_formatter(formatter)
+            plt.gca().yaxis.set_major_formatter(pct_format)
 
         if xval == 'sep_eg_pcnt':
             plt.xlim(xmax=1)
@@ -3135,7 +3110,7 @@ def reset_editor():
 
 
 def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
-                                formatter, proposal_dict, job_strs,
+                                proposal_dict, job_strs,
                                 span_colors, job_levels,
                                 single_eg=False, num=1, exclude_fur=False,
                                 plot_scatter=True, s=20, a=.7, lw=0,
@@ -3288,7 +3263,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
         plt.gca().invert_yaxis()
         if measure in ['spcnt', 'lspcnt']:
             ax1.set_yticks(np.arange(1, -.05, -.05))
-            ax1.yaxis.set_major_formatter(formatter)
+            ax1.yaxis.set_major_formatter(pct_format)
             plt.ylim(1, 0)
         else:
             ax1.set_yticks(np.arange(0, max_count, 1000))
@@ -3342,7 +3317,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
     if xax in ['snum']:
         plt.xlim(max_count, 0)
     if xax in ['spcnt', 'lspcnt']:
-        plt.gca().xaxis.set_major_formatter(formatter)
+        plt.gca().xaxis.set_major_formatter(pct_format)
         plt.xticks(np.arange(0, 1.1, .1))
         plt.xlim(1, 0)
     if xax == 'age':
@@ -3357,7 +3332,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
 
 
 def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
-               formatter, gb_period, year_clip=2042,
+               gb_period, year_clip=2042,
                show_range=False, show_mean=True, normalize_y=False,
                ysize=6, xsize=6):
     '''Plot a range of differential attributes or a differential
@@ -3399,12 +3374,6 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
         ds.rename(columns={measure: col_name}, inplace=True)
         ds_list[i] = ds
 
-        # ds['eg_order'] = ds.groupby('eg').cumcount()
-        # ds.sort_values(['eg', 'eg_order'], inplace=True)
-        # ds_list[i] = ds[ds.date.dt.year <= float(year_clip)][
-        #     ['eg', 'date', measure]].copy()
-        # ds_list[i].rename(columns={measure: col_name},
-        #                   inplace=True)
         col_list.append(col_name)
         i += 1
 
@@ -3448,7 +3417,7 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
         plt.axhline(c='m', lw=2, ls='--')
         plt.gcf().set_size_inches(xsize, ysize)
         if measure in ['spcnt', 'lspcnt']:
-            plt.gca().yaxis.set_major_formatter(formatter)
+            plt.gca().yaxis.set_major_formatter(pct_format)
             if normalize_y:
                 plt.ylim(.5, -.5)
             plt.yticks = np.arange(.5, -.55, .05)
@@ -4064,7 +4033,7 @@ def cond_test(d, opt_sel, plot_all_jobs=False, max_mnum=110,
     plt.show()
 
 
-def single_emp_compare(emp, measure, ds_list, xax, formatter,
+def single_emp_compare(emp, measure, ds_list, xax,
                        job_strs, eg_colors, eg_dict,
                        job_levels, standalone_color='#ff00ff',
                        chart_example=False):
@@ -4085,10 +4054,6 @@ def single_emp_compare(emp, measure, ds_list, xax, formatter,
 
         xax
             dataset column to set as x axis
-
-        formatter
-            maplotlib percentage formatter for percentage charts
-            ('spcnt' or 'lspcnt')
 
         job_strs
             string job description list
@@ -4127,7 +4092,7 @@ def single_emp_compare(emp, measure, ds_list, xax, formatter,
         ax.invert_yaxis()
 
     if measure in ['spcnt', 'lspcnt']:
-        ax.yaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(pct_format)
         plt.axhline(y=1, c='.8', alpha=.8, lw=3)
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
@@ -4215,7 +4180,6 @@ def job_time_change(base_df, compare_ds_list, eg_list,
             x and y size of each plot
     '''
 
-    formatter = FuncFormatter(to_percent)
     df_frames = od()
     df_dict = od()
     # sorts index by empkey, this is base df with key 0
@@ -4306,7 +4270,7 @@ def job_time_change(base_df, compare_ds_list, eg_list,
             plt.xlim(xmin=0, xmax=1.02)
             plt.axhline(c=zeroline_color, lw=zeroline_width)
 
-            ax.xaxis.set_major_formatter(formatter)
+            ax.xaxis.set_major_formatter(pct_format)
             ax.set_xticks(np.arange(0, 1.05, .05))
 
             plt.tick_params(labelsize=13, labelright=True)
