@@ -9,7 +9,7 @@ long_form is length cumulative sum non-retired each month
 (could be millions of rows, depending on workgroup
 size and age)
 '''
-
+import os
 import pandas as pd
 import numpy as np
 from numba import jit
@@ -197,7 +197,7 @@ def gen_emp_skeleton_index(monthly_active_count_nparay, career_mths_nparray):
 
 
 # AGE FOR EACH MONTH (correction to starting age)
-@jit
+# @jit  (jit broken with numba version update 0.28.1, np111py35_0)
 def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
     '''Long_Form
     Returns a long_form (all months) array of employee ages by
@@ -3185,4 +3185,15 @@ def clip_ret_ages(ret_age_dict, init_ret_age, dates_long_arr, ages_long_arr):
                                              0, age)
 
     return ages_long_arr
+
+
+def clear_dill_files():
+    '''remove all files from 'dill' folder.
+
+    used when changing case study, avoids possibility of file
+    from previos calculations being used by new study
+    '''
+    filelist = [f for f in os.listdir("dill/")]
+    for f in filelist:
+        os.remove('dill/' + f)
 

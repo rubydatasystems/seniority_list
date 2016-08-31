@@ -76,23 +76,23 @@ from collections import OrderedDict as od
 #     num_of_job_levels = 8  # do not include a level for furlough
 
 # # JOB COUNTS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# eg1_job_count = [395, 939, 2112, 825, 1255, 2242, 0, 0]
-# eg2_job_count = [161, 170, 885, 326, 192, 928, 109, 132]
-# eg3_job_count = [0, 53, 637, 0, 74, 608, 0, 0]
-# furlough_count = [681, 0, 45]
+# eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
+# eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
+# eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
+# furlough_count = [340, 0, 23]
 
 # # JOB CHANGES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # # [job level affected, [start and end month], total change,
 # # [standalone allocation]]
 # # group 4 additions...
-# jc1 = [1, [35, 64], 87, [80, 7, 0]]
-# jc2 = [4, [35, 64], 145, [133, 12, 0]]
+# jc1 = [1, [35, 64], 43, [40, 3, 0]]
+# jc2 = [4, [35, 64], 72, [66, 6, 0]]
 # # group3 reductions...
-# jc3 = [2, [1, 52], -816, [-754, -46, -16]]
-# jc4 = [5, [1, 52], -1020, [-948, -52, -20]]
+# jc3 = [2, [1, 52], -408, [-377, -23, -8]]
+# jc4 = [5, [1, 52], -510, [-474, -26, -10]]
 # # group 2 additions...
-# jc5 = [3, [1, 61], 822, [747, 57, 18]]
-# jc6 = [6, [1, 61], 822, [747, 57, 18]]
+# jc5 = [3, [1, 61], 411, [376, 26, 9]]
+# jc6 = [6, [1, 61], 411, [376, 26, 9]]
 
 # j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
 # eg_counts = [eg1_job_count, eg2_job_count, eg3_job_count]
@@ -107,7 +107,7 @@ from collections import OrderedDict as od
 
 # # CONDITION DATA
 # if enhanced_jobs:
-#     # sg (special group) pre-existing condition
+#     # sg prex award (all reserve...)  TODO - make function
 #     # sequence = [eg, jnum, count, start_month, end_month]
 #     eg1_sg5 = [1, 5, 43, 0, 67]
 #     eg1_sg6 = [1, 6, 130, 0, 67]
@@ -128,16 +128,16 @@ from collections import OrderedDict as od
 #     eg2_cr7 = [2, 7, 101, imp_month, imp_month + 60]
 #     eg2_cr8 = [2, 8, 67, imp_month, imp_month + 60]
 
-#    # dict below is input for assign_cond_ratio_capped function
-#    # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
-#    # the job pcnt input is used with enhanced jobs (divides capped limit
-#    # into full/part time level cap)
-#     quota_dict = {(1, 1): ([2.48, 1], 637, full_time_pcnt1),
-#                   (2, 1): ([2.48, 1], 637, 1 - full_time_pcnt1),
-#                   (7, 1): ([2.46, 1], 1162, full_time_pcnt1),
-#                   (8, 1): ([2.46, 1], 1162, 1 - full_time_pcnt1),
-#                   (1, 0): ([2.48, 1], 637, 1),
-#                   (4, 0): ([2.46, 1], 1162, 1)}
+#     # dict below is input for assign_cond_ratio_capped function
+#     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
+#     # the job pcnt input is used with enhanced jobs (divides capped limit
+#     # into full/part time level cap)
+#     quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
+#                   (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
+#                   (7, 1): ([2.46, 1], 580, full_time_pcnt1),
+#                   (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1),
+#                   (1, 0): ([2.48, 1], 320, 1),
+#                   (4, 0): ([2.46, 1], 580, 1)}
 
 #     sg_rights = [eg1_sg5, eg1_sg6, eg1_sg12, eg1_sg13]
 #     ratio_cond = [eg1_cr1, eg1_cr2, eg1_cr7, eg1_cr8]
@@ -145,7 +145,7 @@ from collections import OrderedDict as od
 
 # else:
 
-#     # sg supc award (all reserve...)
+#     # sg prex award (all reserve...)
 #     # sequence = [eg, jnum, count, start_month, end_month]
 #     eg1_sg2 = [1, 2, 43, 0, 67]
 #     eg1_sg3 = [1, 3, 130, 0, 67]
@@ -262,6 +262,7 @@ from collections import OrderedDict as od
 #                   [0.94, 0.54, 0.2, 1.]]
 
 # eg_colors = ['#505050', '#0081ff', '#ff6600']
+
 # lin_reg_colors = ['#00b300', '#0086b3', '#cc5200']
 # lin_reg_colors2 = ['grey', '#0086b3', '#cc5200']
 # mean_colors = ['#4d4d4d', '#3399ff', '#ff8000']
@@ -293,3 +294,4 @@ from collections import OrderedDict as od
 #     adjust = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -75, 50, 0, -160, -40, 120, 0]
 # else:
 #     adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]
+

@@ -40,7 +40,6 @@ created by editor tool (when run):
 example usage to run this script from the jupyter notebook:
     %run build_program_files
 '''
-
 import pandas as pd
 import numpy as np
 
@@ -48,6 +47,23 @@ import functions as f
 import config as cf
 
 case = cf.case_study
+
+try:
+    # check to see if file exists and get value if it does
+    case_dill_value = pd.read_pickle('dill/case_dill.pkl').case.value
+except:
+    case_dill_value = 'empty_placeholder'
+
+if case_dill_value == case:
+    # if stored value is same as case study name, pass and keep dill files
+    pass
+else:
+    # if the case name is different, time to start over.  Delete dill files
+    # create new case_dill.pkl file
+    f.clear_dill_files()
+    case_dill = pd.DataFrame({'case': cf.case_study}, index=['value'])
+    case_dill.to_pickle('dill/case_dill.pkl')
+
 start_date = pd.to_datetime(cf.starting_date)
 
 # MASTER FILE:
@@ -75,9 +91,12 @@ master.to_pickle('dill/master.pkl')
 fur = master[['fur']]
 fur.to_pickle('dill/fur.pkl')
 
-# SG
-sg = master[['sg']]
-sg.to_pickle('dill/sg.pkl')
+# SG (special group, marked with 1 or 0)
+try:
+    sg = master[['sg']]
+    sg.to_pickle('dill/sg.pkl')
+except:
+    pass
 
 # ACTIVE EACH MONTH (no consideration for job changes or recall, only
 # calculated on retirements of active employees as of start date)
