@@ -160,6 +160,7 @@ skel.set_index('empkey', inplace=True, verify_integrity=False, drop=False)
 
 # AGE, RETDATE, EG, DOH, LDATE, LNAME, FUR, RET_MONTH to long_form skeleton
 skel['s_age'] = df.s_age
+skel['fur'] = df.fur
 
 if cf.add_eg_col:
     skel['eg'] = df.eg
@@ -175,9 +176,6 @@ if cf.add_line_col:
     skel['line'] = df.line
 if cf.add_sg_col:
     skel['sg'] = df.sg
-
-if not cf.actives_only:
-    skel['fur'] = df.fur
 
 # RET_MARK
 if cf.add_ret_mark:

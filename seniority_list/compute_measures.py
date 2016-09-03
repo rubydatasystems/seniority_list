@@ -32,16 +32,9 @@ df_master = pd.read_pickle(pre + 'master' + suf)
 
 start_date = pd.to_datetime(cf.starting_date)
 
-# # only include pilots that are not retired prior to the starting_month
-# df_master = df_master[
-#     df_master.retdate > start_date - pd.DateOffset(months=1)]
-
-if cf.actives_only:
-    df_master = df_master[df_master.line == 1].copy()
-    ds = ds[ds.fur == 0].copy()
-else:
-    df_master = df_master[
-        (df_master.line == 1) | (df_master.fur == 1)].copy()
+# do not include inactive employees (other than furlough) in data model
+df_master = df_master[
+    (df_master.line == 1) | (df_master.fur == 1)].copy()
 
 population = len(df_master)
 num_of_job_levels = cf.num_of_job_levels

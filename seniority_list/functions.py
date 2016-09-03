@@ -1472,10 +1472,9 @@ def make_job_counts(furlough_list, *job_count_lists):
 
     for job_list in job_count_lists:
 
-        if not cf.actives_only:
-            j = list(job_list)
-            j.append(furlough_list[i])
-            i += 1
+        j = list(job_list)
+        j.append(furlough_list[i])
+        i += 1
 
         eg_job_counts.append(j)
 
@@ -3129,8 +3128,7 @@ def print_config_selections():
                    'no_bump': cf.no_bump,
                    'ret_age': cf.ret_age,
                    'recall': cf.recall,
-                   'actives_only': cf.actives_only,
-                   'pay_raise': cf.pay_raise,
+                   'pay_raise': cf.future_raise,
                    'annual_pcnt_raise': cf.annual_pcnt_raise,
                    'top_of_scale': cf.top_of_scale,
                    'compute_job_category_order': cf.compute_job_category_order,

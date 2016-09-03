@@ -152,12 +152,16 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
 
     Combine and sort various attributes according to variable multipliers to
     produce a list order. The list order output is based on a sliding scale
-    of the priority assigned amoung the attributes.  The attribute values
-    from the employee groups may be evenly ratioed together or combined
-    on an absolute basis where the actual values determine the positioning.
+    of the priority assigned amoung the attributes.
 
-    The output is the resultant dataframe and also a list order is written to
-    disk as 'dill/hybrid.pkl'.
+    The default output is a dataframe containing the new hybrid list order
+    and employee numbers (empkey) only, and is written to disk as
+    'dill/hybrid.pkl'.
+
+    The entire hybrid-sorted dataframe may be returned by setting the
+    "return_df" input to True.  This does not affect the hybrid list order
+    dataframe - it is produced and stored regardless of the "return_df"
+    option.
 
 
     inputs
@@ -198,6 +202,10 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
     #  , absolute=True,
     # invert=False, include_inactives=False, include_fur=True,
     # cut=False, qcut=False, remove_retired=True):
+    #
+    # The attribute values from the employee groups may be evenly ratioed
+    # together or combined on an absolute basis where the actual values
+    # determine the positioning.
 
     df = df.copy()
     df['hybrid'] = 0

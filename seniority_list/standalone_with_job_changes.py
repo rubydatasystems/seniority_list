@@ -80,7 +80,11 @@ for i in egs - 1:
     this_table = table[0][i]
     this_month_counts = table[1][i]
 
-    df_align = df_long[['sg', 'fur']]
+    df_align_cols = ['fur']
+    if 'sg' in df_long:
+        df_align_cols.append('sg')
+
+    df_align = df_long[df_align_cols]
     fur_codes = np.array(df_align.fur)
 
     # pre-existing employee group special job assignment is included within

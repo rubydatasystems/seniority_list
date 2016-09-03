@@ -4,7 +4,7 @@ import importlib
 
 # OK to adjust variables within area marked by asterisks:
 # *****************************************************************************
-enhanced_jobs = True
+enhanced_jobs = False
 case_study = 'sample3'
 # *****************************************************************************
 
@@ -24,7 +24,7 @@ case = importlib.import_module(this_module)
 compute_with_job_changes = True
 no_bump = True
 
-actives_only = False
+# actives_only = True
 recall = True
 discount_longev_for_fur = True
 
@@ -52,7 +52,7 @@ compute_job_category_order = True
 
 # PAY (measures)
 compute_pay_measures = True
-pay_raise = False
+# pay_raise = False
 
 # *****************************************************************************
 

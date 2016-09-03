@@ -107,7 +107,7 @@ from collections import OrderedDict as od
 
 # # CONDITION DATA
 # if enhanced_jobs:
-#     # sg prex award (all reserve...)  TODO - make function
+#     # prex - sg (special group) pre-existing condition
 #     # sequence = [eg, jnum, count, start_month, end_month]
 #     eg1_sg5 = [1, 5, 43, 0, 67]
 #     eg1_sg6 = [1, 6, 130, 0, 67]
@@ -161,6 +161,17 @@ from collections import OrderedDict as od
 #     # sequence = [eg, jnum, count, start_month, end_month]
 #     eg2_cr1 = [2, 1, 92, imp_month, imp_month + 60]
 #     eg2_cr4 = [2, 4, 168, imp_month, imp_month + 60]
+
+#     # dict below is input for assign_cond_ratio_capped function
+#     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
+#     # the job pcnt input is used with enhanced jobs (divides capped limit
+#     # into full/part time level cap)
+#     quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
+#                   (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
+#                   (7, 1): ([2.46, 1], 580, full_time_pcnt1),
+#                   (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1),
+#                   (1, 0): ([2.48, 1], 320, 1),
+#                   (4, 0): ([2.46, 1], 580, 1)}
 
 #     sg_rights = [eg1_sg2, eg1_sg3, eg1_sg5, eg1_sg6]
 #     ratio_cond = [eg1_cr1, eg1_cr4]
