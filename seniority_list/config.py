@@ -4,7 +4,7 @@ import importlib
 
 # OK to adjust variables within area marked by asterisks:
 # *****************************************************************************
-enhanced_jobs = False
+enhanced_jobs = True
 case_study = 'sample3'
 # *****************************************************************************
 
@@ -102,7 +102,20 @@ ret_incr_dict = case.ret_incr_dict
 annual_pcnt_raise = case.annual_pcnt_raise
 top_of_scale = case.top_of_scale
 
-j_changes = case.j_changes
+try:
+    if compute_with_job_changes:
+        j_changes = case.j_changes
+    else:
+        j_changes = case.j_changes[:]
+        replace_1 = 0
+        replace_2 = [0, 0, 0]
+
+        for i in range(len(j_changes)):
+            j_changes[i][2] = replace_1
+            j_changes[i][3] = replace_2
+except:
+    j_changes = [[1, [10, 20], 0, [0, 0, 0]]]
+
 eg_counts = case.eg_counts
 furlough_count = case.furlough_count
 recalls = case.recalls

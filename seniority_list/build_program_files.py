@@ -87,24 +87,26 @@ if cf.ret_age_increase:
 master = master[master.retdate >= start_date - pd.DateOffset(months=1)]
 master.to_pickle('dill/master.pkl')
 
-# FUR
-fur = master[['fur']]
-fur.to_pickle('dill/fur.pkl')
+# code below subject to removal pending testing
+# # FUR
+# fur = master[['fur']]
+# fur.to_pickle('dill/fur.pkl')
 
-# SG (special group, marked with 1 or 0)
-try:
-    sg = master[['sg']]
-    sg.to_pickle('dill/sg.pkl')
-except:
-    pass
+# # SG (special group, marked with 1 or 0)
+# try:
+#     sg = master[['sg']]
+#     sg.to_pickle('dill/sg.pkl')
+# except:
+#     pass
 
 # ACTIVE EACH MONTH (no consideration for job changes or recall, only
 # calculated on retirements of active employees as of start date)
 emps_to_calc = master[master.line == 1].copy()
 cmonths = f.career_months_df_in(emps_to_calc)
 nonret_each_month = f.count_per_month(cmonths)
-actives = pd.DataFrame(nonret_each_month, columns=['count'])
-actives.to_pickle('dill/active_each_month.pkl')
+# code below subject to removal pending test period completion
+# actives = pd.DataFrame(nonret_each_month, columns=['count'])
+# actives.to_pickle('dill/active_each_month.pkl')
 
 # LIST ORDER PROPOSALS
 # extract list ordering from a single Excel workbook containing proposed

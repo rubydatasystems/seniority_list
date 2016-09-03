@@ -25,9 +25,6 @@ num_of_months = pd.unique(ds.mnum).size
 egs = pd.unique(ds.eg)
 start_month = 0
 
-# if cf.actives_only:
-#     ds = ds[ds.fur == 0].copy()
-
 if cf.enhanced_jobs:
     eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
                                             cf.full_time_pcnt1,
@@ -89,43 +86,29 @@ for i in egs - 1:
 
     # pre-existing employee group special job assignment is included within
     # the job assignment function below...
-    if cf.compute_with_job_changes:
 
-        results = f.assign_standalone_job_changes(df_align,
-                                                  lowers,
-                                                  uppers,
-                                                  all_months,
-                                                  this_table,
-                                                  this_month_counts,
-                                                  this_ds_nonret_each_month,
-                                                  job_change_months,
-                                                  job_reduction_months,
-                                                  start_month,
-                                                  i,
-                                                  fur_return=cf.recall)
+    results = f.assign_standalone_job_changes(df_align,
+                                              lowers,
+                                              uppers,
+                                              all_months,
+                                              this_table,
+                                              this_month_counts,
+                                              this_ds_nonret_each_month,
+                                              job_change_months,
+                                              job_reduction_months,
+                                              start_month,
+                                              i,
+                                              fur_return=cf.recall)
 
-        jnums = results[0]
-        count_col = results[1]
-        held = results[2]
-        fur = results[3]
-        orig_jobs = results[4]
-        # HELD JOB
-        df_long['held'] = held
-        # JOB_COUNT
-        df_long['job_count'] = count_col
-
-    else:
-
-        orig_jobs = f.make_stovepipe_jobs_from_jobs_arr(jcnts,
-                                                        short_len)
-
-        jnums = f.assign_jobs_full_flush_skip_furs(this_ds_nonret_each_month,
-                                                   orig_jobs,
-                                                   fur_codes,
-                                                   num_of_job_levels)
-        # JOB_COUNT
-        fur_count = fur_counts[i]
-        df_long['job_count'] = f.put_map(jnums, jcnts, fur_count).astype(int)
+    jnums = results[0]
+    count_col = results[1]
+    held = results[2]
+    fur = results[3]
+    orig_jobs = results[4]
+    # HELD JOB
+    df_long['held'] = held
+    # JOB_COUNT
+    df_long['job_count'] = count_col
 
     df_short['orig_job'] = orig_jobs
 
@@ -164,10 +147,6 @@ for i in egs - 1:
 
     df_long['jobp'] = (df_long['rank_in_job'] /
                        df_long['job_count']) + (df_long['jnum'] - .0001)
-
-    # if cf.compute_job_category_order:
-    #     df_long['cat_order'] = df_long.groupby('mnum', sort=False)['jobp'] \
-    #         .rank(method='first') * len(ds) / len(df_long)
 
     # PAY - merge with pay table - provides monthly pay
     if cf.compute_pay_measures:
