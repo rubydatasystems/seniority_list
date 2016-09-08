@@ -5,7 +5,7 @@ import importlib
 # OK to adjust variables within area marked by asterisks:
 # *****************************************************************************
 enhanced_jobs = True
-case_study = 'sample3'
+case_study = 'aa_award'
 # *****************************************************************************
 
 
@@ -24,7 +24,6 @@ case = importlib.import_module(this_module)
 compute_with_job_changes = True
 no_bump = True
 
-# actives_only = True
 recall = True
 discount_longev_for_fur = True
 
@@ -85,7 +84,7 @@ annual_pcnt_raise = case.annual_pcnt_raise
 # imp below refers to 'implementation'
 imp_date = case.imp_date
 imp_month = case.imp_month
-end_date = case.end_date
+# end_date = case.end_date
 ratio_final_month = case.ratio_final_month
 
 init_ret_age_years = case.init_ret_age_years

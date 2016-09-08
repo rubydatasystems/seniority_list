@@ -1018,7 +1018,10 @@ def assign_jobs_nbnf_job_changes(df,
 
         # calc capped count condition month range and concat
     if 'count' in condition_list:
-        count_cond = np.array(cf.count_cond)
+        if proposal_name_text == 'p4':
+            count_cond = np.array(cf.count_cond[:int(len(cf.count_cond) * .5)])
+        else:
+            count_cond = np.array(cf.count_cond)
         count_jobs = np.transpose(count_cond)[1]
         quota_dict = cf.quota_dict
         # count_cond_start_month = count_cond[0][3]

@@ -196,8 +196,6 @@ else:
 
 # grab long_form indexed stovepipe jobs (int)
 orig = np.array(ds['orig_job'])
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# if cf.compute_with_job_changes:
 
 table = f.job_gain_loss_table(nonret_each_month.size,
                               num_of_job_levels,
@@ -225,24 +223,6 @@ ds['fur'] = jobs_and_counts[3]
 # remove this assignment when testing complete...
 ds['func_job'] = jobs_and_counts[2]
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# else:
-
-#     nbnf = f.assign_jobs_nobump_noflush(orig, np.array(ds.fur), np_low_limits,
-#                                         cumulative, all_months,
-#                                         job_level_counts)
-
-# FBFF*
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# if cf.compute_with_job_changes:
-#     job_col = f.assign_jobs_full_flush_with_job_changes(
-#         nonret_each_month, table[1], num_of_job_levels)
-# else:
-#     integrated_stovepipe_jobs = f.make_stovepipe_jobs_from_jobs_arr(
-#         jcnts_arr[1], population)
-#     job_col = f.assign_jobs_full_flush(
-#         nonret_each_month, integrated_stovepipe_jobs, num_of_job_levels)
-
 job_col = f.assign_jobs_full_flush_with_job_changes(
     nonret_each_month, table[1], num_of_job_levels)
 
@@ -260,21 +240,13 @@ else:
 jnum_jobs = np.array(ds['jnum']).astype(int)
 
 # SNUM, SPCNT, LNUM, LSPCNT
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# if cf.compute_with_job_changes:
 job_count_each_month = table[1]
-# insert if delayed implementation here...
-# this code will not consider delayed job counts
-# alignment needed with sep results TODO...
+
 ds['snum'], ds['spcnt'], ds['lnum'], ds['lspcnt'] = \
     f.create_snum_and_spcnt_arrays(jnum_jobs, num_of_job_levels,
                                    nonret_each_month,
                                    job_count_each_month,
                                    lspcnt_calc)
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# else:
-#     ds['snum'] = f.create_snum_array(nbnf, nonret_each_month)
-#     ds['spcnt'] = ds['snum'] / max(ds.snum)
 
 
 # RANK in JOB
@@ -283,8 +255,6 @@ ds['rank_in_job'] = ds.groupby(['mnum', 'jnum'], sort=False).cumcount() + 1
 
 
 # JOB_COUNT
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# if cf.compute_with_job_changes:
 if cf.delayed_implementation:
     delayed_job_counts = np.zeros(len(ds))
     delayed_job_counts[:imp_high] = standalone_preimp_job_counts
@@ -292,12 +262,6 @@ if cf.delayed_implementation:
     ds['job_count'] = delayed_job_counts.astype(int)
 else:
     ds['job_count'] = jobs_and_counts[1]
-# else:
-#     jnums = np.array(ds.jnum)
-#     job_level_counts = np.array(jcnts_arr[1])
-#     ds['job_count'] = f.put_map(jnums,
-#                                 job_level_counts,
-#                                 sum(cf.furlough_count)).astype(int)
 
 # JOBP
 

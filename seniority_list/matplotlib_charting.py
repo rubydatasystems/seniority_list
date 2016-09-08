@@ -1653,7 +1653,9 @@ def differential_scatter(base_ds, compare_ds_list,
             if chart_example:
                 plt.title('Proposal 1' + ' differential: ' + measure)
             else:
-                plt.title(yval_dict[prop_num] + ' differential: ' + measure)
+                # plt.title(yval_dict[prop_num] + ' differential: ' + measure)
+                plt.title('Proposal ' + str(prop_num) +
+                          ' differential: ' + measure)
             plt.xlim(xmin=0)
 
             if measure in ['spcnt', 'lspcnt']:
@@ -1791,6 +1793,7 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
                               measure_val) & (proposal[measure_subset] <=
                               measure_val2)][['eg', 'date', 'jnum']].copy()
 
+    colors.append('.7')
     for eg in eg_list:
         with sns.axes_style("darkgrid"):
             denom = len(proposal[(proposal.mnum == 0) & (proposal.eg == eg)])
@@ -1852,8 +1855,8 @@ def job_grouping_over_time(proposal, prop_text, eg_list, jobs, colors,
 
 
 def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
-             left=0, stride_list=None,
-             facecolor='#f5f5dc', xsize=6, ysize=8):
+             left=0, stride_list=None, grid_color='.7',
+             facecolor='w', xsize=6, ysize=8):
     '''Compare positional or value differences for various proposals
     with a baseline position or value for selected months.
 
@@ -1886,6 +1889,8 @@ def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
         stride_list
             optional list of dataframe strides for plotting every other
             nth result
+        grid_color
+            string name for horizontal grid color
         facecolor
             chart background color
         xsize, ysize
@@ -1944,7 +1949,7 @@ def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
                                           'axes.axisbelow': True,
                                           'axes.edgecolor': '.2',
                                           'axes.linewidth': 1.0,
-                                          'grid.color': '.7',
+                                          'grid.color': 'm',
                                           'grid.linestyle': u'--'}):
 
             for eg in eg_list:
@@ -3112,6 +3117,7 @@ def reset_editor():
 def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                                 proposal_dict, job_strs,
                                 span_colors, job_levels,
+                                fur_color='.5',
                                 single_eg=False, num=1, exclude_fur=False,
                                 plot_scatter=True, s=20, a=.7, lw=0,
                                 width=12, height=12,
@@ -3126,7 +3132,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
 
     sg refers to special group - a group with special job rights
     '''
-
+    span_colors.append(fur_color)
     max_count = df.groupby('mnum').size().max()
     mnum_count = pd.unique(df.mnum).size
     df = df[df.mnum == mnum].copy()
@@ -3296,6 +3302,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                 ax1.axhline(y=level, c='.8', ls='-', alpha=.8, lw=.5, zorder=0)
             plt.gca().invert_yaxis()
 
+            # plot job band background on chart
             for i in np.arange(1, job_ticks.size):
                 ax2.axhspan(job_ticks[i - 1], job_ticks[i],
                             facecolor=span_colors[i - 1], alpha=.15)
@@ -3343,7 +3350,7 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
     of different groups being plotted on the same chart.
     '''
 
-    eg_colors = {1: 'k', 2: 'b', 3: 'r'}
+    eg_colors = {1: 'k', 2: 'b', 3: 'r', 4: 'm'}
     clrs = []
 
     for prop in proposals_to_plot:
@@ -4070,6 +4077,7 @@ def single_emp_compare(emp, measure, ds_list, xax,
         chart_example
             option to select anonomized results for display purposes
     '''
+    eg_colors.append('green')
     eg_colors.append(standalone_color)
 
     if chart_example:
@@ -4229,17 +4237,20 @@ def job_time_change(base_df, compare_ds_list, eg_list,
             # filter for eg
             eg_df = joined_dict[j][joined_dict[j].eg == eg]
             for i in job_list:
-                eg_df.plot(kind='scatter',
-                           x=xax,
-                           y=i,
-                           color=colors[i - 1],
-                           edgecolor=edgecolor,
-                           marker=marker,
-                           linewidth=linewidth,
-                           s=size,
-                           alpha=alpha,
-                           label=str(i),
-                           ax=ax)
+                try:
+                    eg_df.plot(kind='scatter',
+                               x=xax,
+                               y=i,
+                               color=colors[i - 1],
+                               edgecolor=edgecolor,
+                               marker=marker,
+                               linewidth=linewidth,
+                               s=size,
+                               alpha=alpha,
+                               label=str(i),
+                               ax=ax)
+                except:
+                    pass
 
             handles, labels = ax.get_legend_handles_labels()
             # sort both labels and handles by labels (converted to int)

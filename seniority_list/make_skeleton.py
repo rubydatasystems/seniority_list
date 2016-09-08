@@ -66,12 +66,6 @@ long_form_skeleton = f.gen_month_skeleton(nonret_each_month)
 
 skel = pd.DataFrame(long_form_skeleton.astype(int), columns=['mnum'])
 
-# freeze_date = pd.to_datetime('2013-12-31')
-# month_offset = ((start_date.year - freeze_date.year) * 12) - \
-#     (freeze_date.month - start_date.month)
-
-# skel.mnum = skel.mnum + month_offset
-
 # IDX*
 # grab emp index for each remaining
 # employee for each month - used for merging dfs later

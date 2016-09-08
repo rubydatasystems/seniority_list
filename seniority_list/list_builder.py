@@ -621,8 +621,8 @@ def compare_dataframes(base, compare, return_orphans=True,
                       vs. the base input.\n''')
     # -----------------------------------------------------------------------
 
-    base = base.loc[common_rows]
-    compare = compare.loc[common_rows]
+    base = base.loc[common_rows].copy()
+    compare = compare.loc[common_rows].copy()
 
     unequal_cols = []
     equal_cols = []
@@ -664,8 +664,8 @@ def compare_dataframes(base, compare, return_orphans=True,
 
     if print_info:
         same_col_df = pd.DataFrame(list(zip(common_cols, same_col_list)),
-                                   columns=['common_col', 'equivalent'])
-        same_col_df.sort_values(['equivalent', 'common_col'], inplace=True)
+                                   columns=['common_col', 'equivalent?'])
+        same_col_df.sort_values(['equivalent?', 'common_col'], inplace=True)
         same_col_df.reset_index(drop=True, inplace=True)
         print(same_col_df, '\n')
         print('\nCOLUMN INFORMATION:')
@@ -701,7 +701,18 @@ def compare_dataframes(base, compare, return_orphans=True,
         for col in base:
             base_np = np.array(base[col])
             compare_np = np.array(compare[col])
-            unequal = np.not_equal(base_np, compare_np)
+
+            try:
+                unequal = np.not_equal(base_np, compare_np)
+            except:
+                try:
+                    mask = base.duplicated(subset=col, keep=False)
+                    dups = list(base[mask][col])
+                    print('error, duplicate values:')
+                    print(pd.DataFrame(dups, columns=['dups']))
+                except:
+                    pass
+
             row_ = np.where(unequal)[0]
             index_ = base.iloc[row_].index
             col_ = np.array([col] * row_.size)
@@ -797,3 +808,28 @@ def find_series_locs(df, series_values, column_label):
             loc_list.append(list(df[column_label]).index(val))
     return loc_list
 
+
+def test_df_col_or_idx_equivalence(df1, df2, col=None):
+    '''check whether two dataframes contain the same elements (but not
+    necessarily in the same order) in either the indexes or a selected column
+
+    inputs
+        df1, df2
+            the dataframes to check
+
+        col
+            if not None, test this dataframe column for equivalency, otherwise
+            test the dataframe indexes
+
+    Returns True or False
+    '''
+    if not col:
+        result = all(np.in1d(df1.index, df2.index,
+                             assume_unique=True,
+                             invert=False))
+    else:
+        result = all(np.in1d(df1[col], df2[col],
+                             assume_unique=False,
+                             invert=False))
+
+    return result
