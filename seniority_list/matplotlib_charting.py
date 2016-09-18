@@ -802,7 +802,7 @@ def eg_diff_boxplot(df_list, standalone_df, eg_list,
                     width=.8, chart_style='dark',
                     notch=True,
                     job_diff_clip=cf.num_of_job_levels + 1,
-                    xsize=18, ysize=10, chart_example=False):
+                    xsize=10, ysize=6, chart_example=False):
     '''create a differential box plot chart comparing a selected measure from
     computed integrated dataset(s) vs. standalone dataset or with other
     integrated datasets.
@@ -1012,7 +1012,7 @@ def eg_boxplot(df_list, eg_list,
                grid_alpha=.4,
                grid_linestyle='solid',
                job_clip=cf.num_of_job_levels + 1,
-               xsize=18, ysize=10):
+               xsize=10, ysize=6):
     '''create a box plot chart displaying actual attribute values
     (vs. differential values) from a selected dataset(s) for selected
     employee group(s).
@@ -1156,7 +1156,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
                                        eg_colors, band_colors, job_strs,
                                        eg_dict, bg_alpha=.12,
                                        show_part_time_lvl=True,
-                                       size=3,
+                                       size=3, xsize=4, ysize=10,
                                        chart_example=False):
     '''visually display employee group distribution concentration within
     accurately sized job bands for a selected month.
@@ -1285,6 +1285,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
     plt.title(
         'Group distribution within job levels, month ' + str(mnum), y=1.04)
     plt.xlabel('test')
+    fig.set_size_inches(xsize, ysize)
     plt.show()
 
 
@@ -1482,7 +1483,7 @@ def differential_scatter(base_ds, compare_ds_list,
                          show_scatter=True, show_lin_reg=True,
                          show_mean=True, mean_len=50,
                          dot_size=15, lin_reg_order=15, ylimit=False, ylim=5,
-                         width=22, height=14, bright_bg=False,
+                         xsize=12, ysize=9, bright_bg=False,
                          chart_style='whitegrid', chart_example=False):
     '''plot an attribute differential between datasets filtered with another
     attribute if desired.
@@ -1532,7 +1533,7 @@ def differential_scatter(base_ds, compare_ds_list,
             if True, set chart y axis limit to ylim (below)
         ylim
             y axis limit positive and negative if ylimit is True
-        width, height
+        xsize, ysize
             size of chart
         bright_bg
             use a bright yellow tint chart background
@@ -1546,8 +1547,6 @@ def differential_scatter(base_ds, compare_ds_list,
 
     df = base_ds[base_ds[filter_measure] == filter_val][[measure, 'eg']].copy()
     df.rename(columns={measure: measure + '_s'}, inplace=True)
-
-    yval_dict = cf.eg_dict_verbose
 
     order_dict = {}
 
@@ -1649,11 +1648,11 @@ def differential_scatter(base_ds, compare_ds_list,
                 else:
                     plt.ylim(-scale_lim, scale_lim)
 
-            plt.gcf().set_size_inches(width, height)
+            plt.gcf().set_size_inches(xsize, ysize)
             if chart_example:
                 plt.title('Proposal 1' + ' differential: ' + measure)
             else:
-                # plt.title(yval_dict[prop_num] + ' differential: ' + measure)
+
                 plt.title('Proposal ' + str(prop_num) +
                           ' differential: ' + measure)
             plt.xlim(xmin=0)
@@ -1949,7 +1948,7 @@ def parallel(standalone_df, df_list, eg_list, measure, month_list, job_levels,
                                           'axes.axisbelow': True,
                                           'axes.edgecolor': '.2',
                                           'axes.linewidth': 1.0,
-                                          'grid.color': 'm',
+                                          'grid.color': grid_color,
                                           'grid.linestyle': u'--'}):
 
             for eg in eg_list:
@@ -3120,7 +3119,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
                                 fur_color='.5',
                                 single_eg=False, num=1, exclude_fur=False,
                                 plot_scatter=True, s=20, a=.7, lw=0,
-                                width=12, height=12,
+                                xsize=10, ysize=10,
                                 chart_example=False):
     '''num input options:
                    {1: 'eg1_with_sg',
@@ -3333,7 +3332,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
         plt.xticks(np.arange(0, 55, 5))
         plt.xlim(-0.5, max(df.ylong) + 1)
 
-    plt.gcf().set_size_inches(width, height)
+    plt.gcf().set_size_inches(xsize, ysize)
     plt.show()
     sns.set_style('darkgrid')
 
@@ -3341,7 +3340,7 @@ def eg_multiplot_with_cat_order(df, proposal, mnum, measure, xax,
 def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
                gb_period, year_clip=2042,
                show_range=False, show_mean=True, normalize_y=False,
-               ysize=6, xsize=6):
+               ysize=6, xsize=8):
     '''Plot a range of differential attributes or a differential
     average over time.  Individual employee groups and proposals may
     be selected.  Each chart indicates the results for one group with
@@ -3431,104 +3430,173 @@ def diff_range(ds_list, sa_ds, measure, eg_list, proposals_to_plot,
         plt.show()
 
 
-def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
-                     xsize=7, ysize=5):
+def job_count_charts(prop, base, eg_list=None, plot_egs_sep=False,
+                     plot_total=True, year_max=None, base_ls='solid',
+                     prop_ls='dotted', base_lw=1.6, prop_lw=2.5,
+                     total_color='g', xsize=6, ysize=5):
     '''line-style charts displaying job category counts over time.
 
-    option to display employee group results on separate charts or together
+    optionally display employee group results on separate charts or together
+
+    inputs
+        prop
+            comparison dataframe (dataset)
+        base
+            baseline dataframe
+        eg_list
+            list of employee group codes to plot
+            Example: [1, 2]
+        plot_egs_sep
+            if True, plot each employee group job level counts separately
+        plot_total
+            if True, include the combined job counts on chart(s)
+        year_max
+            maximum year to include on chart
+            Example:  if input is 2030, chart would display data from
+            beginning of data model through 2030 (integer)
+        base_ls
+            line style for base job count line(s)
+        prop_ls
+            line style for comparison (proposal) job count line(s)
+        base_lw
+            line width for base job count line(s)
+        prop_lw
+            line width for comparison (proposal) job count lines
+        total_color
+            color for combined job level count from all employee groups
+        xsize, ysize
+            size of chart display
     '''
-    num_jobs = cf.num_of_job_levels
+    prop = prop[['date', 'jnum', 'eg']]
+    base = base[['date', 'jnum', 'eg']]
+
+    if year_max:
+        prop = prop[prop.date.dt.year <= year_max].copy()
+        base = base[base.date.dt.year <= year_max].copy()
+
+    jnums = np.unique(np.concatenate((pd.unique(base.jnum),
+                                      pd.unique(prop.jnum))))
+    num_jobs = jnums.size
 
     if plot_egs_sep:
         num_egplots = len(eg_list)
     else:
         num_egplots = 1
 
+    # count_plot function:
+    def count_plot(df, color, ax, lw, alpha, ls):
+        df[df.jnum == jnum].groupby('date').size() \
+            .fillna(0).astype(int) \
+            .plot(c=color, lw=lw, ls=ls, alpha=alpha, ax=ax)
+
     fig, ax = plt.subplots(num_jobs, num_egplots)
 
     fig = plt.gcf()
     fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
-    subplot_list = build_subplotting_order(num_jobs, num_egplots)
 
-    plot_idx = 0
+    plot_idx = 1
 
-    if plot_egs_sep:
+    # loop through job levels
+    for jnum in jnums:
 
-        for eg in eg_list:
+        # filter for current job number
+        base_jobs = base[base.jnum == jnum]
+        prop_jobs = prop[prop.jnum == jnum]
 
-            for jnum in np.arange(1, cf.num_of_job_levels + 1):
-                plot_id = subplot_list[plot_idx]
+        # plot each employee group on separate chart for each job level:
+        if plot_egs_sep:
 
-                ax = plt.subplot(num_jobs, num_egplots, plot_id)
+            # loop through employee groups
+            for eg in eg_list:
 
-                base[base.jnum == jnum].groupby(['date', 'jnum']).size() \
-                    .unstack().fillna(0).astype(int).plot(c='g',
-                                                          lw=.7,
-                                                          alpha=.7,
-                                                          ax=ax)
+                ax = plt.subplot(num_jobs, num_egplots, plot_idx)
 
-                prop[prop.jnum == jnum].groupby(['date', 'jnum']).size() \
-                    .unstack().fillna(0).astype(int).plot(c='g',
-                                                          ls='dotted',
-                                                          lw=1,
-                                                          ax=ax)
+                # show combined job level count on chart, otherwise skip over
+                if plot_total:
+                    try:
+                        # plot base df job total
+                        count_plot(base_jobs, total_color,
+                                   ax, base_lw, .7, ls=base_ls)
 
+                    except:
+                        pass
+
+                    try:
+                        # plot proposal df job total
+                        count_plot(prop_jobs, total_color,
+                                   ax, prop_lw, 1, ls=prop_ls)
+
+                    except:
+                        pass
+
+                eg_jobs = base_jobs[base_jobs.eg == eg]
                 try:
-                    base[(base.eg == eg) & (base.jnum == jnum)] \
-                        .groupby(['date', 'jnum']).size().unstack() \
-                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
-                                                    lw=2,
-                                                    ax=ax)
+                    # plot employee group base job count
+                    count_plot(eg_jobs, cf.eg_colors[eg - 1],
+                               ax, base_lw, 1, ls=base_ls)
 
-                    prop[(prop.eg == eg) & (prop.jnum == jnum)] \
-                        .groupby(['date', 'jnum']).size().unstack() \
-                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
-                                                    ls='dotted',
-                                                    lw=3,
-                                                    ax=ax)
                 except:
                     pass
-                ax.legend_.remove()
+
+                eg_jobs = prop_jobs[prop_jobs.eg == eg]
+                try:
+                    # plot employee group proposal job count
+                    count_plot(eg_jobs, cf.eg_colors[eg - 1],
+                               ax, prop_lw, 1, ls=prop_ls)
+
+                except:
+                    pass
+
                 plt.title(cf.eg_dict_verbose[eg] + '  ' +
                           cf.jobs_dict[jnum], fontsize=14)
                 plot_idx += 1
 
-    else:
+        # plot all employee groups on same job level chart
+        else:
 
-        for jnum in np.arange(1, cf.num_of_job_levels + 1):
+            ax = plt.subplot(num_jobs, num_egplots, plot_idx)
 
-            plot_id = subplot_list[plot_idx]
-            ax = plt.subplot(num_jobs, num_egplots, plot_id)
-
-            base[base.jnum == jnum].groupby(['date', 'jnum']).size() \
-                .unstack().fillna(0).astype(int).plot(c='g', lw=.7,
-                                                      alpha=.7, ax=ax)
-
-            prop[prop.jnum == jnum].groupby(['date', 'jnum']).size() \
-                .unstack().fillna(0).astype(int).plot(c='g',
-                                                      ls='dotted',
-                                                      lw=1,
-                                                      ax=ax)
-
-            for eg in eg_list:
+            # show combined job level count on chart, otherwise skip over
+            if plot_total:
                 try:
-                    base[(base.eg == eg) & (base.jnum == jnum)] \
-                        .groupby(['date', 'jnum']).size().unstack() \
-                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
-                                                    lw=2,
-                                                    ax=ax)
-
-                    prop[(prop.eg == eg) & (prop.jnum == jnum)] \
-                        .groupby(['date', 'jnum']).size().unstack() \
-                        .fillna(0).astype(int).plot(c=cf.eg_colors[eg - 1],
-                                                    ls='dotted',
-                                                    lw=3,
-                                                    ax=ax)
+                    # plot base df job total
+                    count_plot(base_jobs, total_color,
+                               ax, base_lw, .7, ls=base_ls)
                 except:
                     pass
-            ax.legend_.remove()
+
+                try:
+                    # plot proposal df job total
+                    count_plot(prop_jobs, total_color,
+                               ax, prop_lw, 1, ls=prop_ls)
+                except:
+                    pass
+
+            # loop through employee groups
+            for eg in eg_list:
+
+                eg_jobs = base_jobs[base_jobs.eg == eg]
+                try:
+                    count_plot(eg_jobs, cf.eg_colors[eg - 1],
+                               ax, base_lw, 1, ls=base_ls)
+                except:
+                    pass
+
+                eg_jobs = prop_jobs[prop_jobs.eg == eg]
+                try:
+                    count_plot(eg_jobs, cf.eg_colors[eg - 1],
+                               ax, prop_lw, 1, ls=prop_ls)
+                except:
+                    pass
+
             plt.title(cf.jobs_dict[jnum], fontsize=14)
             plot_idx += 1
+
+    for ax in fig.axes:
+        try:
+            ax.legend_.remove()
+        except:
+            pass
 
     fig.tight_layout()
     plt.show()
@@ -3536,6 +3604,8 @@ def job_count_charts(prop, base, eg_list=[1, 2, 3], plot_egs_sep=False,
 
 def build_subplotting_order(rows, cols):
     '''build a list of integers to permit passing through subplots by columns
+    note:  only used when looping completes one vertical column before
+    continuing to next column
     '''
     subplot_order_list = []
     for col in np.arange(1, cols + 1):
@@ -4126,7 +4196,7 @@ def job_time_change(base_df, compare_ds_list, eg_list,
                     xax, colors=cf.job_colors,
                     job_list=np.arange(cf.num_of_job_levels, 0, -1),
                     jobs_dict=cf.jobs_dict,
-                    marker='o', edgecolor='k', linewidth=.15, size=50,
+                    marker='o', edgecolor='k', linewidth=.05, size=25,
                     alpha=.95, bg_color=None, xmax=1.02,
                     limit_yax=False, ylimit=40, zeroline_color='m',
                     zeroline_width=1.5, pos_neg_face=True,

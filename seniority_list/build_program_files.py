@@ -83,21 +83,13 @@ if cf.ret_age_increase:
                    pd.offsets.MonthEnd(-1), 'retdate'] = \
             master.retdate + pd.DateOffset(months=add_months)
 
-# only include pilots that are not retired prior to the starting_month
-master = master[master.retdate >= start_date - pd.DateOffset(months=1)]
+# only include employees who retire during or after the starting_month
+# (remove employees who retire prior to analysis period)
+master = master[master.retdate >= start_date -
+                pd.DateOffset(months=1) +
+                pd.DateOffset(days=1)]
+
 master.to_pickle('dill/master.pkl')
-
-# code below subject to removal pending testing
-# # FUR
-# fur = master[['fur']]
-# fur.to_pickle('dill/fur.pkl')
-
-# # SG (special group, marked with 1 or 0)
-# try:
-#     sg = master[['sg']]
-#     sg.to_pickle('dill/sg.pkl')
-# except:
-#     pass
 
 # ACTIVE EACH MONTH (no consideration for job changes or recall, only
 # calculated on retirements of active employees as of start date)
@@ -109,10 +101,12 @@ nonret_each_month = f.count_per_month(cmonths)
 # actives.to_pickle('dill/active_each_month.pkl')
 
 # LIST ORDER PROPOSALS
-# extract list ordering from a single Excel workbook containing proposed
-# list orderings on separate worksheets
-# The worksheet tab names are important for the function
-# The pickle files will be named like the worbook sheet names
+# Read the list ordering proposals from an Excel workbook, add an index
+# column ('idx'), and store each proposal as a dataframe in a pickled file.
+# The proposals are contained on separate worksheets.
+# The routine below will loop through the worksheets.
+# The worksheet tab names are important for the function.
+# The pickle files will be named like the workbook sheet names.
 
 xl = pd.ExcelFile('excel/' + case + '/proposals.xlsx')
 
@@ -127,16 +121,18 @@ for ws in sheets:
         continue
 
 # LAST MONTH
-# percent of month for all days from starting date to the date of the last
-# retirement.  Used for retirement month pay
-dates = pd.date_range(cf.starting_date, master.retdate.max())
-df_dates = pd.DataFrame(dates, columns=['dates'])
-df_dates['day'] = df_dates.dates.apply(lambda x: x.day)
-df_dates['lday'] = \
-    df_dates.dates.apply(lambda x: (x + pd.offsets.MonthEnd(0)).day)
-df_dates['last_pay'] = df_dates.day / df_dates.lday
-df_dates.set_index('dates', inplace=True)
+# percent of month for all employee retirement dates.
+# Used for retirement month pay.
+
+df_dates = master[['retdate']].copy()
+df_dates['day_of_month'] = df_dates.retdate.dt.day
+df_dates['days_in_month'] = (df_dates.retdate + pd.offsets.MonthEnd(0)).dt.day
+df_dates['last_pay'] = df_dates.day_of_month / df_dates.days_in_month
+
+df_dates.set_index('retdate', inplace=True)
 df_dates = df_dates[['last_pay']]
+df_dates.sort_index(inplace=True)
+df_dates = df_dates[~df_dates.index.duplicated()]
 df_dates.to_pickle('dill/last_month.pkl')
 
 # SQUEEZE_VALS

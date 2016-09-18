@@ -95,7 +95,6 @@ df_dict = {'mth_pcnt': lmonth_pcnt, 'final_month': cmonths}
 
 df_last_month = pd.DataFrame(df_dict)
 
-
 df_last_month['idx'] = df_last_month.index
 
 df_last_month.set_index(['idx', 'final_month'], inplace=True)

@@ -5,7 +5,7 @@ import importlib
 # OK to adjust variables within area marked by asterisks:
 # *****************************************************************************
 enhanced_jobs = True
-case_study = 'aa_award'
+case_study = 'sample3'
 # *****************************************************************************
 
 
