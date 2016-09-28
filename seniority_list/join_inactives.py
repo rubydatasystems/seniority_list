@@ -35,7 +35,7 @@ xlpre, xlsuf = 'reports/', '.xlsx'
 output_name = cf.case_study + '_' + output_name
 
 master_path_string = (pre + master_name + suf)
-order_path_string = (pre + proposed_order_df + suf)
+order_path_string = (pre + 'p_' + proposed_order_df + suf)
 write_xl_path = (xlpre + output_name + xlsuf)
 
 df_master = pd.read_pickle(master_path_string)

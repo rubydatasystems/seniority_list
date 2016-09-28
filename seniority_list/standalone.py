@@ -11,7 +11,7 @@ from sys import argv
 
 script, *conditions = argv
 
-input_skel = 'skel'
+input_skel = 'skeleton'
 
 pre, suf = 'dill/', '.pkl'
 
@@ -170,10 +170,10 @@ for i in egs - 1:
 
         if cf.enhanced_jobs:
             df_pt = pd.read_pickle(
-                'dill/pay_table_enhanced_with_fur_indexed.pkl')
+                'dill/pay_table_enhanced.pkl')
         else:
             df_pt = pd.read_pickle(
-                'dill/pay_table_basic_with_fur_indexed.pkl')
+                'dill/pay_table_basic.pkl')
 
         df_pt_index['monthly'] = df_pt['monthly']
 
@@ -205,4 +205,4 @@ ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
 
 # save to file
 if cf.save_to_pickle:
-    ds.to_pickle('dill/stand.pkl')
+    ds.to_pickle('dill/standalone.pkl')

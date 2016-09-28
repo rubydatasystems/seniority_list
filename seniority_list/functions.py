@@ -12,8 +12,9 @@ size and age)
 import os
 import pandas as pd
 import numpy as np
-from numba import jit
 import scipy.stats as st
+from numba import jit
+from collections import OrderedDict as od
 
 import config as cf
 
@@ -1018,6 +1019,7 @@ def assign_jobs_nbnf_job_changes(df,
 
         # calc capped count condition month range and concat
     if 'count' in condition_list:
+        # TEMPORARY CONDITION FOR AA AWARD:
         if proposal_name_text == 'p4':
             count_cond = np.array(cf.count_cond[:int(len(cf.count_cond) * .5)])
         else:
@@ -3198,3 +3200,29 @@ def clear_dill_files():
     for f in filelist:
         os.remove('dill/' + f)
 
+
+def load_datasets(other_datasets=['standalone', 'skeleton']):
+    '''read the pickled datasets applicable to the current
+    case_study variable set within the config.py file.
+
+    The datasets are generated with the RUN_SCRIPTS notebook.  This routine
+    reads the names of the case study proposals from the source Excel workbook
+    (proposals.xlsx) and then looks for the matching datasets within the
+    dill folder.
+
+    The datasets are loaded into a dictionary, using the proposal names as
+    keys.
+    '''
+    case = cf.case_study
+    ds_dict = od()
+    xl = pd.ExcelFile('excel/' + case + '/proposals.xlsx')
+    sheets = xl.sheet_names
+    sheets.extend(other_datasets)
+    for ws in sheets:
+        if ws not in other_datasets:
+            ws_ref = 'ds_' + ws
+        else:
+            ws_ref = ws
+        ds_dict[ws] = pd.read_pickle('dill/' + ws_ref + '.pkl'), ws
+    print('datasets loaded (dictionary keys):', list(ds_dict.keys()))
+    return ds_dict

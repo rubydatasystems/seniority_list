@@ -16,15 +16,12 @@ script, proposal_name, *conditions = argv
 
 pre, suf = 'dill/', '.pkl'
 
-skeleton_path_string = (pre + 'skel' + suf)
+skeleton_path_string = (pre + 'skeleton' + suf)
 
-proposal_order_string = (pre + proposal_name + suf)
-stand_path_string = (pre + 'stand' + suf)
+proposal_order_string = (pre + 'p_' + proposal_name + suf)
+stand_path_string = (pre + 'standalone' + suf)
 
-if proposal_name == 'hybrid':
-    output_name = 'dsh'
-else:
-    output_name = 'ds' + proposal_name[-1:]
+output_name = 'ds_' + proposal_name
 
 ds = pd.read_pickle(skeleton_path_string)
 df_order = pd.read_pickle(proposal_order_string)
@@ -307,10 +304,10 @@ if cf.compute_pay_measures:
 
     if cf.enhanced_jobs:
         df_pt = pd.read_pickle(
-            'dill/pay_table_enhanced_with_fur_indexed.pkl')
+            'dill/pay_table_enhanced.pkl')
     else:
         df_pt = pd.read_pickle(
-            'dill/pay_table_basic_with_fur_indexed.pkl')
+            'dill/pay_table_basic.pkl')
 
     # 'data-align' small indexed pay_table to long_form df:
     df_pt_index['monthly'] = df_pt['monthly']

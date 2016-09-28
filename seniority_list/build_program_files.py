@@ -9,7 +9,7 @@ named for the case within the excel folder.
 Excel files
 
 from proposals.xlsx:
-    p1, p2, p3.pkl etc. for each proposal
+    <worksheet name>.pkl for each proposal
 
 from master.xlsx:
     master.pkl,
@@ -116,7 +116,7 @@ for ws in sheets:
         df = xl.parse(ws)
         df.set_index('empkey', inplace=True)
         df['idx'] = np.arange(len(df)).astype(int) + 1
-        df.to_pickle('dill/' + ws + '.pkl')
+        df.to_pickle('dill/p_' + ws + '.pkl')
     except:
         continue
 

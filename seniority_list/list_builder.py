@@ -156,7 +156,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
 
     The default output is a dataframe containing the new hybrid list order
     and employee numbers (empkey) only, and is written to disk as
-    'dill/hybrid.pkl'.
+    'dill/p_hybrid.pkl'.
 
     The entire hybrid-sorted dataframe may be returned by setting the
     "return_df" input to True.  This does not affect the hybrid list order
@@ -231,7 +231,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
         df['idx'] = np.arange(len(df), dtype=int) + 1
     df.set_index('empkey', drop=True, inplace=True)
     df.idx = df.idx.astype(int)
-    df[['idx']].to_pickle('dill/hybrid.pkl')
+    df[['idx']].to_pickle('dill/p_hybrid.pkl')
 
     if return_df:
         cols = df.columns.tolist()
@@ -363,6 +363,7 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
     Note: This function demonstrates the possibility of constructing
     a list using any type or combination of attributes.
     '''
+
     if normalize_alpha:
         names = np.append(names, ['aaaaaaaaaa', 'zzzzzzzzzz'])
     int_names = np.zeros_like(names)

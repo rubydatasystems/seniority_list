@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import config as cf
 
-table_sheets = ['basic_with_fur', 'enhanced_with_fur']
+table_sheets = ['basic', 'enhanced']
 hours_sheets = ['basic_hours', 'enhanced_hours']
 
 save_multi_index_version = False
@@ -59,4 +59,4 @@ for i in np.arange(len(table_sheets)):
     # write to file
     if cf.save_to_pickle:
         pay_melt.to_pickle('dill/pay_table_' +
-                           table_sheets[i] + '_indexed.pkl')
+                           table_sheets[i] + '.pkl')

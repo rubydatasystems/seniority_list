@@ -22,7 +22,7 @@ pre, suf = 'dill/', '.pkl'
 master_path = (pre + master_list + suf)
 df_list = pd.read_pickle(master_path)
 
-output_name = 'skel'
+output_name = 'skeleton'
 skel_path_string = (pre + output_name + suf)
 
 # only include pilots that are not retired prior to the starting_month
