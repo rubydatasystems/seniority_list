@@ -3055,20 +3055,26 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
 
     '''
     try:
-        compare_ds = pd.read_pickle('dill/' + compare_ds + '.pkl')
+        compare_ds = pd.read_pickle('dill/ds_' + compare_ds + '.pkl')
     except:
         try:
             compare_ds = pd.read_pickle('dill/ds_edit.pkl')
             print('invalid "compare_ds" name input, using ds_edit.pkl')
         except:
-            compare_ds = pd.read_pickle('dill/ds1.pkl')
-            print('invalid "compare_ds" name input, using ds1.pkl')
+            print('invalid "compare_ds" name input, ds_' +
+                  compare_ds + '.pkl not found.  At least one squeeze must ' +
+                  'performed from an existing dataset before using "edit"')
+            return
 
     try:
-        base_ds = pd.read_pickle('dill/' + base_ds + '.pkl')
+        base_ds = pd.read_pickle('dill/_ds' + base_ds + '.pkl')
     except:
-        base_ds = pd.read_pickle('dill/stand.pkl')
-        print('invalid "base_ds" name input, using stand.pkl')
+        try:
+            base_ds = pd.read_pickle('dill/standalone.pkl')
+        except:
+            print('invalid "base_ds" name input, ds_' +
+                  base_ds + 'p1.pkl not found')
+            return
 
     max_month = max(compare_ds.mnum)
     persist = pd.read_pickle('dill/squeeze_vals.pkl')
@@ -3357,7 +3363,7 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
             plt.xlim(len(data_reorder), 0)
             plt.show()
 
-            data_reorder[['new_order']].to_pickle('dill/new_order.pkl')
+            data_reorder[['new_order']].to_pickle('dill/p_new_order.pkl')
 
             store_vals()
 
@@ -3382,7 +3388,8 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
             persist_df.to_pickle('dill/squeeze_vals.pkl')
 
         def run_cell(ev):
-            # 'new_order' is simply a placeholder here
+            # 'new_order' is simply a placeholder here.
+            # This is where ds_edit.pkl is generated (compute_measures script)
             cmd = 'python compute_measures.py new_order edit'
             if cond_list:
                 for cond in cond_list:
