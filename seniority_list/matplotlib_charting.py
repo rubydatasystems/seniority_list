@@ -649,13 +649,13 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                                  attr3=attr3, oper3=oper3, val3=val3,
                                  return_title_string=True)
 
-    frame = d_filt[(d_filt.mnum == mnum)][[xax, measure, 'eg']]
+    frame = d_filt[(d_filt.mnum == mnum)][[xax, measure, 'eg', 'ret_mark']]
 
     if exclude_fur:
         frame = frame[(frame.jnum >= 1) & (frame.jnum <= job_levels)]
 
     if measure == 'mpay':
-        frame = frame[frame.age < cf.ret_age]
+        frame = frame[frame.ret_mark == 0]
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -2168,8 +2168,9 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
 
     inputs
         df_list (list)
-            list of datasets to compare, may be ds_dict (output of load_datasets
-            function) string keys or dataframe variable(s) or mixture of each
+            list of datasets to compare, may be ds_dict (output of load
+            datasets function) string keys or dataframe variable(s) or
+            mixture of each
         dfb (string or variable)
             baseline dataset, accepts same input types as df_list above.
             The order of the list is reflected in the chart x axis lables
@@ -2817,6 +2818,8 @@ def job_transfer(dfc, dfb, eg, colors,
                  ytick_interval=100, legend_xadj=1.62,
                  legend_yadj=.78, annotate=False,
                  title_fontsize=14,
+                 legend_font_size=12,
+                 legend_horizontal_position=1.12,
                  xsize=10, ysize=8):
     '''plot a differential stacked bar chart displaying color-coded job
     transfer counts over time.  Result appears to be stacked area chart.
@@ -2961,8 +2964,6 @@ def job_transfer(dfc, dfb, eg, colors,
 
         recs = []
         job_labels = []
-        legend_font_size = 12
-        legend_position = 1.12
         legend_title = 'job'
         for i in diff2.columns:
             recs.append(mpatches.Rectangle((0, 0), 1, 1,
@@ -2972,7 +2973,7 @@ def job_transfer(dfc, dfb, eg, colors,
 
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * legend_xadj, box.height])
-        ax.legend(recs, job_labels, bbox_to_anchor=(legend_position,
+        ax.legend(recs, job_labels, bbox_to_anchor=(legend_horizontal_position,
                                                     legend_yadj),
                   title=legend_title, fontsize=legend_font_size,
                   ncol=1)
@@ -3707,7 +3708,8 @@ def diff_range(df_list, dfb, measure, eg_list,
                year_clip=2042,
                show_range=False, show_mean=True, normalize_y=False,
                suptitle_fontsize=14, title_fontsize=12,
-               tick_size=11, label_size=12,
+               tick_size=11, label_size=12, legend_fontsize=13,
+               legend_horizontal_position=1.35,
                ysize=6, xsize=8, plot_style='whitegrid'):
     '''Plot a range of differential attributes or a differential
     average over time.  Individual employee groups and proposals may
@@ -3758,6 +3760,10 @@ def diff_range(df_list, dfb, measure, eg_list,
             text size of chart tick labels
         label_size
             text size of chart x and y axis labels
+        legend_fontsize
+            text size of the legend labels
+        legend_horizontal_position
+            horizontal adjustment of the legend (higher numbers move right)
         xsize, ysize
             size of chart, width and height
         plot_style
@@ -3772,6 +3778,8 @@ def diff_range(df_list, dfb, measure, eg_list,
     for df in df_list:
         ds, df_label = determine_dataset(df, ds_dict,
                                          return_label=True)
+        if df_label == 'Proposal':
+            df_label = 'list' + str(i + 1)
         label_dict[i + 1] = df_label
 
         df_list[i] = filter_ds(ds,
@@ -3803,6 +3811,7 @@ def diff_range(df_list, dfb, measure, eg_list,
     col_list = []
     for ds in df_list:
         col_name = measure + '_' + label_dict[i + 1]
+        col_list.append(col_name)
         ds = ds[ds.date.dt.year <= year_clip][['mnum', 'eg',
                                                'date', measure]].copy()
         ds['eg_order'] = ds.groupby(['mnum', 'eg']).cumcount()
@@ -3812,8 +3821,6 @@ def diff_range(df_list, dfb, measure, eg_list,
         ds.set_index(['mnum', 'empkey'], drop=True, inplace=True)
         ds.rename(columns={measure: col_name}, inplace=True)
         df_list[i] = ds
-
-        col_list.append(col_name)
         i += 1
 
     i = 0
@@ -3843,13 +3850,15 @@ def diff_range(df_list, dfb, measure, eg_list,
                     sa_ds[sa_ds.eg == eg][cols].set_index('date') \
                         .resample('Q').mean().plot(cmap=cmap)
 
+        ax = plt.gca()
+
         if measure in ['spcnt', 'lspcnt', 'jobp', 'jnum', 'cat_order']:
-            plt.gca().invert_yaxis()
+            ax.invert_yaxis()
 
         plt.axhline(c='m', lw=2, ls='--')
         plt.gcf().set_size_inches(xsize, ysize)
         if measure in ['spcnt', 'lspcnt']:
-            plt.gca().yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format)
             if normalize_y:
                 plt.ylim(.5, -.5)
             plt.yticks = np.arange(.5, -.55, .05)
@@ -3861,8 +3870,15 @@ def diff_range(df_list, dfb, measure, eg_list,
             plt.title(tb_string, fontsize=title_fontsize)
         else:
             plt.title(suptitle, fontsize=suptitle_fontsize)
+
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels,
+                  bbox_to_anchor=(legend_horizontal_position, .8),
+                  fontsize=legend_fontsize)
+
         plt.tick_params(axis='y', labelsize=tick_size)
         plt.tick_params(axis='x', labelsize=tick_size)
+        ax.xaxis.label.set_size(label_size)
         plt.show()
 
 
@@ -5248,6 +5264,141 @@ def stripplot_eg_density(df, mnum, eg_colors, ds_dict=None,
     else:
         plt.title(df_label, fontsize=suptitle_fontsize)
     plt.show()
+
+
+def job_count_bands(df_list, eg_list, job_colors,
+                    ds_dict=None,
+                    attr1=None, oper1='>=', val1=0,
+                    attr2=None, oper2='>=', val2=0,
+                    attr3=None, oper3='>=', val3=0,
+                    fur_color='.5',
+                    max_date=None, plot_alpha=.75,
+                    legend_alpha=.9,
+                    legend_xadj=1.3, legend_yadj=1.0,
+                    legend_fontsize=11, title_fontsize=14,
+                    tick_size=12, label_size=13, chart_style='darkgrid',
+                    xsize=6, ysize=6):
+    '''area chart representing count of jobs available over time
+
+    This chart displays the future job opportunities for each employee group
+    with various list proposals.
+
+    This is not a comparative chart (for example, with standalone data), it
+    is simply displaying job count outcome over time.
+    However, the results for the employee groups may be compared and measured
+    for equity.
+
+    Inputs
+        df_list (list)
+            list of datasets to compare, may be ds_dict (output of
+            load_datasets function) string keys or dataframe variable(s)
+            or mixture of each
+        eg_list (list)
+            list of integers for employee groups to be included in analysis
+            example: [1, 2, 3]
+        job_colors (list)
+            list of colors to represent job levels
+        ds_dict (dictionary)
+            output from load_datasets function
+        attr(n)
+            filter attribute or dataset column as string
+        oper(n)
+            operator (i.e. <, >, ==, etc.) for attr1 as string
+        val(n)
+            attr1 limiting value (combined with oper1) as string
+        fur_color
+            color to use for furlough band
+        max_date (string)
+            only include data up to this date
+            example input: '1997-12-31'
+        plot_alpha
+            alpha value (opacity) for area plot (job level bands)
+        legend_alpha
+            alpha value (opacity) for legend markers
+        legend_xadj, legend_yadj (floats)
+            adjustment input for legend horizontal and vertical placement
+        legend_fontsize
+            text size of legend labels
+        title_fontsize
+            text size of chart title
+        tick_size
+            text size of x and y tick labels
+        label_size
+            text size of x and y descriptive labels
+        chart_style (string)
+            chart styling (string), any valid seaborn chart style
+        xsize, ysize (integer or float)
+            plot size in inches
+    '''
+    label_dict = {}
+    i = 0
+    for df in df_list:
+        ds, df_label = determine_dataset(df, ds_dict,
+                                         return_label=True)
+        if max_date:
+            ds = ds[ds.date <= max_date]
+
+        label_dict[i] = df_label
+
+        df_list[i] = filter_ds(ds,
+                               attr1=attr1, oper1=oper1, val1=val1,
+                               attr2=attr2, oper2=oper2, val2=val2,
+                               attr3=attr3, oper3=oper3, val3=val3,
+                               return_title_string=False)
+        i += 1
+
+    job_colors.append(fur_color)
+
+    for eg in eg_list:
+        i = 0
+
+        for df_object in df_list:
+
+            df = df_object[df_object.eg == eg]
+            y = len(df[df.mnum == 0]) + 50
+
+            df = df.groupby(['date', 'jnum']).size()
+            df = pd.DataFrame(df.unstack().fillna(0))
+            cols = list(df.columns)
+
+            plot_colors = [job_colors[j - 1] for j in cols]
+
+            with sns.axes_style(chart_style):
+
+                df.plot(kind='area', stacked=True,
+                        color=plot_colors, linewidth=0, alpha=plot_alpha)
+
+            plt.ylim(y, 0)
+
+            plt.title(label_dict[i] + ', group ' + str(eg),
+                      fontsize=title_fontsize, y=1.01)
+            fig = plt.gcf()
+            ax = plt.gca()
+            fig.set_size_inches(xsize, ysize)
+
+            # legend
+            recs = []
+            job_labels = []
+            legend_title = 'job'
+
+            for k in cols:
+                recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                               fc=job_colors[k - 1],
+                                               alpha=legend_alpha))
+                job_labels.append(cf.job_strs[k - 1])
+
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0,
+                            box.width * legend_xadj, box.height])
+            ax.legend(recs, job_labels, bbox_to_anchor=(legend_xadj,
+                                                        legend_yadj),
+                      title=legend_title, fontsize=legend_fontsize,
+                      ncol=1)
+            ax.xaxis.label.set_size(label_size)
+            plt.tick_params(axis='y', labelsize=tick_size)
+            plt.tick_params(axis='x', labelsize=tick_size)
+            plt.show()
+            i += 1
 
 
 def determine_dataset(ds_def, ds_dict, return_label=False):
