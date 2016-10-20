@@ -334,11 +334,19 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                 plot_num += 1
 
     try:
-        plt.suptitle(df_labelc + ', ' + t_string,
-                     fontsize=suptitle_fontsize, y=1.01)
+        if t_string:
+            plt.suptitle(df_labelc + ', ' + t_string,
+                         fontsize=suptitle_fontsize, y=1.01)
+        else:
+            plt.suptitle(df_labelc,
+                         fontsize=suptitle_fontsize, y=1.01)
     except:
-        plt.suptitle('proposal' + ', ' + t_string,
-                     fontsize=suptitle_fontsize, y=1.01)
+        if t_string:
+            plt.suptitle('proposal' + ', ' + t_string,
+                         fontsize=suptitle_fontsize, y=1.01)
+        else:
+            plt.suptitle('proposal',
+                         fontsize=suptitle_fontsize, y=1.01)
 
     if not plot_differential:
         xsize = xsize * .5
@@ -5308,12 +5316,12 @@ def job_count_bands(df_list, eg_list, job_colors,
             attr1 limiting value (combined with oper1) as string
         fur_color
             color to use for furlough band
-        max_date (string)
+        max_date (date string)
             only include data up to this date
             example input: '1997-12-31'
-        plot_alpha
+        plot_alpha (float, 0.0 to 1.0)
             alpha value (opacity) for area plot (job level bands)
-        legend_alpha
+        legend_alpha (float, 0.0 to 1.0)
             alpha value (opacity) for legend markers
         legend_xadj, legend_yadj (floats)
             adjustment input for legend horizontal and vertical placement

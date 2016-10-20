@@ -15,7 +15,9 @@ closest senior cohort.
 
 "bfill" - inactives attached to just *junior* same-group cohort
 
-Writes results to a pickle file and an Excel file.
+Writes the result list/dataframe to a pickle file (within 'dill' folder) and
+an Excel file (within the case-specific folder located in
+the 'reports' folder).
 
 example jupyter notebook usage:
     %run join_inactives.py master p1 final bfill
@@ -25,18 +27,25 @@ import pandas as pd
 import numpy as np
 import config as cf
 
+import os
 from sys import argv
 
 script, master_name, proposed_order_df, output_name, fill_style = argv
 
-pre, suf = 'dill/', '.pkl'
-xlpre, xlsuf = 'reports/', '.xlsx'
+case = cf.case_study
 
-output_name = cf.case_study + '_' + output_name
+dill_pre, pkl_suf = 'dill/', '.pkl'
 
-master_path_string = (pre + master_name + suf)
-order_path_string = (pre + 'p_' + proposed_order_df + suf)
-write_xl_path = (xlpre + output_name + xlsuf)
+# name of this case-specific folder within 'reports' folder
+file_path = 'reports/' + case + '/'
+# create the folder if it doesn't already exist
+os.makedirs(file_path, exist_ok=True)
+
+master_path_string = (dill_pre + master_name + pkl_suf)
+order_path_string = (dill_pre + 'p_' + proposed_order_df + pkl_suf)
+
+excel_file_name = case + '_' + output_name + '.xlsx'
+write_xl_path = (file_path + excel_file_name)
 
 df_master = pd.read_pickle(master_path_string)
 df_order = pd.read_pickle(order_path_string)
@@ -67,7 +76,7 @@ final = final.sort_values(['idx', 'eg_order'])
 final['snum'] = np.arange(len(final)).astype(int) + 1
 final.pop('idx')
 
-final.to_pickle('dill/' + output_name + '.pkl')
+final.to_pickle(dill_pre + case + '_' + output_name + pkl_suf)
 
 final.set_index('snum', drop=True, inplace=True)
 

@@ -5,7 +5,7 @@ import importlib
 # OK to adjust variables within area marked by asterisks:
 # *****************************************************************************
 enhanced_jobs = True
-case_study = 'sample3'
+case_study = 'aa_us'
 # *****************************************************************************
 
 
@@ -114,6 +114,11 @@ try:
             j_changes[i][3] = replace_2
 except:
     j_changes = [[1, [10, 20], 0, [0, 0, 0]]]
+
+pay_table_year_sort = case.pay_table_year_sort
+pay_table_longevity_sort = case.pay_table_longevity_sort
+enhanced_jobs_full_suffix = case.enhanced_jobs_full_suffix
+enhanced_jobs_part_suffix = case.enhanced_jobs_part_suffix
 
 eg_counts = case.eg_counts
 furlough_count = case.furlough_count

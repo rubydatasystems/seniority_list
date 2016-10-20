@@ -11,17 +11,23 @@ from collections import OrderedDict as od
 
 # top_of_scale = 12
 
-# SET THIS INPUT TO EXCEL PAY TABLE YEAR VALUE FOR AN INTERIM OR TEMPORARY
-# PAY SCALE (NOT A FULL YEAR OR A "BRIDGE" PAY SCALE)
-# LEAVE SET TO "None" IF NOT APPLICABLE
+# # SET THIS INPUT TO EXCEL PAY TABLE YEAR VALUE FOR AN INTERIM OR TEMPORARY
+# # PAY SCALE (NOT A FULL YEAR OR A "BRIDGE" PAY SCALE)
+# # LEAVE SET TO "None" IF NOT APPLICABLE
 # pay_table_exception_year = None
 # date_exception_start = '2014-12-31'
 # date_exception_end = '2014-12-31'
 
-# FUTURE RAISE INPUTS
+# # FUTURE RAISE INPUTS
 # future_raise = False
 # last_contract_year = 2019.0
 # annual_pcnt_raise = .02
+
+# # INDEXED PAY TABLE GENERATION INPUTS
+# pay_table_year_sort = 2018.0
+# pay_table_longevity_sort = 7
+# enhanced_jobs_full_suffix = 'B'
+# enhanced_jobs_part_suffix = 'R'
 
 # init_ret_age_years = 65
 # init_ret_age_months = 0
@@ -61,7 +67,7 @@ from collections import OrderedDict as od
 
 #     # Job dictionary for enhanced jobs conversion:
 #     # full_time_pcnt1/2 represent different percentages
-#     of full-time positions
+#     # of full-time positions
 #     jd = {
 #         1: [1, 2, full_time_pcnt1],
 #         2: [3, 5, full_time_avg_pcnt],

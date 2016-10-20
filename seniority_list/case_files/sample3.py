@@ -18,6 +18,12 @@ future_raise = False
 last_contract_year = 2019.0
 annual_pcnt_raise = .02
 
+# INDEXED PAY TABLE GENERATION INPUTS
+pay_table_year_sort = 2018.0
+pay_table_longevity_sort = 7
+enhanced_jobs_full_suffix = 'B'
+enhanced_jobs_part_suffix = 'R'
+
 init_ret_age_years = 65
 init_ret_age_months = 0
 
