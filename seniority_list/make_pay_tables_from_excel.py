@@ -72,7 +72,7 @@ table_cols = ['year', 'jnum']
 table_cols.extend(longevity_cols)
 
 basic = pd.merge(pay_rates, pay_hours)
-print(cf.enhanced_jobs)
+
 if enhanced_jobs:
     enhanced_full = basic.copy()
     enhanced_part = basic.copy()

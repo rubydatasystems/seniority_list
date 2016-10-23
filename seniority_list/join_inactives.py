@@ -52,7 +52,6 @@ df_order = pd.read_pickle(order_path_string)
 
 joined = df_master.join(df_order, how='outer')
 
-print(joined.sort_values(['eg', 'idx']).head())
 eg_set = pd.unique(joined.eg)
 
 final = pd.DataFrame()
