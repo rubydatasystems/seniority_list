@@ -3100,7 +3100,7 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
                                     value=persist['drop_msr'].value,
                                     description='attr')
     drop_operator = widgets.Dropdown(options=['<', '<=',
-                                              '==', '>=', '>'],
+                                              '==', '!=', '>=', '>'],
                                      value=persist['drop_opr'].value,
                                      description='operator')
     drop_filter = widgets.Dropdown(options=['jnum', 'mnum', 'eg', 'sg', 'age',
@@ -3117,7 +3117,7 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
                            description='value', width='150px')
 
     mnum_operator = widgets.Dropdown(options=['<', '<=',
-                                              '==', '>=', '>'],
+                                              '==', '!=', '>=', '>'],
                                      value=persist['mnum_opr'].value,
                                      description='mnum')
 
