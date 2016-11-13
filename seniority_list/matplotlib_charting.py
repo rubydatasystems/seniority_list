@@ -2086,6 +2086,8 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
             else:
                 df_sub = d_filt[d_filt.age == cf.ret_age][
                     ['eg', 'date', 'jnum']].copy()
+    else:
+        df_sub = d_filt.copy()
 
     colors.append('.7')
     for eg in eg_list:
