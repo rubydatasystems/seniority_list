@@ -2076,7 +2076,7 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
                                  attr3=attr3, oper3=oper3, val3=val3)
     if rets_only:
         try:
-            df_sub = d_filt[d_filt.ret_mark == 1][
+            d_filt = d_filt[d_filt.ret_mark == 1][
                 ['eg', 'date', 'jnum']].copy()
         except:
             if cf.ret_age_increase:
@@ -2084,16 +2084,17 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
                       in config file''')
                 return
             else:
-                df_sub = d_filt[d_filt.age == cf.ret_age][
+                d_filt = d_filt[d_filt.age == cf.ret_age][
                     ['eg', 'date', 'jnum']].copy()
-    else:
-        df_sub = d_filt.copy()
 
     colors.append('.7')
+
     for eg in eg_list:
+
         with sns.axes_style("darkgrid"):
             denom = len(ds[(ds.mnum == 0) & (ds.eg == eg)])
-            df_eg = df_sub[df_sub.eg == eg]
+            df_eg = d_filt[d_filt.eg == eg]
+
             if rets_only:
 
                 grpby = df_eg.groupby(['date', 'jnum']) \
@@ -3744,7 +3745,7 @@ def diff_range(df_list, dfb, measure, eg_list,
         ds_dict (dictionary)
             output from load_datasets function
         eg_colors
-            list of colors to represent each employee group
+            list of colors to represent different proposal results
         attr(n)
             filter attribute or dataset column as string
         oper(n)
