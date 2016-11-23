@@ -19,10 +19,8 @@ from master.xlsx:
     active_each_month.pkl
 
 from pay_tables.xlsx:
-    pay_table_with_rsv_with_fur.pkl,
-    pay_table_no_rsv_with_fur.pkl,
-    idx_pay_table_with_rsv_with_fur.pkl,
-    idx_pay_table_no_rsv_with_fur.pkl
+    pay_table_basic.pkl,
+    pay_table_enhanced.pkl,
 
 #####################################################
 
@@ -111,9 +109,14 @@ nonret_each_month = f.count_per_month(cmonths)
 xl = pd.ExcelFile('excel/' + case + '/proposals.xlsx')
 
 sheets = xl.sheet_names
+# make dataframe containing proposal names and store it
+# (will be utilized by load_datasets function)
+sheets_df = pd.DataFrame(sheets, columns=['proposals'])
+sheets_df.to_pickle('dill/proposal_names.pkl')
+
 for ws in sheets:
     try:
-        df = xl.parse(ws)
+        df = xl.parse(ws)[['empkey']]
         df.set_index('empkey', inplace=True)
         df['idx'] = np.arange(len(df)).astype(int) + 1
         df.to_pickle('dill/p_' + ws + '.pkl')

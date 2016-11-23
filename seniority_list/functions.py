@@ -3211,18 +3211,33 @@ def load_datasets(other_datasets=['standalone', 'skeleton']):
     dill folder.
 
     The datasets are loaded into a dictionary, using the proposal names as
-    keys.
+    keys.  The proposal names are loaded from a pickled dataframe, created
+    by the build_program_files.py script.
     '''
-    case = cf.case_study
+
+    # create ordered dictionary
     ds_dict = od()
-    xl = pd.ExcelFile('excel/' + case + '/proposals.xlsx')
-    sheets = xl.sheet_names
-    sheets.extend(other_datasets)
-    for ws in sheets:
+    # read stored dataframe
+    proposals_df = pd.read_pickle('dill/proposal_names.pkl')
+    # make a list of the proposal names
+    proposal_names = list(proposals_df.proposals)
+    # add the other dataset names
+    proposal_names.extend(other_datasets)
+
+    # read and assign the datasets to the dictionary
+    for ws in proposal_names:
         if ws not in other_datasets:
             ws_ref = 'ds_' + ws
         else:
             ws_ref = ws
-        ds_dict[ws] = pd.read_pickle('dill/' + ws_ref + '.pkl'), ws
+
+        try:
+            ds_dict[ws] = pd.read_pickle('dill/' + ws_ref + '.pkl'), ws
+        except:
+            # if dataset doesn't exist, pass and notify user
+            print('dataset for proposal "' + ws + '" not found in dill folder')
+
     print('datasets loaded (dictionary keys):', list(ds_dict.keys()))
     return ds_dict
+
+
