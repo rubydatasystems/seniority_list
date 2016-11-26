@@ -4,6 +4,10 @@ from config import enhanced_jobs
 from pandas import to_datetime
 from collections import OrderedDict as od
 
+# # PRESERVE THIS FILE FOR USE WITH ALL CASE STUDIES
+# # FIRST, COPY THIS FILE AND RENAME: <case_study_name>.py
+# # Then, IN COPIED FILE,
+# # UNCOMMENT AND SET ALL VARIABLES PRECEDED BY A SINGLE #
 
 # full_time_pcnt1 = .6
 # full_time_pcnt2 = .65
@@ -11,9 +15,9 @@ from collections import OrderedDict as od
 
 # top_of_scale = 12
 
-# # SET THIS INPUT TO EXCEL PAY TABLE YEAR VALUE FOR AN INTERIM OR TEMPORARY
-# # PAY SCALE (NOT A FULL YEAR OR A "BRIDGE" PAY SCALE)
-# # LEAVE SET TO "None" IF NOT APPLICABLE
+# # set pay_table_exception_year input to excel pay table year value for
+# # an interim or temporary pay scale (not a full year or a "bridge" pay scale)
+# # leave set to "none" if not applicable
 # pay_table_exception_year = None
 # date_exception_start = '2014-12-31'
 # date_exception_end = '2014-12-31'
