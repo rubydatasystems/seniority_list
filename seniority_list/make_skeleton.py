@@ -12,11 +12,6 @@ import numpy as np
 import functions as f
 import config as cf
 
-# from sys import argv
-
-# script, master_list = argv
-# script = argv
-
 # read prepared list dataframe - proper column headers, column formats...
 # this is master.pkl, order-independent, concatenated list data
 pre, suf = 'dill/', '.pkl'
