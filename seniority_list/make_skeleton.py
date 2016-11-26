@@ -12,13 +12,15 @@ import numpy as np
 import functions as f
 import config as cf
 
-from sys import argv
+# from sys import argv
 
-script, master_list = argv
+# script, master_list = argv
+# script = argv
 
 # read prepared list dataframe - proper column headers, column formats...
-# normally this would be master.pkl, order-independent, concatenated list data
+# this is master.pkl, order-independent, concatenated list data
 pre, suf = 'dill/', '.pkl'
+master_list = 'master'
 master_path = (pre + master_list + suf)
 df_list = pd.read_pickle(master_path)
 

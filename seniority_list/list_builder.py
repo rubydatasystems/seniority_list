@@ -147,7 +147,7 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
 
 
 def build_list(df, measure_list, weight_list, show_weightings=False,
-               return_df=False, hide_rank_cols=True):
+               hide_rank_cols=True, return_df=False):
     '''Construct a "hybrid" list ordering.
 
     Combine and sort various attributes according to variable multipliers to
@@ -222,6 +222,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
             df['hybrid'] += hybrid
 
     df = sort_and_rank(df, 'hybrid')
+
     if hide_rank_cols:
         for measure in measure_list:
             df.pop(measure + '_rank')
@@ -229,6 +230,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
         df.pop('hybrid_rank')
     else:
         df['idx'] = np.arange(len(df), dtype=int) + 1
+
     df.set_index('empkey', drop=True, inplace=True)
     df.idx = df.idx.astype(int)
     df[['idx']].to_pickle('dill/p_hybrid.pkl')
@@ -324,9 +326,6 @@ def sort_and_rank(df, col, tiebreaker1=None, tiebreaker2=None,
         reverse (boolean)
             If True, reverses sort (descending values)
     '''
-    # copy df inpute in case input is slice of another dataframe to avoid
-    # value setting warning
-    df = df.copy()
     col_list = [col]
 
     if tiebreaker1:
@@ -345,13 +344,13 @@ def sort_and_rank(df, col, tiebreaker1=None, tiebreaker2=None,
 
 
 def names_to_integers(names, leading_precision=5, normalize_alpha=True):
-    '''convert a list of string names (i.e. last names) into integers
+    '''convert a list or series of string names (i.e. last names) into integers
     for numerical sorting
 
     inputs
 
         names
-            List or pandas series of strings for conversion to integers
+            List or pandas series containing strings for conversion to integers
         leading_precision
             Number of characters to use with full numeric precision, remainder
             of characters will be assigned a rounded single digit between
