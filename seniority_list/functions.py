@@ -3196,7 +3196,7 @@ def clear_dill_files():
     used when changing case study, avoids possibility of file
     from previos calculations being used by new study
     '''
-    filelist = [f for f in os.listdir("dill/")]
+    filelist = [f for f in os.listdir("dill/") if f.endswith('.pkl')]
     for f in filelist:
         os.remove('dill/' + f)
 
