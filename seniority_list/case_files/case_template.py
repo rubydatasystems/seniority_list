@@ -6,6 +6,7 @@ from collections import OrderedDict as od
 
 # # PRESERVE THIS FILE FOR USE WITH ALL CASE STUDIES
 # # FIRST, COPY THIS FILE AND RENAME: <case_study_name>.py
+# # (Keep the copied, renamed file in the "case_files" folder)
 # # Then, IN COPIED FILE,
 # # UNCOMMENT AND SET ALL VARIABLES PRECEDED BY A SINGLE #
 
