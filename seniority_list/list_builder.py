@@ -303,7 +303,7 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
     return df
 
 
-def sort_and_rank(df, col, tiebreaker1='eg_spcnt', tiebreaker2='ldate',
+def sort_and_rank(df, col, tiebreaker1=None, tiebreaker2=None,
                   reverse=False):
     '''Sort a datframe by a specified attribute and insert a column indicating
     the resultant ranking.  Tiebreaker inputs select columns to be used for
@@ -315,22 +315,29 @@ def sort_and_rank(df, col, tiebreaker1='eg_spcnt', tiebreaker2='ldate',
         df
             input dataframe
 
-        col
+        col (string)
             dataframe column to sort
 
-        tiebreaker1, tiebreaker2
+        tiebreaker1, tiebreaker2 (string(s))
             second and third sort columns to break ties with primary col sort
 
-        reverse
+        reverse (boolean)
             If True, reverses sort (descending values)
     '''
+    # copy df inpute in case input is slice of another dataframe to avoid
+    # value setting warning
+    df = df.copy()
+    col_list = [col]
 
-    if reverse:
-        df.sort_values([col, tiebreaker1, tiebreaker2],
-                       ascending=False, inplace=True)
+    if tiebreaker1:
+        col_list.append(tiebreaker1)
+    if tiebreaker2:
+        col_list.append(tiebreaker2)
+
+    if not reverse:
+        df.sort_values(col_list, inplace=True)
     else:
-        df.sort_values([col, tiebreaker1, tiebreaker2],
-                       inplace=True)
+        df.sort_values(col_list, ascending=False, inplace=True)
 
     df[col + '_rank'] = np.arange(len(df), dtype=float) + 1
 
@@ -344,7 +351,7 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
     inputs
 
         names
-            List of strings for conversion to integers
+            List or pandas series of strings for conversion to integers
         leading_precision
             Number of characters to use with full numeric precision, remainder
             of characters will be assigned a rounded single digit between
@@ -363,9 +370,14 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
     Note: This function demonstrates the possibility of constructing
     a list using any type or combination of attributes.
     '''
+    if type(names) == pd.core.series.Series:
+        names = list(names.str.lower())
+    else:
+        names = list(pd.Series(names).str.lower())
 
     if normalize_alpha:
-        names = np.append(names, ['aaaaaaaaaa', 'zzzzzzzzzz'])
+        # names = np.append(names, ['aaaaaaaaaa', 'zzzzzzzzzz'])
+        names.extend(['aaaaaaaaaa', 'zzzzzzzzzz'])
     int_names = np.zeros_like(names)
     max_str_len = len(max(names, key=len))
     alpha_numer = {'a': '01', 'b': '04', 'c': '08', 'd': '12', 'e': '16',
@@ -379,7 +391,6 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
 
     for name in names:
         num_convert = ''
-        name = name.lower()
         for i in np.arange(max_str_len):
             if i < leading_precision:
                 try:
