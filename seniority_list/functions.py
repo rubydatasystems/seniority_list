@@ -3201,7 +3201,7 @@ def clear_dill_files():
         os.remove('dill/' + f)
 
 
-def load_datasets(other_datasets=['standalone', 'skeleton']):
+def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
     '''read the pickled datasets applicable to the current
     case_study variable set within the config.py file.
 
@@ -3226,7 +3226,7 @@ def load_datasets(other_datasets=['standalone', 'skeleton']):
 
     # read and assign the datasets to the dictionary
     for ws in proposal_names:
-        if ws not in other_datasets:
+        if ws not in other_datasets or ws in ['edit', 'hybrid']:
             ws_ref = 'ds_' + ws
         else:
             ws_ref = ws
@@ -3236,8 +3236,12 @@ def load_datasets(other_datasets=['standalone', 'skeleton']):
         except:
             # if dataset doesn't exist, pass and notify user
             print('dataset for proposal "' + ws + '" not found in dill folder')
+            if ws == 'edit':
+                print('"edit" proposal is produced with the editor tool.\n')
+            if ws == 'hybrid':
+                print('"hybrid" proposal is generated with the "build_list"' +
+                      ' function within the list_builder.py module\n')
 
     print('datasets loaded (dictionary keys):', list(ds_dict.keys()))
     return ds_dict
-
 

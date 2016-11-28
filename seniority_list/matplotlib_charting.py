@@ -12,7 +12,7 @@ import matplotlib.patches as mpatches
 from ipywidgets import interactive, Button, widgets
 from IPython.display import display, Javascript
 import math
-from os import system
+from os import system, path, remove
 from collections import OrderedDict as od
 
 import pandas as pd
@@ -3019,19 +3019,33 @@ def job_transfer(dfc, dfb, eg, colors,
         plt.show()
 
 
-def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
-           prop_order=True,
-           mean_len=80,
+def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
+           cond_list=None, reset=False, prop_order=True, mean_len=80,
            dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
            width=17.5, height=10, strip_height=3.5, bright_bg=True,
            chart_style='whitegrid', bg_clr='white', show_grid=True):
     '''compare specific proposal attributes and interactively adjust
     list order.  may be used to minimize distortions.  utilizes ipywidgets.
 
+    The function will recursively use an edited dataset so that an integrated
+    list may be incrementally adjusted and examined at each step.  The edited
+    dataset is created the first time a calculation is run.  Prior to the
+    creation of the edited dataset ('dill/ds_edit.pkl'), the function will use
+    the compare_ds_text input to select a previously calculated dataset for
+    initial comparison.  The function then will revert to the new edited
+    dataset for all subsequent calculations.
+
+    The function will delete the edited dataset and start over with a
+    user-defined dataset if the reset input is set to True.  This input must
+    be removed or set back to False to allow dataset editing to take place.
+
+    As it stands now, if the user desires to save an edited dataset for further
+    analysis, it must be manually copied and saved to another folder.
+
     inputs
-        base_ds
+        base_ds_text
             baseline dataset string name
-        compare_ds
+        compare_ds_text
             comparison dataset string name
         cond_list
             conditions to apply when calculating dataset
@@ -3066,26 +3080,56 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
             color input for bright_bg option
 
     '''
-    try:
-        compare_ds = pd.read_pickle('dill/ds_' + compare_ds + '.pkl')
-    except:
-        try:
-            compare_ds = pd.read_pickle('dill/ds_edit.pkl')
-            print('invalid "compare_ds" name input, using ds_edit.pkl')
-        except:
-            print('invalid "compare_ds" name input, ds_' +
-                  compare_ds + '.pkl not found.  At least one squeeze must ' +
-                  'performed from an existing dataset before using "edit"')
-            return
+    # define path for edited datasets (ds_edit.pkl):
+    edit_file = 'dill/ds_edit.pkl'
+    # boolean value, True if ds_edit exists
+    edit_file_exists = path.exists(edit_file)
 
+    # test to see if user wishes to start over with another dataset
+    if not reset:
+        # if not, see if an edited dataset exists:
+        if edit_file_exists:
+            # if so, use it for calculations
+            compare_ds = pd.read_pickle(edit_file)
+            title_label = 'edited'
+
+        else:
+            # if not, use user input dataset (compare_ds_text) for calculations
+            if path.exists('dill/ds_' + compare_ds_text + '.pkl'):
+                compare_ds = pd.read_pickle('dill/ds_' + compare_ds_text +
+                                            '.pkl')
+                title_label = compare_ds_text
+            # if user dataset not found, default to first known dataset
+            else:
+                proposal_list = \
+                    list(pd.read_pickle('dill/proposal_names.pkl').proposals)
+                compare_ds = pd.read_pickle('dill/ds_' + proposal_list[0] +
+                                            '.pkl')
+                title_label = '< using ' + proposal_list[0] + '>'
+
+    else:
+        # if reset, remove edited dataset file
+        if edit_file_exists:
+            remove(edit_file)
+        try:
+            compare_ds = pd.read_pickle('dill/ds_' + compare_ds_text + '.pkl')
+            title_label = compare_ds_text
+        except:
+            proposal_list = \
+                list(pd.read_pickle('dill/proposal_names.pkl').proposals)
+            compare_ds = pd.read_pickle('dill/ds_' + proposal_list[0] + '.pkl')
+            title_label = '< using ' + proposal_list[0] + ' >'
+
+    # set baseline dataset
     try:
-        base_ds = pd.read_pickle('dill/_ds' + base_ds + '.pkl')
+        base_ds = pd.read_pickle('dill/_ds' + base_ds_text + '.pkl')
     except:
         try:
             base_ds = pd.read_pickle('dill/standalone.pkl')
         except:
-            print('invalid "base_ds" name input, ds_' +
-                  base_ds + 'p1.pkl not found')
+            # exit routine if baseline dataset not found
+            print('invalid "base_ds" name input, neither ds_' +
+                  base_ds + '.pkl nor standalone.pkl not found\n')
             return
 
     max_month = max(compare_ds.mnum)
@@ -3153,7 +3197,7 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
     data_reorder = compare_ds[compare_ds.mnum == 0][['eg']].copy()
     data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int)
     # for drop_eg selection widget:
-    drop_eg_options = list(pd.unique(data_reorder.eg).astype(str))
+    drop_eg_options = sorted(list(pd.unique(data_reorder.eg).astype(str)))
 
     to_join_ds = compare_ds[eval('(compare_ds[filter_measure]' +
                                  filter_operator +
@@ -3250,7 +3294,7 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
         for item in ([ax.title, ax.xaxis.label, ax.yaxis.label]):
             item.set_fontsize(15)
 
-        plt.title('Differential: ' + measure, fontsize=16)
+        plt.title(title_label + ' differential: ' + measure, fontsize=16)
         plt.xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
@@ -3408,6 +3452,7 @@ def editor(base_ds='standalone', compare_ds='ds_edit', cond_list=None,
                     cmd = cmd + ' ' + cond
             # run compute_measures script with conditions
             system(cmd)
+            # show results
             display(Javascript('IPython.notebook.execute_cell()'))
 
         def redraw(ev):
@@ -5509,3 +5554,7 @@ def filter_ds(ds,
         return ds
 
 
+# This is used with the EDITOR_TOOL notebook...
+def display_proposals():
+    print('proposal list:')
+    print(list(pd.read_pickle('dill/proposal_names.pkl').proposals))

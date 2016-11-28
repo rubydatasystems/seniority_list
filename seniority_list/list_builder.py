@@ -150,6 +150,9 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
                hide_rank_cols=True, return_df=False):
     '''Construct a "hybrid" list ordering.
 
+    Note: first run the "prepare_master_list" function and use the output
+    for the "df" input here.
+
     Combine and sort various attributes according to variable multipliers to
     produce a list order. The list order output is based on a sliding scale
     of the priority assigned amoung the attributes.
