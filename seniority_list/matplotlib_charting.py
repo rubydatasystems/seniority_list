@@ -913,7 +913,7 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
                     exclude_fur=False,
                     use_eg_colors=False,
                     width=.8, chart_style='dark',
-                    notch=True,
+                    notch=True, linewidth=1.0,
                     job_diff_clip=cf.num_of_job_levels + 1,
                     xsize=10, ysize=6, chart_example=False):
     '''create a differential box plot chart comparing a selected measure from
@@ -1140,7 +1140,7 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
                         hue='eg', data=y_clip,
                         palette=colors, width=width,
                         notch=notch,
-                        linewidth=1.0, fliersize=1.5)
+                        linewidth=linewidth, fliersize=1.0)
         fig = plt.gcf()
         ax = plt.gca()
         # set chart size
@@ -1181,11 +1181,14 @@ def eg_boxplot(df_list, eg_list,
                chart_style='dark',
                width=.7,
                notch=True,
+               show_whiskers=True,
                show_xgrid=True,
                show_ygrid=True,
                grid_alpha=.4,
                grid_linestyle='solid',
                job_clip=cf.num_of_job_levels + 1,
+               whisker=1.5, fliersize=1.0,
+               linewidth=.5,
                suptitle_fontsize=14, title_fontsize=12,
                tick_size=11, label_size=12,
                xsize=10, ysize=6):
@@ -1317,6 +1320,9 @@ def eg_boxplot(df_list, eg_list,
         i += 1
 
     y_clip = frame[frame.year <= year_clip]
+    if not show_whiskers:
+        whisker = 0
+        fliersize = 0
 
     # make a chart for each selected column
     for yval in yval_list:
@@ -1331,9 +1337,9 @@ def eg_boxplot(df_list, eg_list,
             sns.boxplot(x='year', y=yval,
                         hue='eg', data=y_clip,
                         palette=colors,
-                        notch=notch,
+                        notch=notch, whis=whisker,
                         saturation=saturation, width=width,
-                        linewidth=1.0, fliersize=1.5)
+                        linewidth=linewidth, fliersize=fliersize)
         fig = plt.gcf()
         ax = plt.gca()
         # set chart size
@@ -5556,5 +5562,51 @@ def filter_ds(ds,
 
 # This is used with the EDITOR_TOOL notebook...
 def display_proposals():
+    '''print out a list of the proposal names which were generated and stored
+    in the dill folder by the build_program_files script
+
+    no inputs
+    '''
     print('proposal list:')
     print(list(pd.read_pickle('dill/proposal_names.pkl').proposals))
+
+
+def slice_ds_by_index_array(df, mnum=0, attr='age',
+                            attr_oper='>=', attr_val=50):
+    '''filter an entire dataframe by only selecting rows which match
+    the filtered results from a target month.  In other words, zero in on
+    a slice of data from a particular month, such as employees holding a
+    specific job in month 25.  Then, using the index of those results,
+    find only those employees within the entire dataset as an input for further
+    analysis within the program.
+
+    inputs
+        df
+            the dataframe (dataset) to be filtered
+        mnum
+            month number of the data to filter
+        attr
+            attribute (column) to use during filter
+        oper
+            operator to use, such as '<=' or '!='
+        attr_val
+            attribute value, combined with the operator for filtering.
+            Example filter:
+                jnum >= 7 (in mnum month)
+    '''
+    mnum = str(mnum)
+    try:
+        attr_val = str(int(attr_val))
+    except:
+        pass
+    month_slice_indexes = \
+        np.array(df[eval('(df[attr]' + attr_oper + attr_val +
+                         ') & (df.mnum == ' + mnum + ')')].index)
+
+    df_index = np.array(df.index)
+
+    ds_filter = df[np.in1d(df_index, month_slice_indexes)]
+
+    return ds_filter
+
+
