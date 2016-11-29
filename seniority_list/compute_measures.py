@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 '''create integrated datasets
+
+The editor output order list (p_new_order.pkl) may be used as an input by
+including "edit" within the conditions list.  The resultant dataframe will
+be stored as "ds_edit.pkl"
 '''
 
 import pandas as pd
@@ -81,7 +85,7 @@ if 'prex' in conditions:
     eg3_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][2])
     sg = np.array(df_master[df_master.eg == 1]['sg'])
     eg1_fur = np.array(df_master[df_master.eg == 1]['fur'])
-    eg1_ojob_array = f.make_amer_stovepipe_short_prex(
+    eg1_ojob_array = f.make_stovepipe_prex_shortform(
         jcnts_arr[0][0], sg, cf.sg_rights, eg1_fur)
 
     eg1_prex_stove = np.take(eg1_ojob_array, np.where(eg1_fur == 0)[0])

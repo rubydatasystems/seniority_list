@@ -430,16 +430,17 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr, eg_arr,
     return result_jobs_arr.astype(int)
 
 
-# MAKE AMER_STOVEPIPE_JOBS_WITH_PRE=EXISTING CONDITION
+# MAKE_STOVEPIPE_JOBS_WITH_PRE=EXISTING CONDITION
 # (Stovepipe with internal condition stovepiped, SHORT_FORM)
-def make_amer_stovepipe_short_prex(job_list, sg_codes,
-                                   sg_rights, fur_codes):
+def make_stovepipe_prex_shortform(job_list, sg_codes,
+                                  sg_rights, fur_codes):
     '''Creates a 'stovepipe' job assignment within a single eg (american)
     which also includes a condition of certain job counts allocated
     to an eg subgroup, marked by a code array (sg_codes).
 
-    Inputs
+    *old name: make_amer_stovepipe_short_prex*
 
+    Inputs
         job_list
             list of job counts for eg, like [23,34,0,54,...]
         sg_codes
@@ -499,144 +500,6 @@ def make_amer_stovepipe_short_prex(job_list, sg_codes,
                                    (fur_codes == 0))[0][:i], job)
 
     return o_job.astype(int)
-
-
-# MAKE AMER_STOVEPIPE_JOBS_WITH_PRE-EXISTING CONDITION
-# (Stovepipe with internal condition stovepiped, LONG_FORM)
-def make_amer_standalone_long_prex(lower, upper,
-                                   df_align,
-                                   amer_job_counts,
-                                   sg_job_nums,
-                                   sg_dict, sg_months):
-    '''Creates a 'stovepipe' job assignment within a single eg (american)
-    which also includes a condition of certain job counts allocated
-    to an eg subgroup, marked by a code array (sg_codes).
-
-    Does not account for any job changes or furlough recall.
-
-    Inputs
-
-        lower
-            ndarry from make_lower_slice_limits function
-            (calculation derived from cumsum of count_per_month function)
-        upper
-            cumsum of count_per_month function
-        df_align
-            indexed dataframe to be used with align function.
-
-            allows monthly result to be passed to next month
-            with data alignment.
-            Also includes sg and fur code data for processing.
-        amer_job_counts
-            either an array of lists (job_changes=True) or
-            a single list of job counts (job_changes=False)
-        sg_job_nums
-            job levels included within amer prex condition
-        sg_dict
-            dictionary
-            sg job to allotment dictionary
-        sg_months
-            list of month numbers when the condition is in effect
-
-    The subset group will have proirity assignment for the first n jobs
-    in the affected job category, the remainding jobs
-    are assigned in seniority order.
-
-    The subgroup jobs are assigned in subgroup stovepipe order.
-
-    This function is applicable to a condition with known job counts.
-
-    The result of this function is used with standalone calculations or
-    combined with other eg lists to form an integrated original
-    job assignment list.
-    '''
-    num_of_months = upper.size
-    fur_level = cf.num_of_job_levels + 1
-
-    fur_arr = np.array(df_align.fur, dtype=int)
-    sg_arr = np.array(df_align.sg, dtype=int)
-    long_assign_column = np.zeros(sg_arr.size, dtype=int)
-
-    long_prex = np.zeros(sg_arr.size, dtype=int)
-    index_data = np.array(df_align.index)
-
-    lower_next = lower[1:]
-    lower_next = np.append(lower_next, lower_next[-1])
-
-    upper_next = upper[1:]
-    upper_next = np.append(upper_next, upper_next[-1])
-
-    for month in np.arange(num_of_months):
-
-        L = lower[month]
-        U = upper[month]
-
-        L_next = lower_next[month]
-        U_next = upper_next[month]
-
-        assign_range = long_assign_column[L:U]
-        long_range = long_prex[L:U]
-        fur_range = fur_arr[L:U]
-        sg_range = sg_arr[L:U]
-        index_range = index_data[L:U]
-        index_range_next = index_data[L_next:U_next]
-
-        job = 0
-
-        for count in amer_job_counts:
-
-            job += 1
-
-            if count > 0:
-
-                if (job in sg_job_nums) and (month in sg_months):
-
-                    sg_allotment = sg_dict[job]
-                    # assign to unassigned, non-furloughed sg emps...
-                    np.put(assign_range,
-                           np.where((sg_range == 1) &
-                                    (assign_range == 0) &
-                                    (fur_range == 0))[0][:sg_allotment],
-                           job)
-
-                    remaining = count - np.sum(assign_range == job)
-                    # assign to nbnf emps
-                    np.put(assign_range,
-                           np.where((assign_range == 0) &
-                                    (fur_range == 0) &
-                                    (long_range <= job))[0][:remaining],
-                           job)
-
-                    remaining = count - np.sum(assign_range == job)
-                    # assign to remaining in seniority order
-                    np.put(assign_range,
-                           np.where((assign_range == 0) &
-                                    (fur_range == 0))[0][:remaining],
-                           job)
-
-                else:
-                    # nbnf...
-                    np.put(assign_range,
-                           np.where((assign_range == 0) &
-                                    (fur_range == 0) &
-                                    (long_range <= job))[0][:count],
-                           job)
-
-                    remaining = count - np.sum(assign_range == job)
-                    # remaining...
-                    np.put(assign_range,
-                           np.where((assign_range == 0) &
-                                    (fur_range == 0))[0][:remaining],
-                           job)
-
-        # long_prex = align(L, U, long_df, assign_range, long_prex)
-        prex_next = align_next(index_range, index_range_next, assign_range)
-        np.copyto(long_prex[L_next:U_next], prex_next)
-
-    # assign fur job level to unassigned
-    np.put(long_prex, np.where(long_prex == 0)[0], fur_level)
-
-    return long_prex.astype(int), long_prex[:upper[0]]
 
 
 # MAKE LIST OF ORIGINAL JOBS
