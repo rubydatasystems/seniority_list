@@ -1755,27 +1755,48 @@ def get_indexes_down(list_of_positions):
 
 
 # MAKE_DECILE_BANDS
-def make_decile_bands(num_bands):
-    '''creates lower and upper arrays of percentile values.
+def make_decile_bands(num_bands=40, num_returned_bands=10):
+    '''creates an array of lower and upper percentile values surrounding
+    a consistent schedule of percentile markers.  If the user desires to
+    sample data at every 10th percentile, this function provides selectiable
+    bottom and top percentile limits surrounding each 10th percentile, or
+    variable width sample ranges.
 
     num_bands input must be multiple of 5 greater than or equal to 10
-    and less than 10000
+    and less than 10000.
+
+    num_returned_bands input must be multiple of 5, equal to or less than
+    the num_bands input, and num_bands/num_returned_bands must have no
+    remainder.
 
     Used for selecting sample employees surrounding deciles
     (0, 10, 20 etc. percent levels).
 
     Top and bottom bands will be half of normal size.
 
-    Width of bands in percentage is determined by num_bands input.
+    inputs
+        num_bands
+            Width of bands in percentage is determined by num_bands input.
 
-    Input of 40 would mean bands 2.5% wide.
-    Top and bottom bands would be 1.25% wide.
+            Input of 40 would mean bands 2.5% wide. (100/40)
+            Top and bottom bands would be 1.25% wide.
 
-    Ex. 0-1.25%,
+            Ex. 0-1.25%,
 
-    8.75-11.25%,
+            8.75-11.25%,
 
-    ... 98.75-100%
+            ... 98.75-100%
+
+        num_returned_bands
+            number of returned delineated sections.  Must be a multiple of 5
+            less than or equal to the num_bands value
+            with no remainder when divided into the num_bands value.
+
+            (note:  an input of 10 would result in 11 actual segments,
+            one-half band at the top and bottom of list (0% and 100%),
+            and 9 full bands surrounding each decile, 10% to 90%)
+
+
     '''
     if num_bands < 10:
         print('input must be multiple of 5 greater than or equal to 10')
@@ -1783,10 +1804,14 @@ def make_decile_bands(num_bands):
     if num_bands % 5 != 0:
         print('input must be multiple of 5 greater than or equal to 10')
         return
+    if (num_returned_bands > num_bands) or \
+       (num_bands % num_returned_bands != 0):
+        print('num_returned_bands input must be <= num_bands and ' +
+              'num_bands / num_returned_bands must have no remainder')
+        return
     cutter = (num_bands * 2) + 1
     cuts = np.round(np.linspace(0, 1, cutter) * 100, 2)
-    width = 100 / num_bands
-    strider = np.sum(cuts < 10)
+    strider = 2
     lower = list(cuts[strider - 1::strider])
     upper = list(cuts[1::strider])
     upper.append(100)
@@ -1794,7 +1819,8 @@ def make_decile_bands(num_bands):
     lower.append(0)
     lower = sorted(lower)
     band_limits = np.array((lower, upper)) / 100
-    return band_limits.T, width
+    stride = int(num_bands / num_returned_bands)
+    return band_limits.T[::stride]
 
 
 # MONOTONIC TEST
