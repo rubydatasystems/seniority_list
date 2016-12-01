@@ -9,6 +9,7 @@ import config as cf
 
 from sys import argv
 
+
 script, *conditions = argv
 
 input_skel = 'skeleton'
@@ -22,7 +23,7 @@ ds = pd.read_pickle(skeleton_path_string)
 num_of_job_levels = cf.num_of_job_levels
 fur_counts = cf.furlough_count
 num_of_months = pd.unique(ds.mnum).size
-egs = pd.unique(ds.eg)
+egs = sorted(pd.unique(ds.eg))
 start_month = 0
 
 if cf.enhanced_jobs:

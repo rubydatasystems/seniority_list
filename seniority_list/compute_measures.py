@@ -15,6 +15,8 @@ import functions as f
 import config as cf
 
 from sys import argv
+from collections import OrderedDict as od
+
 
 script, proposal_name, *conditions = argv
 
@@ -79,18 +81,63 @@ ds.sort_values(['mnum', 'new_order'], inplace=True)
 eg_sequence = np.array(df_master.eg)
 fur_sequence = np.array(df_master.fur)
 
+egs = sorted(pd.unique(eg_sequence))
+
 if 'prex' in conditions:
 
-    eg2_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][1])
-    eg3_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][2])
-    sg = np.array(df_master[df_master.eg == 1]['sg'])
-    eg1_fur = np.array(df_master[df_master.eg == 1]['fur'])
-    eg1_ojob_array = f.make_stovepipe_prex_shortform(
-        jcnts_arr[0][0], sg, cf.sg_rights, eg1_fur)
+    sg_rights = cf.sg_rights
+    sg_eg_list = []
+    sg_dict = od()
+    stove_dict = od()
 
-    eg1_prex_stove = np.take(eg1_ojob_array, np.where(eg1_fur == 0)[0])
+    # Find the employee groups which have pre-existing job rights...
+    # grab the eg code from each sg (special group) job right description
+    # and add to sg_eg_list
+    for line_item in sg_rights:
+        sg_eg_list.append(line_item[0])
+    # place unique eg codes into sorted list
+    sg_eg_list = sorted(pd.unique(sg_eg_list))
 
-    sp_arr = np.array((eg1_prex_stove, eg2_stove, eg3_stove))
+    # Make a dictionary containing the special group data for each group with
+    # special rights
+    for eg in sg_eg_list:
+        sg_data = []
+        for line_item in sg_rights:
+            if line_item[0] == eg:
+                sg_data.append(line_item)
+        sg_dict[eg] = sg_data
+
+    # REMOVE COMMENTED CODE BELOW AFTER TESTING IS COMPLETE ************
+    # eg2_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][1])
+    # eg3_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][2])
+    # sg = np.array(df_master[df_master.eg == 1]['sg'])
+    # eg1_fur = np.array(df_master[df_master.eg == 1]['fur'])
+    # eg1_ojob_array = f.make_stovepipe_prex_shortform(
+    #     jcnts_arr[0][0], sg, sg_rights, eg1_fur)
+
+    # eg1_prex_stove = np.take(eg1_ojob_array, np.where(eg1_fur == 0)[0])
+
+    # sp_arr = np.array((eg1_prex_stove, eg2_stove, eg3_stove))
+    # ******************************************************************
+
+    for eg in egs:
+
+        if eg in sg_eg_list:
+            # (run prex stovepipe routine with eg dict key and value)
+            sg = np.array(df_master[df_master.eg == eg]['sg'])
+            fur = np.array(df_master[df_master.eg == eg]['fur'])
+            ojob_array = f.make_stovepipe_prex_shortform(
+                jcnts_arr[0][eg - 1], sg, sg_dict[eg], fur)
+            prex_stove = np.take(ojob_array, np.where(fur == 0)[0])
+            stove_dict[eg] = prex_stove
+        else:
+            # (run make_stovepipe routine with eg dict key and value)
+            stove_dict[eg] = f.make_stovepipe_jobs_from_jobs_arr(
+                jcnts_arr[0][eg - 1])
+
+    # use dict values as inputs to sp_arr,
+    # ordered dict maintains proper sequence...
+    sp_arr = list(np.array(list(stove_dict.values())))
     # total of jobs per eg
     eg_job_counts = np.add.reduce(jcnts_arr[0], axis=1)
 

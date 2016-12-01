@@ -106,6 +106,8 @@ from collections import OrderedDict as od
 # jc6 = [6, [1, 61], 411, [376, 26, 9]]
 
 # j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
+# # eg_counts list below must be in order of eg code,
+# # eg 1 count then eg 2 count, etc. (for f.make_jcnts function)
 # eg_counts = [eg1_job_count, eg2_job_count, eg3_job_count]
 
 # # RECALLS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -120,24 +122,26 @@ from collections import OrderedDict as od
 # if enhanced_jobs:
 #     # prex - sg (special group) pre-existing condition
 #     # sequence = [eg, jnum, count, start_month, end_month]
-#     eg1_sg5 = [1, 5, 43, 0, 67]
-#     eg1_sg6 = [1, 6, 130, 0, 67]
-#     eg1_sg12 = [1, 12, 43, 0, 67]
-#     eg1_sg13 = [1, 13, 130, 0, 67]
+#     # Note, for any group to participate in the pre-existing job condition
+#     # assignments, the sg column must have ones marking those affected...
+#     sg1 = [1, 5, 43, 0, 67]
+#     sg2 = [1, 6, 130, 0, 67]
+#     sg3 = [1, 12, 43, 0, 67]
+#     sg4 = [1, 13, 130, 0, 67]
 
 #     # ratio condition
 #     # sequence = [eg, jnum, pcnt, start_month, end_month]
-#     eg1_cr1 = [1, 1, imp_month, ratio_final_month]
-#     eg1_cr2 = [1, 2, imp_month, ratio_final_month]
-#     eg1_cr7 = [1, 7, imp_month, ratio_final_month]
-#     eg1_cr8 = [1, 8, imp_month, ratio_final_month]
+#     r1 = [1, 1, imp_month, ratio_final_month]
+#     r2 = [1, 2, imp_month, ratio_final_month]
+#     r3 = [1, 7, imp_month, ratio_final_month]
+#     r4 = [1, 8, imp_month, ratio_final_month]
 
 #     # count-capped ratio condition
 #     # sequence = [eg, jnum, count, start_month, end_month]
-#     eg2_cr1 = [2, 1, 55, imp_month, imp_month + 60]
-#     eg2_cr2 = [2, 2, 37, imp_month, imp_month + 60]
-#     eg2_cr7 = [2, 7, 101, imp_month, imp_month + 60]
-#     eg2_cr8 = [2, 8, 67, imp_month, imp_month + 60]
+#     c1 = [2, 1, 55, imp_month, imp_month + 60]
+#     c2 = [2, 2, 37, imp_month, imp_month + 60]
+#     c3 = [2, 7, 101, imp_month, imp_month + 60]
+#     c4 = [2, 8, 67, imp_month, imp_month + 60]
 
 #     # dict below is input for assign_cond_ratio_capped function
 #     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
@@ -150,28 +154,28 @@ from collections import OrderedDict as od
 #                   (1, 0): ([2.48, 1], 320, 1),
 #                   (4, 0): ([2.46, 1], 580, 1)}
 
-#     sg_rights = [eg1_sg5, eg1_sg6, eg1_sg12, eg1_sg13]
-#     ratio_cond = [eg1_cr1, eg1_cr2, eg1_cr7, eg1_cr8]
-#     count_cond = [eg2_cr1, eg2_cr2, eg2_cr7, eg2_cr8]
+#     sg_rights = [sg1, sg2, sg3, sg4]
+#     ratio_cond = [r1, r2, r3, r4]
+#     count_cond = [c1, c2, c3, c4]
 
 # else:
 
 #     # sg prex award (all reserve...)
 #     # sequence = [eg, jnum, count, start_month, end_month]
-#     eg1_sg2 = [1, 2, 43, 0, 67]
-#     eg1_sg3 = [1, 3, 130, 0, 67]
-#     eg1_sg5 = [1, 5, 43, 0, 67]
-#     eg1_sg6 = [1, 6, 130, 0, 67]
+#     sg1 = [1, 2, 43, 0, 67]
+#     sg2 = [1, 3, 130, 0, 67]
+#     sg3 = [1, 5, 43, 0, 67]
+#     sg4 = [1, 6, 130, 0, 67]
 
 #     # ratio condition
 #     # sequence = [eg, jnum, pcnt, start_month, end_month]
-#     eg1_cr1 = [1, 1, imp_month, ratio_final_month]
-#     eg1_cr4 = [1, 4, imp_month, ratio_final_month]
+#     r1 = [1, 1, imp_month, ratio_final_month]
+#     r2 = [1, 4, imp_month, ratio_final_month]
 
 #     # count-capped ratio condition
 #     # sequence = [eg, jnum, count, start_month, end_month]
-#     eg2_cr1 = [2, 1, 92, imp_month, imp_month + 60]
-#     eg2_cr4 = [2, 4, 168, imp_month, imp_month + 60]
+#     c1 = [2, 1, 92, imp_month, imp_month + 60]
+#     c2 = [2, 4, 168, imp_month, imp_month + 60]
 
 #     # dict below is input for assign_cond_ratio_capped function
 #     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
@@ -184,9 +188,9 @@ from collections import OrderedDict as od
 #                   (1, 0): ([2.48, 1], 320, 1),
 #                   (4, 0): ([2.46, 1], 580, 1)}
 
-#     sg_rights = [eg1_sg2, eg1_sg3, eg1_sg5, eg1_sg6]
-#     ratio_cond = [eg1_cr1, eg1_cr4]
-#     count_cond = [eg2_cr1, eg2_cr4]
+#     sg_rights = [sg1, sg2, sg3, sg4]
+#     ratio_cond = [r1, r2]
+#     count_cond = [c1, c2]
 
 # # DICTIONARIES, DESCRIPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # # abbrev for groups, last one for standalone
