@@ -123,7 +123,8 @@ from collections import OrderedDict as od
 #     # prex - sg (special group) pre-existing condition
 #     # sequence = [eg, jnum, count, start_month, end_month]
 #     # Note, for any group to participate in the pre-existing job condition
-#     # assignments, the sg column must have ones marking those affected...
+#     # assignments, the sg column in source data must have ones marking
+#     # the affected employees...
 #     sg1 = [1, 5, 43, 0, 67]
 #     sg2 = [1, 6, 130, 0, 67]
 #     sg3 = [1, 12, 43, 0, 67]
@@ -162,6 +163,9 @@ from collections import OrderedDict as od
 
 #     # sg prex award (all reserve...)
 #     # sequence = [eg, jnum, count, start_month, end_month]
+#     # Note, for any group to participate in the pre-existing job condition
+#     # assignments, the sg column in source data must have ones marking
+#     # the affected employees...
 #     sg1 = [1, 2, 43, 0, 67]
 #     sg2 = [1, 3, 130, 0, 67]
 #     sg3 = [1, 5, 43, 0, 67]
