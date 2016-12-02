@@ -113,6 +113,7 @@ from collections import OrderedDict as od
 # # RECALLS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # # [total monthly_recall_count, eg recall allocation,
 # #   start_month, end_month]
+# # Note: eg_recall allocation is in order of eg number, 1 then 2 etc.
 # recall_1 = [8, [6, 0, 2], 50, 75]
 # recall_2 = [10, [10, 0, 0], 75, 150]
 

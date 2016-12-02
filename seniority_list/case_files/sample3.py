@@ -95,11 +95,14 @@ jc5 = [3, [1, 61], 411, [376, 26, 9]]
 jc6 = [6, [1, 61], 411, [376, 26, 9]]
 
 j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
+# eg_counts list below must be in order of eg code,
+# eg 1 count then eg 2 count, etc. (for f.make_jcnts function)
 eg_counts = [eg1_job_count, eg2_job_count, eg3_job_count]
 
 # RECALLS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # [total monthly_recall_count, eg recall allocation,
 #   start_month, end_month]
+# Note: eg_recall allocation is in order of eg number, 1 then 2 etc.
 recall_1 = [8, [6, 0, 2], 50, 75]
 recall_2 = [10, [10, 0, 0], 75, 150]
 
@@ -109,6 +112,9 @@ recalls = [recall_1, recall_2]
 if enhanced_jobs:
     # sg prex award (all reserve...)  TODO - make function
     # sequence = [eg, jnum, count, start_month, end_month]
+    # Note, for any group to participate in the pre-existing job condition
+    # assignments, the sg column must have ones marking those affected...
+
     sg1 = [1, 5, 43, 0, 67]
     sg2 = [1, 6, 130, 0, 67]
     sg3 = [1, 12, 43, 0, 67]

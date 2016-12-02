@@ -747,7 +747,6 @@ def assign_jobs_nbnf_job_changes(df,
                                  job_change_months,
                                  job_reduction_months,
                                  start_month,
-                                 proposal_name_text,
                                  condition_list,
                                  fur_return=False):
     '''Long_Form
@@ -787,17 +786,15 @@ def assign_jobs_nbnf_job_changes(df,
             months in which the number of jobs is decreased (list).
             from the get_job_reduction_months function
         start_month
-            integer representing the month number of integration when
-            there exists a delayed integration (from config file)
-        proposal_name_text
-            text of proposal file name without the extension.
-            This should be the command line input 'input_proposal'
-            if file name of proposal is df3.pkl, proposal_name_text = 'df3'
-        cond_list
+            integer representing the month number to begin calculations,
+            likely month of integration when there exists a delayed
+            integration (from config file)
+        condition_list
             list of special job assignment conditions to apply,
             example: ['prex', 'count', 'ratio']
-        furlough_return option -
-            allows call to function XXX TODO...
+        fur_return (boolean)
+            model employee recall from furlough if True using recall schedule
+            from case-specific file (allows call to mark_for_recall function)
 
     Assigns jobs so that original standalone jobs are assigned
     each month (if available) unless a better job is available
@@ -882,11 +879,7 @@ def assign_jobs_nbnf_job_changes(df,
 
         # calc capped count condition month range and concat
     if 'count' in condition_list:
-        # TEMPORARY CONDITION FOR AA AWARD:
-        if proposal_name_text == 'p4':
-            count_cond = np.array(cf.count_cond[:int(len(cf.count_cond) * .5)])
-        else:
-            count_cond = np.array(cf.count_cond)
+        count_cond = np.array(cf.count_cond)
         count_jobs = np.transpose(count_cond)[1]
         quota_dict = cf.quota_dict
         # count_cond_start_month = count_cond[0][3]
@@ -2002,6 +1995,11 @@ def mark_for_recall(orig_range, num_of_job_levels,
     during a recall month
 
     inputs
+        orig_range
+            original job range
+
+        num_of_job_levels
+            number of job levels in model, normally from config file
 
         fur_range
             current month slice of fur data
@@ -2016,6 +2014,19 @@ def mark_for_recall(orig_range, num_of_job_levels,
         jobs_avail
             total number of jobs for each month
             array, job_gain_loss_table function output [1]
+
+        standalone (boolean)
+            This function may be used with both standalone and integrated
+            dataset generation.
+            Set this variable to True for use within standalone dataset
+            calculation, False for integrated dataset calculation routine.
+
+        eg_index (integer)
+            selects the proper recall schedule for standalone dataset
+            generation, normally from a loop increment.  The recall schedule
+            is defined in the case-specific configuration file.
+            set to zero for an integrated routine (integrated routine
+            uses a global recall schedule)
 
         method
             means of selecting employees to be recalled
@@ -2471,10 +2482,10 @@ def make_delayed_job_counts(imp_month, delayed_jnums,
     job_numbers = sorted(list(set(delayed_jnums[:imp_high])))
 
     for month in np.arange(imp_month + 1):
-        l = lower[month]
-        h = upper[month]
-        jnums_range = delayed_jnums[l:h]
-        stand_range = stand_job_counts[l:h]
+        lm = lower[month]
+        hm = upper[month]
+        jnums_range = delayed_jnums[lm:hm]
+        stand_range = stand_job_counts[lm:hm]
 
         for job in job_numbers:
             job_indexes = np.where(jnums_range == job)[0]
@@ -2811,13 +2822,20 @@ def assign_standalone_job_changes(df_align,
         job_reduction_months
             months in which the number of jobs is decreased (list).
             from the get_job_reduction_months function
-        proposal_name_text
-            text of proposal order file name without the extension.
-            This should be the command line input 'input_proposal'
-            if file name of proposal is p3.pkl, proposal_name_text = 'p3'
+        start_month
+            starting month for calculations, likely implementation month
+            from case-specific file
+        df_index
+            integer input from an incremental loop which selects the proper
+            employee group recall scedule
+        apply_sg_cond (boolean)
+            compute with pre-existing special job quotas for certain employees
+            marked with a one in the sg column (special group) according to a
+            schedule defined in the case-specific configuration file
+        fur_return (boolean)
+            compute with a recall schedule(s) defined in the case-specific
+            configuration file
 
-        furlough_return option -
-            allows call to function XXX TODO...
 
     Assigns jobs so that original standalone jobs are assigned
     each month (if available) unless a better job is available

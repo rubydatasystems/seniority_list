@@ -255,13 +255,14 @@ reduction_months = f.get_job_reduction_months(j_changes)
 
 df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 
+# this is the main job assignment function.  It loops through all of the
+# months in the model and assigns jobs
 jobs_and_counts = f.assign_jobs_nbnf_job_changes(df_align, np_low_limits,
                                                  cumulative, all_months,
                                                  table[0], table[1],
                                                  job_change_months,
                                                  reduction_months,
                                                  imp_month,
-                                                 proposal_name,
                                                  conditions,
                                                  fur_return=cf.recall)
 
