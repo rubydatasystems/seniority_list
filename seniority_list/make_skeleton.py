@@ -213,7 +213,6 @@ if cf.compute_pay_measures:
 # calculate monthly age using starting age and month number
 
 age_list = np.array(skel.s_age)
-print(age_list)
 
 corr_ages = f.age_correction(long_form_skeleton, age_list)
 
