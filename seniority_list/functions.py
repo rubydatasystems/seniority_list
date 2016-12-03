@@ -26,6 +26,13 @@ def career_months_list_in(ret_list, start_date=cf.starting_date):
 
     This version takes a list of retirement dates
     Short_Form
+
+    inputs
+        ret_list
+            list of retirement dates in datetime format
+        start_date
+            comparative date for retirement dates, starting date for the
+            data model
     '''
     start_date = pd.to_datetime(start_date)
     s_year = start_date.year
@@ -44,6 +51,14 @@ def career_months_df_in(df, startdate=cf.starting_date):
     This version has a df as input
     - df must have 'retdate' column of retirement dates
     Short_Form
+
+    inputs
+        df
+            dataframe containing a column of retirement dates
+            in datetime format
+        start_date
+            comparative date for retirement dates, starting date for the
+            data model
     '''
     start_date = pd.to_datetime(startdate)
     rets = list(df.retdate)
@@ -66,6 +81,15 @@ def longevity_at_startdate(ldates_list, return_months=False,
     - float output is longevity in years
     (+1 added to reflect current 1-based pay year)
     - option for output in months
+
+    inputs
+        ldates_list
+            list of longevity dates in datetime format
+        return_months (boolean)
+            option to return result as month value instead of year value
+        start_date
+            comparative date for retirement dates, starting date for the
+            data model
     '''
     start_date = pd.to_datetime(start_date)
     s_year = start_date.year
@@ -86,28 +110,18 @@ def longevity_at_startdate(ldates_list, return_months=False,
     return longevity_list
 
 
-# LAST MONTH PARTIAL MONTH FOR PAY
-def last_month_mpay_pcnt(ret_list):
-    '''Short_Form
-    Retirement decimal month for last month pay calculation
-    Input is a list of dates
-    (vectorize candidate??)
-    Note: this function was replaced with a precalculated
-    month percentage dataframe (pickled) which is read during
-    the "make_skeleton" routine.  Much faster...
-    '''
-    last_month_pcnt = []
-    for retdate in ret_list:
-        last_month_pcnt.append(retdate.day /
-                               (retdate + pd.offsets.MonthEnd(0)).day)
-    return last_month_pcnt
-
-
 # AGE AT START DATE
-def starting_age(dob_list, start_date=cf.starting_date, retage=cf.ret_age):
+def starting_age(dob_list, start_date=cf.starting_date):
     '''Short_Form
     Returns decimal age at given date.
-    Input is list of retirement dates
+    Input is list of birth dates
+
+    inputs
+        dob_list
+            list of birth dates in datetime format
+        start_date
+            comparative date for retirement dates, starting date for the
+            data model
     '''
     start_date = pd.to_datetime(start_date)
     s_year = start_date.year
@@ -126,12 +140,19 @@ def starting_age(dob_list, start_date=cf.starting_date, retage=cf.ret_age):
 def count_per_month(career_months_array):
     '''Month_Form
     Returns number of employees remaining for each month (not retired).
-    Cumulative sum of career_months_array input (np array)
-    that are greater or equal to each incremental loop month number.
+    Cumulative sum of career_months_array input (np array) that are
+    greater or equal to each incremental loop month number.
 
     Note: alternate method to this function is value count of mnums:
     df_actives_each_month = pd.DataFrame(df_idx.mnum.value_counts())
     df_actives_each_month.columns = ['count']
+
+    input
+        career_months_array
+            output of career_months_list_in or career_months_list_in
+            functions.  This input is an array containing the number of
+            months each employee will work until retirement.
+
     '''
     max_career = np.max(career_months_array) + 1
     emp_count_array = np.zeros(max_career)
@@ -144,7 +165,7 @@ def count_per_month(career_months_array):
 
 # GENERATE MONTH SKELETON
 @jit(nopython=True, cache=True)
-def gen_month_skeleton(input_array):
+def gen_month_skeleton(month_count_array):
     '''Long_Form
     Create an array of month numbers with each month number
     repeating n times for n non-retired employees in each month.
@@ -155,23 +176,30 @@ def gen_month_skeleton(input_array):
     Output is a 1d ndarray.
     This funtion creates the first column and the basic form
     of the skeleton dataframe which is the basis for the dataset dataframes.
-    Input is the result of the count_per_month function as an np.array.
+
+    input
+        month_count_array
+            a numpy array containing the number of employees remaining or
+            not retired for each month.  This input is the result of the
+            count_per_month function.
     '''
-    total_months = int(np.sum(input_array))
-    month_counts_array = np.zeros(total_months)
+    total_months = int(np.sum(month_count_array))
+    mnum_skeleton_array = np.zeros(total_months)
     i = 0
     j = 0
-    for mcount in input_array:
+    for mcount in month_count_array:
         for slot in np.arange(j, int(mcount) + j):
-            month_counts_array[slot] = i
+            mnum_skeleton_array[slot] = i
         i += 1
         j = slot + 1
-    return month_counts_array
+    return mnum_skeleton_array
 
 
 # GENERATE THE EMPLOYEE INDEX SKELETON
 @jit(nopython=True, cache=True)
-def gen_emp_skeleton_index(monthly_active_count_nparay, career_mths_nparray):
+def gen_skel_emp_idx(monthly_count_array,
+                     career_mths_array,
+                     empkey_source_array):
     '''Long_Form
     For each employee who remains for each month,
     grab that employee index number.
@@ -179,22 +207,35 @@ def gen_emp_skeleton_index(monthly_active_count_nparay, career_mths_nparray):
     Input is the result of the count_per_month function (np.array)
     and the result of the career_months_df_in (or ...list_in)
     function
+
+    inputs
+        monthly_count_array (numpy array)
+            count of non-retired active employees for each month in the model,
+            the ouput from the count_per_month function.
+        career_mths_array (numpy array)
+            career length in months for each employee, output of
+            career_months_list_in or career_months_list_in functions.
+        empkey_source_array (numpy array)
+            empkey column data as array
+
     '''
-    total_months = int(np.sum(monthly_active_count_nparay))
-    emp_idx_array = np.empty(total_months)
-    total_emps = career_mths_nparray.size
+    total_months = int(np.sum(monthly_count_array))
+    skel_idx_array = np.empty(total_months)
+    skel_empkey_array = np.empty(total_months)
+    emp_idx = np.arange(0, career_mths_array.size)
 
     k = 0
     # look in career months list for each month
-    for j in np.arange(0, int(np.max(career_mths_nparray)) + 1):
-        cnt = 0
-        for i in np.arange(0, total_emps):
-            if career_mths_nparray[i] >= j:
-                emp_idx_array[k] = cnt
+    for j in np.arange(0, int(np.max(career_mths_array)) + 1):
+        idx = 0
+        for i in emp_idx:
+            if career_mths_array[i] >= j:
+                skel_idx_array[k] = idx
+                skel_empkey_array[k] = empkey_source_array[idx]
                 k += 1
-            cnt += 1
+            idx += 1
 
-    return emp_idx_array
+    return skel_idx_array, skel_empkey_array
 
 
 # AGE FOR EACH MONTH (correction to starting age)
@@ -206,8 +247,8 @@ def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
 
     Inputs
 
-        mnum
-            gen_month_skel function output (ndarray)
+        month_nums_array
+            gen_month_skeleton function output (ndarray)
 
         ages_array
             starting_age function output aligned with long_form (ndarray)
@@ -327,6 +368,13 @@ def make_stovepipe_jobs_from_jobs_arr(jobs_arr, total_emp_count=0):
     Result is an array with each job number repeated n times for n job count.
     - job count list like : job_counts = [334, 222, 701, 2364]
     - jobs_array = np.array(job_counts)
+
+    inputs
+        jobs_arr (numpy array)
+            job counts starting with job level 1
+        total_emp_count
+            if zero (normal input), sum of jobs_arr elements,
+            otherwise user-defined size of result_jobs_arr
     '''
     if total_emp_count == 0:
         result_jobs_arr = np.zeros(sum(jobs_arr))
@@ -514,7 +562,7 @@ def make_original_jobs_from_counts(jobs_arr_arr, eg_array,
     Each eg (employee group) is assigned jobs from their standalone
     list in order top to bottom.
 
-    Resut is a combined list of jobs with each eg maintaining ordered
+    Result is a combined list of jobs with each eg maintaining ordered
     independent stovepipe jobs within the combined list of jobs
 
     jobs_arr_arr is an array of arrays, likely output[0] from
@@ -534,6 +582,17 @@ def make_original_jobs_from_counts(jobs_arr_arr, eg_array,
 
     employees who are originally marked as furloughed are assigned the furlough
     level number which is 1 greater than the number of job levels.
+
+    inputs
+        jobs_arr_arr (numpy array of arrays)
+            lists of job counts for each job level within each employee
+            group, each list in order starting with job level one.
+        eg_array (numpy array)
+            employee group (eg) column data from master list source
+        fur_array
+            furlough (fur) column data from master list source
+        num_levels
+            number of job levels (without furlough level) in the model
     '''
     result_jobs_arr = np.zeros(eg_array.size)
     eg = 0
@@ -570,6 +629,19 @@ def assign_jobs_full_flush(monthly_nonret_counts, job_list, job_level_count):
 
     This is the full bump and full flush version
     Extremely fast...
+
+    Note:  this function has no adjustment for job changes over time
+
+    inputs
+        monthly_nonret_counts
+            count of active, non-retired employees for each month
+        job_list (numpy array)
+            list of job level codes derived from the job counts, each job code
+            is repeated for its respective count, and stacked with the other
+            job codes - result is monotonic
+        job_level_count
+            number of active job levels in the model (do not count the
+            furlough level)
     '''
     long_job_array = np.zeros(sum(monthly_nonret_counts))
     tcount = 0
@@ -643,6 +715,11 @@ def assign_jobs_full_flush_with_job_changes(monthly_nonret_counts,
     Unassigned employees (not enough jobs), are left at job number zero
 
     This is the full bump and full flush version
+
+    inputs
+        monthly_nonret_counts
+        job_counts_each_month
+        job_level_count
     '''
     long_job_array = np.zeros(sum(monthly_nonret_counts)).astype(int)
     tcount = 0
@@ -894,7 +971,7 @@ def assign_jobs_nbnf_job_changes(df,
         recall_months = get_recall_months(cf.recalls)
         job_change_months = np.concatenate((job_change_months,
                                             recall_months))
-
+    # np.unique returns an ordered numpy array
     job_change_months = np.unique(job_change_months)
 
     # for month in np.arange(num_of_months):
@@ -939,7 +1016,7 @@ def assign_jobs_nbnf_job_changes(df,
 
                 if 'prex' in condition_list:
 
-                    if month in sg_month_range and job in sg_jobs:
+                    if (month in sg_month_range) and (job in sg_jobs):
 
                         # assign prex condition jobs to sg employees
                         sg_jobs_avail = min(sg_dict[job], this_job_count)
@@ -953,14 +1030,14 @@ def assign_jobs_nbnf_job_changes(df,
                 if 'ratio' in condition_list:
                     # TODO refactor cond_dict below so it only runs once...
                     # instead of 8 or 16 times...
-                    if month == ratio_cond_month and job == ratio_cond_job:
+                    if (month == ratio_cond_month) and (job == ratio_cond_job):
 
                         ratio_cond_dict = set_ratio_cond_dict(1,
                                                               ratio_jobs,
                                                               orig_job_range,
                                                               eg_range)
 
-                    if month in ratio_month_range and job in ratio_jobs:
+                    if (month in ratio_month_range) and (job in ratio_jobs):
 
                         assign_cond_ratio(job,
                                           this_job_count,
@@ -1025,6 +1102,7 @@ def assign_jobs_nbnf_job_changes(df,
             #     quick_stopepipe_assign()
 
             jobs_avail = this_job_count - np.sum(assign_range == job)
+
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (orig_job_range <= job) &
@@ -1153,6 +1231,38 @@ def make_lower_and_upper_slice_limits(mnum_arr):
 
 def snum_and_spcnt(jnum_arr, job_levels, low_limits, high_limits,
                    table_counts, all_mths):
+    '''Calculates:
+
+    long_form seniority number ('snum', only active employees),
+    seniority percentage ('spcnt', only active employees),
+
+    Iterate through monthly jobs count data, capturing monthly_job_counts
+    to be used as the denominator for percentage calculations.
+
+    This function produces two ndarrays which will make up two columns
+    in the long_form pandas dataset.
+
+    Note:  This function has been updated.  The new version produces lnum and
+    lspcnt.  It is the create_snum_and_spcnt_arrays function...
+
+    Inputs
+
+        jnum_arr (numpy array)
+            the long_form jnums (job numbers) column result
+        job_levels (integer)
+            number of job levels in model
+        low_limits
+            array of long-form start of each month data indexes
+        high_limits
+            array of long-form end of each month data indexes
+        table_counts
+            job_gain_loss_table function output[1],
+            job counts for each job level,
+            one row of counts for each month
+        all_mths
+            total sum of monthly active, non-retired employees (sum of
+            all months in model)
+    '''
     fur_level = job_levels + 1
     seq_nums = np.arange(high_limits[0] + high_limits[1]) + 1
     # all_months = np.sum(high_limits)
@@ -1189,6 +1299,13 @@ def create_snum_array(jobs_held, monthly_population_counts):
     Furloughees are not assigned a seniority number.
 
     Returns ndarray for use in seniority number (snum) column.
+
+    inputs
+        jobs_held
+            long_form array of jnums (job numbers) with unassigned employees
+            (furloughed) indicated with a zero.
+        monthly_population_counts
+            array of non-retired employee counts for each month in model
     '''
     seq_nums = np.arange(1, monthly_population_counts[0] + 1)
     # TODO consider np.sum vs sum below (is input always np array?)
@@ -1395,7 +1512,11 @@ def make_jcnts(job_count_lists):
     Inputs
 
         *job_count_lists
-            the eg job count list(s)
+            list of the employee job count list(s).
+            If the program is using the enhanced jobs option, this input
+            will be the output of the convert_jcnts_to_enhanced function.
+            Otherwise, it will be the eg_counts variable from the configuration
+            file.
 
     Returns tuple of two ndarrays.
 
@@ -1438,20 +1559,18 @@ def make_jcnts(job_count_lists):
 
 
 # SQUEEZE
-def squeeze_increment(data, eg, senior_num, junior_num,
-                      increment, pack_factor=1):
+def squeeze_increment(data, eg, senior_num, junior_num, increment):
     '''Move members of a selected eg (employee group) within
     a list according to an increment input (positive or negative)
     while retaining relative ordering within all eg groups.
 
-    pack_factor undeveloped at present...
-
-    Inputs
-
+    inputs
         data
             dataframe with empkey as index which at
             minimum includes an order column and an eg column
-        L and H
+        eg
+            employee group number
+        senior_num and junior_num
             indexes for the beginning and end of the list zone to be reordered
         increment
             the amount to add or subrtract from the appropriate eg order number
@@ -1463,9 +1582,6 @@ def squeeze_increment(data, eg, senior_num, junior_num,
     the entire group order numbers are reset within
     the zone using scipy.stats.rankdata.
     The array is then assigned to a dataframe with empkeys as index.
-
-    This function could be modified to return the original input array
-    resorted with the new order ready to be resqueezed!
     '''
     L = senior_num
     H = junior_num
@@ -1507,7 +1623,7 @@ def squeeze_logrithmic(data, eg, senior_num, junior_num,
         eg
             the employee group to move
 
-        H and L
+        senior_num and junior_num
             integers marking the boundries (rng)
             for the operation
             (H must be greater than L)
@@ -1518,7 +1634,7 @@ def squeeze_logrithmic(data, eg, senior_num, junior_num,
         put_segment
             allows compression of the squeeze result (values under 1)
 
-        direction input
+        direction
             squeeze direction:
 
             "u" - move up the list (more senior)
@@ -1588,6 +1704,10 @@ def get_indexes_up(list_of_positions):
     example:
     input > [0,0,1,2,5,9]
     output > [0,1,2,3,5,9]
+
+    input
+        list_of_positions
+            list of index numbers
     '''
     for i in np.arange(1, list_of_positions.size):
         if list_of_positions[i] <= list_of_positions[i - 1]:
@@ -1603,6 +1723,10 @@ def get_indexes_down(list_of_positions):
     example:
     input > [0,1,2,8,9,9]
     output > [0,1,2,7,8,9]
+
+    input
+        list_of_positions
+            list of index numbers
     '''
     for i in np.arange(list_of_positions.size - 2, -1, -1):
         if list_of_positions[i] >= list_of_positions[i + 1]:
@@ -1680,28 +1804,44 @@ def make_decile_bands(num_bands=40, num_returned_bands=10):
 
 
 # MONOTONIC TEST
-def monotonic(x):
+def monotonic(sequence):
     '''test for stricly increasing array-like input
 
-    Used to determine when need for no bump,
+    May be used to determine when need for no bump,
     no flush routine is no longer required.
 
     If test is true, and there are no job changes,
     special rights, or furlough recalls,
     then a straight stovepipe job assignment routine may
     be implemented (fast).
+
+    input
+        sequence
+            array-like input (list or numpy array ok)
     '''
-    dx = np.diff(x)
-    return np.all(dx >= 0)
+    seq_diff = np.diff(sequence)
+    return np.all(seq_diff >= 0)
 
 
 # GET_MONTH_SLICE
-def get_month_slice(long_df, l, h):
-    '''use low and high indexes to slice df
-    month input is index of low and high index arrays
+def get_month_slice(df, l, h):
+    '''Convenience function to extract data for a particular month.
+
+    Input is low and high indexes of target month data (within dataset
+    containing many months)
+
+    The input may also be an array (not limited to a dataframe).
+
+    inputs
+        df
+            dataframe (or array) to be sliced
+        l
+            lower index of slice
+        h
+            upper index of slice
     '''
-    out_df = long_df[l:h]
-    return out_df
+    segment = df[l:h]
+    return segment
 
 
 # PRECALCULATE FURLOUGHS
@@ -1754,6 +1894,14 @@ def precalculate_fur_without_recalls(monthly_job_totals,
 
 # GET_RECALL_MONTHS (refactor to provide for no recall list)
 def get_recall_months(list_of_recall_schedules):
+    '''extract a sorted list of only the unique months containing a recall
+    as defined within the config file recall schedules
+
+    input
+        list_of_recall_schedules
+            list of recall schedule lists, normally equal to the recalls
+            variable from the configuration file
+    '''
     recall_months = []
     for recall_sched in list_of_recall_schedules:
         recall_months.extend(list(range(recall_sched[2], recall_sched[3])))
@@ -1763,6 +1911,14 @@ def get_recall_months(list_of_recall_schedules):
 
 # GET_JOB_CHANGE_MONTHS
 def get_job_change_months(job_changes):
+    '''extract a sorted list of only the unique months containing a change in
+    any job count as defined within the config file job change schedules
+
+    input
+        job_changes
+            list of job change schedule lists, normally equal to the j_changes
+            variable from the configuration file
+    '''
     month_list = []
     for change in job_changes:
         month_list = np.concatenate((month_list,
@@ -1774,6 +1930,14 @@ def get_job_change_months(job_changes):
 
 # GET_REDUCTION_MONTHS
 def get_job_reduction_months(job_changes):
+    '''extract a sorted list of only the unique months containing a reduction
+    in any job count as defined within the config file job change schedules
+
+    input
+        job_changes
+            list of job change schedule lists, normally equal to the j_changes
+            variable from the configuration file
+    '''
     month_list = []
     for change in job_changes:
         if change[2] < 0:
@@ -1789,26 +1953,51 @@ def assign_cond_ratio(job, this_job_count, eg_num,
                       c_dict, orig_rng, assign_rng,
                       eg_rng, fur_rng):
     ''' Apply a job ratio condition
-    # main job assignment function calls this function in appropriate month
+    Main job assignment function calls this function in appropriate month
     and with appropriate job data
 
-    # as written, ratios one group with one or more groups, may be recoded
-    to permit other combinations of ratios.
-    '''
-    eg1_job_count = int(round(c_dict[job] * this_job_count))
+    As written, this function applies a ratio for job assignment between
+    one group and one or more other groups. The function code may be modified
+    to permit other employee group ratio combinations.
 
-    not_eg1_job_count = int(this_job_count - eg1_job_count)
+    inputs
+        job
+            job level number
+        this_job_count
+            number of jobs available
+        eg_num
+            employee group number
+        c_dict
+            ratio condition dictionary, output of set_ratio_cond_dict function
+        orig_rng
+            original job range
+            Month slice of the orig_job column array (normally pertaining a
+            specific month).
+        assign_rng
+            job assignment range
+            Month slice of the assign_range column array
+        eg_rng
+            employee group range
+            Month slice of the eg_range column array
+        fur_rng
+            furlough range
+            Month slice of the fur_range column array
+
+    '''
+    eg_job_count = int(round(c_dict[job] * this_job_count))
+
+    not_eg_job_count = int(this_job_count - eg_job_count)
     np.put(assign_rng,
            np.where((assign_rng == 0) &
                     (eg_rng == eg_num) &
-                    (fur_rng == 0))[0][:eg1_job_count],
+                    (fur_rng == 0))[0][:eg_job_count],
            job)
     # assign not_eg1 nbnf jobs
     np.put(assign_rng,
            np.where((assign_rng == 0) &
                     (eg_rng != eg_num) &
                     (fur_rng == 0) &
-                    (orig_rng <= job))[0][:not_eg1_job_count],
+                    (orig_rng <= job))[0][:not_eg_job_count],
            job)
 
     used_jobs = np.where((assign_rng == job) & (eg_rng > 1))[0].size
@@ -1816,7 +2005,7 @@ def assign_cond_ratio(job, this_job_count, eg_num,
     np.put(assign_rng,
            np.where((assign_rng == 0) &
                     (eg_rng != eg_num) &
-                    (fur_rng == 0))[0][:not_eg1_job_count - used_jobs],
+                    (fur_rng == 0))[0][:not_eg_job_count - used_jobs],
            job)
 
 
@@ -1969,6 +2158,16 @@ def set_ratio_cond_dict(eg_num, job_list, orig_rng, eg_range):
     the ratio condition application period
 
     likely called at implementation month by main job assignment function
+
+    inputs
+        eg_num (integer)
+            employee group number
+        job_list (numpy array)
+            array of jobs subject to ratio condition
+        orig_rng (numpy array)
+            month slice of original job array
+        eg_range (numpy array)
+            month slice of employee group code array
     '''
     ratio_cond_dict = {}
     for job in job_list:
@@ -2170,19 +2369,18 @@ def mark_fur_range(assign_range, fur_range, job_levels):
 
 
 # ALIGN FILL DOWN (all future months)
-def align_fill_down(l, u, long_indexed_df, short_array, long_array):
+def align_fill_down(l, u, long_indexed_df, long_array):
     '''data align current values to all future months
     (short array segment aligned to long array)
 
-    use pandas df auto align - relatively slow
+    This function is used to set the values from the last standalone month as
+    the initial data for integrated dataset computation when a delayed
+    implementation exists.
+
+    uses pandas df auto align - relatively slow
+    TODO - consider an all numpy solution
 
     inputs
-
-        short_array
-            current month values (job assignment, fur code, etc)
-            numpy array
-            variable length depending on number of
-            remaining non_ret employees for this month
 
         l, u
             current month slice indexes (from long df)
@@ -2203,8 +2401,11 @@ def align_fill_down(l, u, long_indexed_df, short_array, long_array):
     return long_array
     '''
     short_df = long_indexed_df[l:u].copy()
+    short_df['x'] = long_array[l:u]
+    # chopped_df begins with a defined index (row), normally the begining of
+    # a delayed implementation month
     chopped_df = long_indexed_df[l:].copy()
-    short_df['x'] = short_array
+    # data align short_df to chopped_df
     chopped_df['x'] = short_df['x']
     result_array = np.array(chopped_df.x)
     result_size = result_array.size
@@ -2245,6 +2446,18 @@ def align_next(long_index_arr, short_index_arr, arr):
 def distribute(available, weights):
     '''proportionally distribute 'available' according to 'weights'
     usage: distribute(334, [2.48, 1])
+
+    returns distribution rounded as integers
+
+    inputs
+        available (integer)
+            the count (number) to divide
+        weights (list)
+            relative weighting to be applied to available count
+            for each section.
+            numbers may be of any size, integers or floats.
+            the number of resultant sections is the same as the number of
+            weights in the list.
     '''
     bin_counts = []
     total_weights = sum(weights)
@@ -2320,153 +2533,6 @@ def distribute_vacancies_by_weights(available, eg_counts, weights):
     return additives.astype(int)
 
 
-# To 8 (job levels) from 16 (job_levels)
-def convert_enhanced_to_basic(j):
-    '''Convert blockholder and reserve job levels(16) to
-    group job counts (CA and FO counts, total of 8 counts
-    for the 4 groups)
-
-        Input is a list of 16 integers.
-        Returns a list of 8 integers.
-
-    Inputs
-
-        j
-            A list of the 16 level job counts
-            example: [97, 64, 102, 575, 68, 310, 196, 130, 115,
-                603, 71, 77, 325, 38, 86, 46]
-    '''
-    k1 = j[0] + j[1]
-    k2 = j[2] + j[4]
-    k3 = j[3] + j[5]
-    k4 = j[6] + j[7]
-    k5 = j[8] + j[11]
-    k6 = j[9] + j[12]
-    k7 = j[10] + j[13]
-    k8 = j[14] + j[15]
-
-    k = [k1, k2, k3, k4, k5, k6, k7, k8]
-    return k
-
-
-# MAKE PAY TABLE
-def make_pay_table(wb_address, rates_sheetname, hours_sheetname):
-    '''Create an indexed dataframe with one column of monthly
-    compensation.  Index is a combination of contract year and
-    pay year longevity and job level (jnum).
-
-    Note:  this is a manual pay_table creation function - there is a
-    make_pay_tables_from_excel script that is normally used...
-
-    Inputs
-
-        wb_address (string)
-            folder/file_name of excel wb containing pay charts and
-            monthly hours
-            Example:  'excel/pay_tables.xlsx'
-
-        rates_sheetname (string)
-            excel workbook sheetname containing pay charts
-            Example: 'no_rsv_with_fur'
-            layout example (partial table...more rows and columns...):
-
-            +-------+-------+-------+-------+-------+-------+
-            | year  | jnum  |   1   |   2   |   3   |   4   |
-            +-------+-------+-------+-------+-------+-------+
-            |2013.0 |   1   | 40.00 | 197.04| 198.64| 200.24|
-            +-------+-------+-------+-------+-------+-------+
-            |2013.0 |   2   | 40.00 | 197.04| 198.64| 200.24|
-            +-------+-------+-------+-------+-------+-------+
-            |2013.0 |   3   | 40.00 | 167.20| 168.56| 169.91|
-            +-------+-------+-------+-------+-------+-------+
-            |2013.0 |   4   | 40.00 | 155.10| 156.36| 157.62|
-            +-------+-------+-------+-------+-------+-------+
-            |2013.0 |   5   | 40.00 | 167.20| 168.56| 169.91|
-            +-------+-------+-------+-------+-------+-------+
-            |2013.0 |   6   | 40.00 | 155.10| 156.36| 157.62|
-            +-------+-------+-------+-------+-------+-------+
-            |2013.0 |   7   | 40.00 | 98.52 | 119.18| 122.15|
-            +-------+-------+-------+-------+-------+-------+
-
-
-        hours_sheetname (string)
-            excel workbook sheetname containing monthly hours
-            credited to each job level
-            Example: 'block_only_hours'
-            layout example (2 columns, partial example):
-
-                    +-----+-----+
-                    |jnumm|hours|
-                    +-----+-----+
-                    |  1  | 85  |
-                    +-----+-----+
-                    |  2  | 74  |
-                    +-----+-----+
-                    |  3  | 85  |
-                    +-----+-----+
-                    |  4  | 85  |
-                    +-----+-----+
-
-        Data is contained in 2 columns of worksheet
-
-    Function output is 2 pickled files:
-
-        1. multi-indexed pay table (scale, year, jnum) with
-        corresponding monthly rates
-
-        2. single-indexed pay table with the index combining
-        the multi-index above for faster retrieval
-
-    This function creates or over-writes files directly with no return value
-    '''
-    pay_table = pd.read_excel(wb_address,
-                              sheetname=rates_sheetname)
-
-    pay_hours = pd.read_excel(wb_address,
-                              sheetname=hours_sheetname,
-                              index_col='jnum')
-
-    pay_melt = pd.melt(pay_table, id_vars=['year', 'jnum'],
-                       var_name='scale',
-                       value_name='rate')
-
-    pay_melt.rate = np.round(pay_melt.rate, 2)
-
-    df_hours_added = pd.merge(pay_melt, pay_hours,
-                              right_index=True, left_on=['jnum'])
-
-    df_hours_added.sort_index(inplace=True)
-
-    df_hours_added['monthly'] = df_hours_added.rate * df_hours_added.hours
-
-    df_hours_added.drop(['rate', 'hours'], inplace=True, axis=1)
-
-    df_hours_added.set_index(['scale', 'year', 'jnum'], inplace=True)
-
-    file_string1 = 'dill/pay_table_' + rates_sheetname + '.pkl'
-
-    df_hours_added.to_pickle(file_string1)
-
-    # cells below convert pay table multi-index to single column combined
-    # index which allows for much faster data align merge...
-
-    df_hours_added.reset_index(drop=False, inplace=True)
-
-    df_hours_added['ptindex'] = (df_hours_added.year *
-                                 100000 + df_hours_added.scale *
-                                 100 + df_hours_added.jnum)
-
-    df_hours_added.drop(['scale', 'year', 'jnum'], axis=1, inplace=True)
-
-    df_hours_added.sort_values('ptindex', inplace=True)
-
-    df_hours_added.set_index('ptindex', drop=True, inplace=True)
-
-    file_string2 = 'dill/idx_pay_table_' + rates_sheetname + '.pkl'
-
-    df_hours_added.to_pickle(file_string2)
-
-
 # MAKE PARTIAL JOB COUNT LIST (prior to implementation month)
 def make_delayed_job_counts(imp_month, delayed_jnums,
                             lower, upper):
@@ -2476,6 +2542,21 @@ def make_delayed_job_counts(imp_month, delayed_jnums,
     this function prior to the implementation month. The array output of this
     function is inserted into what will become the job count column.
     These jobs are from the standalone job results.
+
+    The job count column displays a total monthly count of the job in the
+    corresponding jnum (job number) column.
+
+    inputs
+        imp_month (integer)
+            implementation month, defined by configuration file
+        delayed_jnums (numpy array)
+            array of job numbers, normally data from the start of the model
+            through the implementation month
+        lower (numpy array)
+            array of indexes marking the beginning of data for each month
+            within a larger array of stacked, multi-month data
+        upper (numpy array)
+            array of indexes marking the end of data for each month
     '''
     imp_high = upper[imp_month]
     stand_job_counts = np.zeros(imp_high)
@@ -2586,7 +2667,31 @@ def delayed_monthly_sep_job_tables(job_levels,
 # MAKE GAIN_LOSS_TABLE
 def job_gain_loss_table(months, job_levels, init_job_counts,
                         job_changes, standalone=False):
-    '''
+    '''Make two arrays of job tally information.
+
+    The first array has a row for each month in the model, and a column for
+    each job level (excluding furlough).  This array provides a count for each
+    job for each month of the model accounting for changes provided by the
+    job change schedules defined by the configuration files.
+
+    The second array is a one-dimensional array containing the sum for all jobs
+    for each month of the model.the
+
+    inputs
+        months (integer)
+            number of months in model
+        job_levels (integer)
+            number of job levels in model (excluding furlough level)
+        init_job_counts (tuple of two numpy arrays)
+            initial job counts.
+            Output from the make_jcnts function, essentially an array of the
+            job count lists for each employee group and an array of the
+            combined counts.
+        job_changes (list)
+            The list of job changes from the configuration files.
+        standalone (boolean)
+            if True, use the job count lists for the separate employee groups,
+            otherwise use the combined job count
     '''
     table_list = []
     monthly_totals = []
@@ -2661,14 +2766,11 @@ def job_gain_loss_table(months, job_levels, init_job_counts,
 
 
 def convert_job_changes_to_enhanced(j_changes, job_dict):
-    '''Converts job changes based on an 8-level model into a 16-level
+    '''Converts job changes from a basic model into a enhanced
     list of job changes using a job dictionary and blk percentages.
     This function allows all job changes to be made at the group level
     rather than constantly recalculating equivalent distribution when adjusting
     job changes.
-
-    Also allows block vs reserve percentages to be adjusted
-    with corresponding job change table updating. (TODO)
 
     inputs
 
@@ -2685,12 +2787,8 @@ def convert_job_changes_to_enhanced(j_changes, job_dict):
             [eg allotment of change for standalone calculations]]
 
         job_dict
-            conversion dictionary for equivalent block and reserve job
-            levels with a 16-level model, and block_percentage per group
-
-        (blk inputs)
-            ratio of blockholders to reserves
-            (most likely international vs domestic)
+            conversion dictionary for equivalent full-time and part-time job
+            levels with an enhanced model, and full-time percentage per group
     '''
     k = []
 
@@ -3075,6 +3173,17 @@ def eval_strings(args):
 def clip_ret_ages(ret_age_dict, init_ret_age, dates_long_arr, ages_long_arr):
     '''Clip employee ages in employee final month to proper retirement age if
     the model includes an increasing retirement age over time
+
+    inputs
+        ret_age_dict (dictionary)
+            dictionary of retirement increase date to new retirement age as
+            defined in case-specific configuration file
+        init_ret_age
+            initial retirement age prior to any increase
+        dates_long_arr (numpy array)
+            array of month dates (long form, same value during each month)
+        ages_long_arr (numpy array)
+            array of employee ages (long form)
     '''
     date_list = []
     ret_age_list = [init_ret_age]
@@ -3120,6 +3229,11 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
     The datasets are loaded into a dictionary, using the proposal names as
     keys.  The proposal names are loaded from a pickled dataframe, created
     by the build_program_files.py script.
+
+    input
+        other_datasets (list)
+            list of datasets to load in addition to those computed from the
+            proposals (from the case-specific proposals.xlsx Excel file)
     '''
 
     # create ordered dictionary

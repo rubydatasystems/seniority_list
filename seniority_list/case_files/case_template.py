@@ -66,8 +66,10 @@ from collections import OrderedDict as od
 #     (start.month - end_date.month)
 
 # # NUMBER OF JOB LEVELS, CONVERSION DATA
-# # (basic to enhanced)
-# if enhanced_jobs:
+# if not enhanced_jobs:
+#     num_of_job_levels = 8  # do not include a level for furlough
+# else:
+#     # (basic to enhanced)
 #     num_of_job_levels = 16  # do not include a level for furlough
 
 #     # Job dictionary for enhanced jobs conversion:
@@ -83,10 +85,11 @@ from collections import OrderedDict as od
 #         7: [11, 14, full_time_pcnt2],
 #         8: [15, 16, full_time_pcnt2]
 #     }
-# else:
-#     num_of_job_levels = 8  # do not include a level for furlough
 
 # # JOB COUNTS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# # list length of job counts should be equal to number of basic jobs.
+# # this section assumes 3 employee groups.  adjust for your case.
+# # for example, eliminate eg3_job_count list if only 2 groups.
 # eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
 # eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
 # eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
@@ -95,6 +98,7 @@ from collections import OrderedDict as od
 # # JOB CHANGES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # # [job level affected, [start and end month], total change,
 # # [standalone allocation]]
+# # sum of standalone allocation must equal total change
 # # group 4 additions...
 # jc1 = [1, [35, 64], 43, [40, 3, 0]]
 # jc2 = [4, [35, 64], 72, [66, 6, 0]]
@@ -108,6 +112,7 @@ from collections import OrderedDict as od
 # j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
 # # eg_counts list below must be in order of eg code,
 # # eg 1 count then eg 2 count, etc. (for f.make_jcnts function)
+# # list of the job count lists from the section above
 # eg_counts = [eg1_job_count, eg2_job_count, eg3_job_count]
 
 # # RECALLS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

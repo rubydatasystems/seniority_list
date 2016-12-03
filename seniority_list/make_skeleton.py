@@ -67,13 +67,16 @@ skel = pd.DataFrame(long_form_skeleton.astype(int), columns=['mnum'])
 # grab emp index for each remaining
 # employee for each month - used for merging dfs later
 
-long_index = f.gen_emp_skeleton_index(nonret_each_month, cmonths)
+empkey_arr = np.array(df.empkey)
+
+long_index, long_emp = f.gen_skel_emp_idx(nonret_each_month,
+                                          cmonths, empkey_arr)
 
 # IDX
 skel['idx'] = long_index.astype(int)
 
 # EMPKEY
-skel['empkey'] = pd.Series.map(skel.idx, df.reset_index(drop=True).empkey)
+skel['empkey'] = long_emp.astype(int)
 
 # grab retdates from df column (short_form)
 # used for mth_pcnt and age calc (also mapping retdates)
@@ -192,12 +195,10 @@ if cf.compute_pay_measures:
     # add a monthly increment based on the month number (mnum)
     # convert to an integer which rounds toward zero
     # clip to min of 1 and max of top_of_scale (max pay longevity scale)
-    skel['scale'] = np.clip(
-        ((skel['mnum'] *
-          month_inc) +
-         skel['s_lyears']).astype(int),
-        1,
-        cf.top_of_scale)
+    skel['scale'] = np.clip(((skel['mnum'] * month_inc) +
+                            skel['s_lyears']).astype(int),
+                            1,
+                            cf.top_of_scale)
     skel.pop('s_lyears')
 
     # this column is only used for calculating furloughed employee pay
@@ -212,6 +213,7 @@ if cf.compute_pay_measures:
 # calculate monthly age using starting age and month number
 
 age_list = np.array(skel.s_age)
+print(age_list)
 
 corr_ages = f.age_correction(long_form_skeleton, age_list)
 

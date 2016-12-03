@@ -23,7 +23,7 @@ ds = pd.read_pickle(skeleton_path_string)
 num_of_job_levels = cf.num_of_job_levels
 fur_counts = cf.furlough_count
 num_of_months = pd.unique(ds.mnum).size
-egs = sorted(pd.unique(ds.eg))
+egs = pd.unique(ds.eg)
 start_month = 0
 
 if cf.enhanced_jobs:
@@ -71,8 +71,8 @@ for i in egs - 1:
     # ORIG_JOB*
     cmonths_this_ds = f.career_months_df_in(df_short)
     this_ds_nonret_each_month = f.count_per_month(cmonths_this_ds)
-    uppers = this_ds_nonret_each_month.cumsum()
-    lowers = f.make_lower_slice_limits(uppers)
+    high_limits = this_ds_nonret_each_month.cumsum()
+    low_limits = f.make_lower_slice_limits(high_limits)
     all_months = np.sum(this_ds_nonret_each_month)
 
     this_table = table[0][i]
@@ -89,8 +89,8 @@ for i in egs - 1:
     # the job assignment function below...
 
     results = f.assign_standalone_job_changes(df_align,
-                                              lowers,
-                                              uppers,
+                                              low_limits,
+                                              high_limits,
                                               all_months,
                                               this_table,
                                               this_month_counts,
@@ -135,8 +135,8 @@ for i in egs - 1:
     df_long['snum'], df_long['spcnt'] = \
         f.snum_and_spcnt(np.array(df_long.jnum),
                          num_of_job_levels,
-                         lowers,
-                         uppers,
+                         low_limits,
+                         high_limits,
                          this_month_counts,
                          all_months)
 

@@ -81,6 +81,7 @@ ds.sort_values(['mnum', 'new_order'], inplace=True)
 eg_sequence = np.array(df_master.eg)
 fur_sequence = np.array(df_master.fur)
 
+# create list of employee group codes from the master data
 egs = sorted(pd.unique(eg_sequence))
 
 if 'prex' in conditions:
@@ -106,19 +107,6 @@ if 'prex' in conditions:
             if line_item[0] == eg:
                 sg_data.append(line_item)
         sg_dict[eg] = sg_data
-
-    # REMOVE COMMENTED CODE BELOW AFTER TESTING IS COMPLETE ************
-    # eg2_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][1])
-    # eg3_stove = f.make_stovepipe_jobs_from_jobs_arr(jcnts_arr[0][2])
-    # sg = np.array(df_master[df_master.eg == 1]['sg'])
-    # eg1_fur = np.array(df_master[df_master.eg == 1]['fur'])
-    # eg1_ojob_array = f.make_stovepipe_prex_shortform(
-    #     jcnts_arr[0][0], sg, sg_rights, eg1_fur)
-
-    # eg1_prex_stove = np.take(eg1_ojob_array, np.where(eg1_fur == 0)[0])
-
-    # sp_arr = np.array((eg1_prex_stove, eg2_stove, eg3_stove))
-    # ******************************************************************
 
     for eg in egs:
 
@@ -165,20 +153,19 @@ cmonths = f.career_months_df_in(df_master)
 # length is equal to longest career length
 nonret_each_month = f.count_per_month(cmonths)
 all_months = np.sum(nonret_each_month)
-cumulative = nonret_each_month.cumsum()
-np_low_limits = f.make_lower_slice_limits(cumulative)
+high_limits = nonret_each_month.cumsum()
+low_limits = f.make_lower_slice_limits(high_limits)
 
 job_level_counts = np.array(jcnts_arr[1])
 
 if cf.delayed_implementation:
 
     imp_month = cf.imp_month
-    imp_low = np_low_limits[imp_month]
-    imp_high = cumulative[imp_month]
+    imp_low = low_limits[imp_month]
+    imp_high = high_limits[imp_month]
 
     dstand = pd.read_pickle(stand_path_string)
-    # ds_option = dstand[['job_count', 'lspcnt',
-    #                     'spcnt', 'rank_in_job', 'jobp']]
+
     dstand = dstand[['mnum', 'empkey', 'jnum', 'fur', 'cat_order']][:imp_high]
     dstand.rename(columns={'jnum': 'stand_jobs',
                            'cat_order': 'stand_cat_order'}, inplace=True)
@@ -193,6 +180,12 @@ if cf.delayed_implementation:
 
     dstand = []
 
+    # TODO
+    # Refactor section below with loop and dictionary so all column data may be
+    # passed for delayed implementation...
+    # possibly make function to incorporate section above as well.
+    # ***********************************************************************
+
     temp_jnums = np.array(ds_temp.stand_jobs)
     delayed_jnums = np.zeros(all_months)
     delayed_jnums[:imp_high] = temp_jnums
@@ -203,14 +196,12 @@ if cf.delayed_implementation:
 
     aligned_jnums = f.align_fill_down(imp_low,
                                       imp_high,
-                                      ds[[]],
-                                      delayed_jnums[imp_low:imp_high],
+                                      ds[[]],  # indexed with empkeys
                                       delayed_jnums)
 
     aligned_fur = f.align_fill_down(imp_low,
                                     imp_high,
                                     ds[[]],
-                                    delayed_fur[imp_low:imp_high],
                                     delayed_fur)
 
     delayed_jnums[imp_low:] = aligned_jnums[imp_low:]
@@ -218,6 +209,8 @@ if cf.delayed_implementation:
 
     delayed_fur[imp_low:] = aligned_fur[imp_low:]
     ds['fur'] = delayed_fur
+
+    # ***********************************************************************
 
     # CAT_ORDER preliminary
     # grab standalone data for pre-implementation period
@@ -232,8 +225,10 @@ if cf.delayed_implementation:
     standalone_preimp_job_counts = \
         f.make_delayed_job_counts(imp_month,
                                   delayed_jnums,
-                                  np_low_limits,
-                                  cumulative)
+                                  low_limits,
+                                  high_limits)
+    ds_temp = []
+
 else:
 
     imp_month = 0
@@ -257,8 +252,8 @@ df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 
 # this is the main job assignment function.  It loops through all of the
 # months in the model and assigns jobs
-jobs_and_counts = f.assign_jobs_nbnf_job_changes(df_align, np_low_limits,
-                                                 cumulative, all_months,
+jobs_and_counts = f.assign_jobs_nbnf_job_changes(df_align, low_limits,
+                                                 high_limits, all_months,
                                                  table[0], table[1],
                                                  job_change_months,
                                                  reduction_months,
@@ -355,11 +350,9 @@ if cf.compute_pay_measures:
         index=(ds['scale'] * 100) + ds['jnum'] + (ds['year'] * 100000))
 
     if cf.enhanced_jobs:
-        df_pt = pd.read_pickle(
-            'dill/pay_table_enhanced.pkl')
+        df_pt = pd.read_pickle('dill/pay_table_enhanced.pkl')
     else:
-        df_pt = pd.read_pickle(
-            'dill/pay_table_basic.pkl')
+        df_pt = pd.read_pickle('dill/pay_table_basic.pkl')
 
     # 'data-align' small indexed pay_table to long_form df:
     df_pt_index['monthly'] = df_pt['monthly']
