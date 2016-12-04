@@ -4,10 +4,6 @@ from config import enhanced_jobs
 from pandas import to_datetime
 from collections import OrderedDict as od
 
-full_time_pcnt1 = .6
-full_time_pcnt2 = .65
-full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
-
 top_of_scale = 12
 
 pay_table_exception_year = 2014.1
@@ -56,6 +52,10 @@ ratio_final_month = ((end_date.year - start.year) * 12) - \
     (start.month - end_date.month)
 
 # NUMBER OF JOB LEVELS, CONVERSION DATA
+full_time_pcnt1 = .6
+full_time_pcnt2 = .65
+full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
+
 if not enhanced_jobs:
     num_of_job_levels = 8
 else:
@@ -63,7 +63,10 @@ else:
     num_of_job_levels = 16
 
     # Job dictionary for enhanced jobs conversion:
-    # full_time_pcnt1/2 represent different percentages of full-time positions
+    # full_time_pcnt1/2 represent different percentages
+    # of full-time positions within each basic job level.
+    # Note:  the job dict (jd) helper worksheet from the pay_table_data.xlsx
+    # file within the reports folder will assist in jd dictionary construction
     jd = {1: [1, 2, full_time_pcnt1],
           2: [3, 5, full_time_avg_pcnt],
           3: [4, 6, full_time_pcnt2],
@@ -74,7 +77,7 @@ else:
           8: [15, 16, full_time_pcnt2]}
 
 # JOB COUNTS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# list length of job counts should be equal to number of basic jobs.
+# list length of job counts must be equal to number of basic jobs.
 # this section assumes 3 employee groups.  adjust for your case.
 # for example, eliminate eg3_job_count list if only 2 groups.
 eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
