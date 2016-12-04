@@ -506,7 +506,6 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     earnings, job level, etc.
 
     inputs
-
         df
             dataset to examine, may be a dataframe or a string key with the
             ds_dict dictionary object
@@ -920,56 +919,59 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
     computed integrated dataset(s) vs. a baseline (likely standalone) dataset
     or with other integrated datasets.
 
-    df_list (list)
-        list of datasets to compare, may be ds_dict (output of load_datasets
-        function) string keys or dataframe variable(s) or mixture of each
-    dfb (string or variable)
-        baseline dataset, accepts same input types as df_list above
-    eg_list (list)
-        list of integers for employee groups to be included in analysis
-        example: [1, 2, 3]
-    measure (string)
-        differential data to compare
-    comparison (string)
-        if 'p2p' (proposal to proposal), will compare proposals within the
-        df_list to each other, otherwise will compare proposals to the
-        baseline dataset (dfb)
-    ds_dict (dictionary)
-        output from load_datasets function
-    attr(n)
-        filter attribute or dataset column as string
-    oper(n)
-        operator (i.e. <, >, ==, etc.) for attr1 as string
-    val(n)
-        attr1 limiting value (combined with oper1) as string
-    suptitle_fontsize
-        text size of chart super title
-    title_fontsize
-        text size of chart title
-    tick_size
-        text size of x and y tick labels
-    label_size
-        text size of x and y descriptive labels
-    year_clip (integer)
-        only present results through this year
-    exclude_fur (boolean)
-        remove all employees from analysis who are furloughed within the
-        data model at any time
-    use_eg_colors (boolean)
-        use case-specific employee group colors vs. default colors
-    width (float)
-        plotting width of boxplot or grouped boxplots for each year.
-        a width of 1 leaves no gap between groups
-    chart_style (string)
-        chart styling (string), any valid seaborn chart style
-    notch (boolean)
-        If True, show boxplots with a notch at median point vs. only a line
-    job_diff_clip (integer)
-        if measure is jnum or jobp, limit y axis range to +/- this value
-    xsize, ysize (integer or float)
-        plot size in inches
-    chart_example
-        if True, remove case-specific descriptions from chart'''
+    inputs
+        df_list (list)
+            list of datasets to compare, may be ds_dict (output of
+            load_datasets function) string keys or dataframe variable(s) or
+            mixture of each
+        dfb (string or variable)
+            baseline dataset, accepts same input types as df_list above
+        eg_list (list)
+            list of integers for employee groups to be included in analysis
+            example: [1, 2, 3]
+        measure (string)
+            differential data to compare
+        comparison (string)
+            if 'p2p' (proposal to proposal), will compare proposals within the
+            df_list to each other, otherwise will compare proposals to the
+            baseline dataset (dfb)
+        ds_dict (dictionary)
+            output from load_datasets function
+        attr(n)
+            filter attribute or dataset column as string
+        oper(n)
+            operator (i.e. <, >, ==, etc.) for attr1 as string
+        val(n)
+            attr1 limiting value (combined with oper1) as string
+        suptitle_fontsize
+            text size of chart super title
+        title_fontsize
+            text size of chart title
+        tick_size
+            text size of x and y tick labels
+        label_size
+            text size of x and y descriptive labels
+        year_clip (integer)
+            only present results through this year
+        exclude_fur (boolean)
+            remove all employees from analysis who are furloughed within the
+            data model at any time
+        use_eg_colors (boolean)
+            use case-specific employee group colors vs. default colors
+        width (float)
+            plotting width of boxplot or grouped boxplots for each year.
+            a width of 1 leaves no gap between groups
+        chart_style (string)
+            chart styling (string), any valid seaborn chart style
+        notch (boolean)
+            If True, show boxplots with a notch at median point vs. only a line
+        job_diff_clip (integer)
+            if measure is jnum or jobp, limit y axis range to +/- this value
+        xsize, ysize (integer or float)
+            plot size in inches
+        chart_example
+            if True, remove case-specific descriptions from chart
+    '''
 
     label_dict = {}
     i = 0
@@ -2025,7 +2027,6 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
     monthly ("M") time group option selected.
 
     inputs
-
         df
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
@@ -2371,7 +2372,6 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
     a 0.
 
     inputs
-
         df
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
@@ -4155,6 +4155,7 @@ def build_subplotting_order(rows, cols):
     subplot_order_list = []
     for col in np.arange(1, cols + 1):
         subplot_order_list.extend(np.arange(col, (rows * cols) + 1, cols))
+
     return subplot_order_list
 
 
@@ -4800,7 +4801,6 @@ def job_time_change(df_list, dfb, eg_list,
     differential, by proposal and employee group.
 
     inputs
-
         df_list (list)
             list of datasets to compare, may be ds_dict (output of
             load_datasets function) string keys or dataframe variable(s)
@@ -5504,6 +5504,9 @@ def filter_ds(ds,
     Filter process is ignored if attr(x) input is None.
     All attr, oper, and val inputs must be strings.
     Up to 3 attribute filters may be combined.
+
+    If return_title_string, returns tuple (ds, title_string), otherwise
+    returns ds.
     '''
 
     title_string = ''
@@ -5608,5 +5611,3 @@ def slice_ds_by_index_array(df, mnum=0, attr='age',
     ds_filter = df[np.in1d(df_index, month_slice_indexes)]
 
     return ds_filter
-
-

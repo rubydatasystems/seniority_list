@@ -50,13 +50,11 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
     'jobp', 'eg_number', 'eg_spcnt']
 
     inputs
-
         name_int_demo
             if True, lname strings are converted to an integer then a
             corresponding alpha-numeric percentage for constructing lists by
             last name.  This is a demo only to show that any attribute
             may be used as a list weighting factor.
-
         pre_sort
             sort the master data dataframe doh and ldate columns prior to
             beginning any calculations.  This sort has no effect on the other
@@ -81,9 +79,11 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
     jobs_list = []
 
     if cf.enhanced_jobs:
-        eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
-                                                cf.full_time_pcnt1,
-                                                cf.full_time_pcnt2)
+        # use job dictionary from case-specific configuration
+        # file for conversion
+        eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
+                                                     cf.j_changes,
+                                                     cf.jd)
     else:
         eg_counts = cf.eg_counts
 
@@ -168,10 +168,8 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
 
 
     inputs
-
         df
             the prepared dataframe output of the prepare_master_list function
-
         measure_list
             a list of attributes that form the basis of the final sorted list.
             The employee groups will be combined, sorted, and numbered
@@ -179,23 +177,19 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
             attribute numbered list is formed, a weighting is applied to that
             order column.  The final result number will be the rank of the
             cummulative total of the weighted attribute columns.
-
         weight_list
             a list of decimal weightings to apply to each corresponding
             measure within the measure_list.  Normally the total of the
             weight_list should be 1, but any numbers may be used as weightings
             since the final result is a ranking of a cumulative total.
-
         show_weightings
             add columns to display the product of the weight/column
             mutiplcation
-
         return_df
             option to return the new sorted hybrid dataframe as output.
             Normally, the function produces a list ordering file which is
             written to disk and used as an input by the compute measures
             script.
-
         hide_rank_cols
             remove the attrubute rank columns from the dataframe unless
             visual review is desired
@@ -242,6 +236,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
         cols = df.columns.tolist()
         cols.insert(0, cols.pop(cols.index('idx')))
         df = df.reindex(columns=cols)
+
         return df
 
 
@@ -253,18 +248,14 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
     date-related columns such as doh or ldate)
 
     inputs
-
         df
             The master data dataframe (does not need to be sorted)
-
         attributes
             columns to sort by eg (inplace)
-
         reverse_list
             If an attribute is to be sorted in reverse order (descending),
             use a '1' in the list position corresponding to the position of
             the attribute within the attributes input
-
         add_columns
             If True, an additional column for each sorted attribute will be
             added to the resultant dataframe, with the suffix '_sort' added
@@ -316,16 +307,12 @@ def sort_and_rank(df, col, tiebreaker1=None, tiebreaker2=None,
     selected as an option.
 
     inputs
-
         df
             input dataframe
-
         col (string)
             dataframe column to sort
-
         tiebreaker1, tiebreaker2 (string(s))
             second and third sort columns to break ties with primary col sort
-
         reverse (boolean)
             If True, reverses sort (descending values)
     '''
@@ -350,8 +337,9 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
     '''convert a list or series of string names (i.e. last names) into integers
     for numerical sorting
 
-    inputs
+    Returns tuple (int_names, int_range, name_percentages)
 
+    inputs
         names
             List or pandas series containing strings for conversion to integers
         leading_precision
@@ -428,7 +416,8 @@ def find_row_orphans(base_df, compare_df, col,
     not common to both series.
     Will also work with dataframe indexes.
 
-    Returns separate dataframse with the series orphans.
+    Returns tuple (base_loners, compare_loners) if not print_output.  These are
+    dataframes with the series orphans.
 
     Note:  If there are orphans found that have identical values, they will
     both be reported. However, currently the routine will only find the first
@@ -436,21 +425,16 @@ def find_row_orphans(base_df, compare_df, col,
     both orphans.
 
     inputs
-
         base_df
             first dataframe to compare
-
         compare_df
             second dataframe to compare
-
         col
             column label of the series to compare.
             routine will compare the dataframe indexes with the
             input of 'index'.
-
         ignore_case
             convert col to lowercase prior to comparison
-
         print_output
             print results instead of returning results
     '''
@@ -545,27 +529,25 @@ def compare_dataframes(base, compare, return_orphans=True,
     This function works well when comparing initial data lists, such as
     those which may be received from opposing parties.
 
-    inputs
+    If return_orphans, returns tuple (diffs, base_loners, compare_loners),
+    else returns diffs.
+    diffs is a differential dataframe.
 
+    inputs
         base
             baseline dataframe or series
-
         compare
             dataframe or series to compare against the baseline (base)
-
         return_orphans
             separately calculate and return the rows which are unique to
             base and compare
-
         ignore_case
             convert the column labels and column data to be compared to
             lowercase - this will avoid differences detected based on string
             case
-
         print_info
             option to print out to console verbose statistical information
             and the dataframe(s) instead of returning dataframe(s)
-
         convert_np_timestamps
             numpy returns datetime64 objects when the source is a datetime
             date-only object.
@@ -777,11 +759,9 @@ def find_index_locs(df, index_values):
     Returns a list containing the index location(s).
 
     inputs
-
         df
             dataframe - the index_values input is a subset of the
             dataframe index.
-
         index_values
             array-like collection of values which are a subset of the dataframe
             index
@@ -790,6 +770,7 @@ def find_index_locs(df, index_values):
     loc_list = []
     for val in index_values:
         loc_list.append(df.index.get_loc(val))
+
     return loc_list
 
 
@@ -801,15 +782,12 @@ def find_series_locs(df, series_values, column_label):
     Returns a list containing the index location(s).
 
     inputs
-
         df
             dataframe - the series_values input is a subset of one of the
             dataframe columns.
-
         series_values
             array-like collection of values which are a subset of one of
             the dataframe columns (the column_lable input)
-
         column_label
             the series within the pandas dataframe containing the series_values
     '''
@@ -820,6 +798,7 @@ def find_series_locs(df, series_values, column_label):
             loc_list.append(list(df[column_label]).index(pd.to_datetime(val)))
         else:
             loc_list.append(list(df[column_label]).index(val))
+
     return loc_list
 
 
@@ -830,7 +809,6 @@ def test_df_col_or_idx_equivalence(df1, df2, col=None):
     inputs
         df1, df2
             the dataframes to check
-
         col
             if not None, test this dataframe column for equivalency, otherwise
             test the dataframe indexes

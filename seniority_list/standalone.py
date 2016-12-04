@@ -27,6 +27,7 @@ egs = pd.unique(ds.eg)
 start_month = 0
 
 if cf.enhanced_jobs:
+    # use job dictionary from case-specific configuration file for conversion
     eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
                                                  cf.j_changes,
                                                  cf.jd)
