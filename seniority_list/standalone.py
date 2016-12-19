@@ -23,7 +23,7 @@ ds = pd.read_pickle(skeleton_path_string)
 num_of_job_levels = cf.num_of_job_levels
 fur_counts = cf.furlough_count
 num_of_months = pd.unique(ds.mnum).size
-egs = pd.unique(ds.eg)
+egs = np.unique(ds.eg)
 start_month = 0
 
 if cf.enhanced_jobs:
@@ -61,11 +61,11 @@ for grp in egs:
 
 ds = pd.DataFrame()
 
-for i in egs - 1:
+for eg in egs:
 
-    df_long = ds_dict[i + 1]
-    df_short = short_ds_dict[i + 1]
-    jcnts = jcnts_arr[0][i]
+    df_long = ds_dict[eg]
+    df_short = short_ds_dict[eg]
+    jcnts = jcnts_arr[0][eg - 1]
     short_len = len(df_short)
 
     # ORIG_JOB*
@@ -75,8 +75,8 @@ for i in egs - 1:
     low_limits = f.make_lower_slice_limits(high_limits)
     all_months = np.sum(this_ds_nonret_each_month)
 
-    this_table = table[0][i]
-    this_month_counts = table[1][i]
+    this_table = table[0][eg - 1]
+    this_month_counts = table[1][eg - 1]
 
     df_align_cols = ['fur']
     if 'sg' in df_long:
@@ -98,7 +98,7 @@ for i in egs - 1:
                                               job_change_months,
                                               job_reduction_months,
                                               start_month,
-                                              i,
+                                              eg,
                                               fur_return=cf.recall)
 
     jnums = results[0]

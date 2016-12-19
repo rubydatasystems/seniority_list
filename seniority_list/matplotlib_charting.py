@@ -1619,12 +1619,13 @@ def job_level_progression(df, emp_list, through_date,
     through_date = pd.to_datetime(through_date)
     fur_lvl = job_levels + 1
     jobs_dict = cf.jobs_dict
-    if cf.enhanced_jobs:
-        j_changes = f.convert_job_changes_to_enhanced(job_change_lists, cf.jd)
-        eg_counts = f.convert_jcnts_to_enhanced(job_counts,
-                                                cf.full_time_pcnt1,
-                                                cf.full_time_pcnt2)
 
+    if cf.enhanced_jobs:
+        # use job dictionary from case-specific configuration file
+        # for conversion
+        eg_counts, j_changes = f.convert_to_enhanced(job_counts,
+                                                     job_change_lists,
+                                                     cf.jd)
     else:
         j_changes = job_change_lists
         eg_counts = job_counts
@@ -3559,13 +3560,13 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
     if measure == 'cat_order':
         sns.set_style('white')
 
-        if job_levels == 16:
-            eg_counts = f.convert_jcnts_to_enhanced(cf.eg_counts,
-                                                    cf.full_time_pcnt1,
-                                                    cf.full_time_pcnt2)
-            j_changes = f.convert_job_changes_to_enhanced(cf.j_changes, cf.jd)
-
-        if job_levels == 8:
+        if cf.enhanced_jobs:
+            # use job dictionary from case-specific configuration file
+            # for conversion
+            eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
+                                                         cf.j_changes,
+                                                         cf.jd)
+        else:
             eg_counts = cf.eg_counts
             j_changes = cf.j_changes
 
@@ -4552,34 +4553,30 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
 
 
 def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
-              basic_jobs=[1, 4], enhanced_jobs=[1, 2, 7, 8],
-              xsize=8, ysize=6):
-    '''visualize selected job counts applicable to computed condition.
-    Primary usage is testing, though the function can chart any job level(s).
-    title_dict and slice_dict must be customized to match case data.
+              basic_jobs=[1, 4], enhanced_jobs=[1, 2, 7, 8], use_and=False,
+              print_count_months=None, print_all_counts=False,
+              xsize=8, ysize=8):
+    '''visualize selected job counts applicable to computed condition with
+    optional printing of certain data.
+
+    Primary usage is testing, though the function can chart any job level(s)
+    to validate proper results of job assignment conditions or to evaluate
+    distribution of jobs with various proposals.  Career progression of
+    employees who enjoy special job rights may be understood particularily
+    well by utilizing the print_all_counts option.
+
 
     inputs
         d
             dataset(dataframe) to examine
-        opt_sel
-            integer input (0-5) which selects which employee group(s) to plot.
-
-                    +-------+---------------+
-                    |opt_sel|      plot     |
-                    +-------+---------------+
-                    |   0   |   all grps    |
-                    +-------+---------------+
-                    |   1   |   grp1 only   |
-                    +-------+---------------+
-                    |   2   |   grp2 only   |
-                    +-------+---------------+
-                    |   3   |   grp3 only   |
-                    +-------+---------------+
-                    |   4   | grp2 and grp3 |
-                    +-------+---------------+
-                    |   5   |  special grp  |
-                    +-------+---------------+
-
+        opt_sel (list)
+            integer input(s) representing the employee group code(s) to
+            select for analysis.  This argument also will accept the
+            string 'sg' to select a special job rights group(s).  Multiple
+            inputs are normally handled as 'or' filters, meaning an input of
+            [1, 'sg'] would mean employee group 1 **or** any special job rights
+            group, but can be modified to mean only group 1 **and** special job
+            rights employees with the 'use_and' input.
         plot_all_jobs
             option to plot all of the job counts within dataset vs only those
             contained within the basic_jobs or enhanced_jobs inputs
@@ -4589,67 +4586,128 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
             job levels to plot if config enhanced_jobs is False
         enhanced_jobs
             job levels to plot if config enhanced_jobs is True
+        use_and
+            when the opt_sel input has more than one element, require filtered
+            dataframe for analysis to be part of all opt_sel input sets.
+        print_count_months (list)
+            list of month(s) for printing job counts
+        print_all_counts
+            if True, print the entire job count dataframe.  Jupyter notebook
+            parameters may need to be adjusted to view all data at once.
 
-    output is 2 charts, first chart is a line chart displaying selected job
-    count information over time, the second is a stacked area chart displaying
-    all job counts for the selected group(s) over time.
+            Example:
+
+            pd.options.display.width = 185
+            pd.set_option('max_rows', 500)
+
+    In addition to the print options, the standard output is 2 charts. The
+    first chart is a line chart displaying selected job count information
+    over time. The second is a stacked area chart displaying all job counts
+    for the selected group(s) over time.
     '''
-
-    print("""0: all grps, 1: grp1_only, 2: grp2 only, 3: grp3 only,
-          4: grp2 and grp3, 5: special group""")
 
     d, df_label = determine_dataset(df, ds_dict, return_label=True)
 
-    title_dict = {0: 'all groups',
-                  1: 'grp1_only',
-                  2: 'grp2 only',
-                  3: 'grp3 only',
-                  4: 'grp2 and grp3',
-                  5: 'special group'}
+    # construct a string which will be evaluated below with the 'eval'
+    # statement.  This string is a slicing filter for the input dataframe, and
+    # is dependent upon the 'opt_sel' and 'use_and' inputs.
+    pre = 'd['
+    eg_pre = '(d.eg == '
+    eg_suf = ')'
+    suf = '].copy()'
 
-    slice_dict = {0: 'd.copy()',
-                  1: 'd[d.eg == 1].copy()',
-                  2: 'd[d.eg == 2].copy()',
-                  3: 'd[d.eg == 3].copy()',
-                  4: 'd[(d.eg == 2) | (d.eg == 3)].copy()',
-                  5: 'd[d.sg == 1].copy()'}
+    if use_and:
+        oper = ' & '
+    else:
+        oper = ' | '
 
-    segment = slice_dict[opt_sel]
+    i = 1
+    if len(opt_sel) > 1:
+        s = ''
+        while i < len(opt_sel):
+            if type(opt_sel[i - 1]) == int:
+                s = s + (eg_pre + str(opt_sel[i - 1]) + eg_suf + oper)
+                i += 1
+            elif opt_sel[i - 1] == 'sg':
+                s = s + '(d.sg == 1)' + oper
+                i += 1
+        if type(opt_sel[i - 1]) == int:
+            s = s + (eg_pre + str(opt_sel[i - 1]) + eg_suf)
+        elif opt_sel[i - 1] == 'sg':
+            s = '(d.sg == 1)'
+    else:
+        if type(opt_sel[i - 1]) == int:
+            s = eg_pre + str(opt_sel[i - 1]) + eg_suf
+        elif opt_sel[i - 1] == 'sg':
+            s = '(d.sg == 1)'
+
+    segment = pre + s + suf
+    # Example s variable: 'd[(d.eg == 2) | (d.eg == 3)].copy()'
     df = eval(segment)
 
+    # This groupby and unstack operation produces a monthly count of all jobs
     all_jcnts = df.groupby(['date', 'jnum']).size() \
         .unstack().fillna(0).astype(int)
 
     if cf.enhanced_jobs:
         tgt_cols = enhanced_jobs
+        info_prefix = 'enhanced'
+        info_next_line = 'modify "enhanced_jobs" input to change jobs'
     else:
         tgt_cols = basic_jobs
+        info_prefix = 'basic'
+        info_next_line = 'modify "basic_jobs" input to change jobs'
 
-    title = title_dict[opt_sel]
+    print(info_prefix + ' jobs for analysis: ', tgt_cols)
+    print(info_next_line)
 
-    job_colors = np.array(cf.job_colors)[np.array(tgt_cols) - 1]
+    title = s
 
-    if not plot_all_jobs:
+    # option to print a numerical tally of jobs for targeted months
+    if print_count_months:
+        for month in print_count_months:
+            mdate = df[df.mnum == month]['date'].iloc[0].strftime('%m-%d-%Y')
+            print('\nmonth ' + str(month), '(' + mdate + ') ' +
+                  title + ' job count:')
+            jnum_seg = np.array(df[df.mnum == month]['jnum'])
+            for job in tgt_cols:
+                job_count = jnum_seg[jnum_seg == job].size
+                print(int(job), int(job_count))
+    try:
+        job_colors = np.array(cf.job_colors)[np.array(tgt_cols) - 1]
+    except:
+        print('\njob number error - (no matching job color), exiting...\n')
+        return
 
-        cnd_jcnts = all_jcnts.copy()
+    try:
+        if not plot_all_jobs:
 
-        cnd_jcnts['mnum'] = range(len(cnd_jcnts))
-        jdf = cnd_jcnts[(cnd_jcnts.mnum >= 0) & (cnd_jcnts.mnum <= max_mnum)]
-        jdf[tgt_cols].plot(color=job_colors, title=title)
+            cnd_jcnts = all_jcnts.copy()
 
-    if plot_all_jobs:
+            cnd_jcnts['mnum'] = range(len(cnd_jcnts))
+            jdf = cnd_jcnts[(cnd_jcnts.mnum >= 0) &
+                            (cnd_jcnts.mnum <= max_mnum)]
+            jdf[tgt_cols].plot(color=job_colors, title=title)
 
-        outall = []
-        for col in all_jcnts.columns:
-            try:
-                col + 0
-                outall.append(int(col))
-            except:
-                pass
+        if plot_all_jobs:
 
-        all_jcnts['mnum'] = range(len(all_jcnts))
-        jdf = all_jcnts[(all_jcnts.mnum >= 0) & (all_jcnts.mnum <= max_mnum)]
-        jdf[outall].plot(color=cf.job_colors, title=title)
+            outall = []
+            for col in all_jcnts.columns:
+                try:
+                    col + 0
+                    outall.append(int(col))
+                except:
+                    pass
+
+            all_jcnts['mnum'] = range(len(all_jcnts))
+            jdf = all_jcnts[(all_jcnts.mnum >= 0) &
+                            (all_jcnts.mnum <= max_mnum)]
+            jdf[outall].plot(color=cf.job_colors, title=title)
+
+    except:
+        print('\n...job number error - exiting...')
+        print('> verify job(s) for analysis exist within selected sample? <\n')
+        return
 
     plt.ylim(ymin=0)
     fig = plt.gcf()
@@ -4674,6 +4732,15 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
     fig = plt.gcf()
     fig.set_size_inches(xsize, ysize)
     plt.show()
+
+    # option to print a dataframe containing all job counts for all months:
+    if print_all_counts:
+        all_jcnts_print = df.groupby(['mnum', 'date', 'jnum']).size() \
+            .unstack().fillna(0).astype(int)
+        # calculate a total column (total count of all jobs for each month)
+        np_total = np.add.accumulate(all_jcnts_print.values, 1).T[-1]
+        all_jcnts_print['total'] = np_total
+        print('\n', all_jcnts_print)
 
 
 def single_emp_compare(emp, measure, df_list, xax,

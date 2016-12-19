@@ -15,11 +15,10 @@ from collections import OrderedDict as od
 # # set pay_table_exception_year input to excel pay table year value for
 # # an interim or temporary pay scale (not a full year or a "bridge" pay scale)
 # # leave set to "none" if not applicable
-# pay_table_exception_year = None
+# pay_table_exception_year = 2014.1
 # date_exception_start = '2014-12-31'
 # date_exception_end = '2014-12-31'
 
-# # FUTURE RAISE INPUTS
 # future_raise = False
 # last_contract_year = 2019.0
 # annual_pcnt_raise = .02
@@ -65,29 +64,26 @@ from collections import OrderedDict as od
 # full_time_pcnt1 = .6
 # full_time_pcnt2 = .65
 # full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
-#
+
 # if not enhanced_jobs:
-#     num_of_job_levels = 8  # do not include a level for furlough
+#     num_of_job_levels = 8
 # else:
 #     # (basic to enhanced)
-#     num_of_job_levels = 16  # do not include a level for furlough
+#     num_of_job_levels = 16
 
 #     # Job dictionary for enhanced jobs conversion:
 #     # full_time_pcnt1/2 represent different percentages
-#     # of full-time positions within each basic job level
+#     # of full-time positions within each basic job level.
 #     # Note:  the job dict (jd) helper worksheet from the pay_table_data.xlsx
-#     # file within the reports folder will assist
-#     # in jd dictionary construction
-#     jd = {
-#         1: [1, 2, full_time_pcnt1],
-#         2: [3, 5, full_time_avg_pcnt],
-#         3: [4, 6, full_time_pcnt2],
-#         4: [7, 8, full_time_pcnt1],
-#         5: [9, 12, full_time_avg_pcnt],
-#         6: [10, 13, full_time_pcnt2],
-#         7: [11, 14, full_time_pcnt2],
-#         8: [15, 16, full_time_pcnt2]
-#     }
+#     # file within the reports folder will assist in jd dictionary construction
+#     jd = {1: [1, 2, full_time_pcnt1],
+#           2: [3, 5, full_time_avg_pcnt],
+#           3: [4, 6, full_time_pcnt2],
+#           4: [7, 8, full_time_pcnt1],
+#           5: [9, 12, full_time_avg_pcnt],
+#           6: [10, 13, full_time_pcnt2],
+#           7: [11, 14, full_time_pcnt2],
+#           8: [15, 16, full_time_pcnt2]}
 
 # # JOB COUNTS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # # list length of job counts must be equal to number of basic jobs.
@@ -96,6 +92,7 @@ from collections import OrderedDict as od
 # eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
 # eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
 # eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
+# # number of furloughed employees for each group, starting with employee group 1
 # furlough_count = [340, 0, 23]
 
 # # JOB CHANGES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -128,19 +125,49 @@ from collections import OrderedDict as od
 # recalls = [recall_1, recall_2]
 
 # # CONDITION DATA
-# if enhanced_jobs:
-#     # prex - sg (special group) pre-existing condition
+# if not enhanced_jobs:
+
+#     # sg prex award (all reserve...)
 #     # sequence = [eg, jnum, count, start_month, end_month]
 #     # Note, for any group to participate in the pre-existing job condition
-#     # assignments, the sg column in source data must have ones marking
-#     # the affected employees...
+#     # assignments, the sg column must have ones marking those affected...
+#     sg1 = [1, 2, 43, 0, 67]
+#     sg2 = [1, 3, 130, 0, 67]
+#     sg3 = [1, 5, 43, 0, 67]
+#     sg4 = [1, 6, 130, 0, 67]
+
+#     # ratio condition
+#     # sequence = [eg, jnum, start_month, end_month]
+#     r1 = [1, 1, imp_month, ratio_final_month]
+#     r2 = [1, 4, imp_month, ratio_final_month]
+
+#     # count-capped ratio condition
+#     # sequence = [eg, jnum, count, start_month, end_month]
+#     c1 = [2, 1, 92, imp_month, imp_month + 60]
+#     c2 = [2, 4, 168, imp_month, imp_month + 60]
+
+#     # dict below is input for assign_cond_ratio_capped function
+#     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
+#     # the job pcnt input is used with enhanced jobs (divides capped limit
+#     # into full/part time level cap)
+#     quota_dict = {(1, 0): ([2.48, 1], 320, 1),
+#                   (4, 0): ([2.46, 1], 580, 1)}
+
+#     sg_rights = [sg1, sg2, sg3, sg4]
+#     ratio_cond = [r1, r2]
+#     count_cond = [c1, c2]
+
+# else:
+#     # sg prex award (all reserve...)  TODO - make function
+#     # sequence = [eg, jnum, count, start_month, end_month]
+
 #     sg1 = [1, 5, 43, 0, 67]
 #     sg2 = [1, 6, 130, 0, 67]
 #     sg3 = [1, 12, 43, 0, 67]
 #     sg4 = [1, 13, 130, 0, 67]
 
 #     # ratio condition
-#     # sequence = [eg, jnum, pcnt, start_month, end_month]
+#     # sequence = [eg, jnum, start_month, end_month]
 #     r1 = [1, 1, imp_month, ratio_final_month]
 #     r2 = [1, 2, imp_month, ratio_final_month]
 #     r3 = [1, 7, imp_month, ratio_final_month]
@@ -160,88 +187,47 @@ from collections import OrderedDict as od
 #     quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
 #                   (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
 #                   (7, 1): ([2.46, 1], 580, full_time_pcnt1),
-#                   (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1),
-#                   (1, 0): ([2.48, 1], 320, 1),
-#                   (4, 0): ([2.46, 1], 580, 1)}
+#                   (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1)}
 
 #     sg_rights = [sg1, sg2, sg3, sg4]
 #     ratio_cond = [r1, r2, r3, r4]
 #     count_cond = [c1, c2, c3, c4]
 
-# else:
-
-#     # sg prex award (all reserve...)
-#     # sequence = [eg, jnum, count, start_month, end_month]
-#     # Note, for any group to participate in the pre-existing job condition
-#     # assignments, the sg column in source data must have ones marking
-#     # the affected employees...
-#     sg1 = [1, 2, 43, 0, 67]
-#     sg2 = [1, 3, 130, 0, 67]
-#     sg3 = [1, 5, 43, 0, 67]
-#     sg4 = [1, 6, 130, 0, 67]
-
-#     # ratio condition
-#     # sequence = [eg, jnum, pcnt, start_month, end_month]
-#     r1 = [1, 1, imp_month, ratio_final_month]
-#     r2 = [1, 4, imp_month, ratio_final_month]
-
-#     # count-capped ratio condition
-#     # sequence = [eg, jnum, count, start_month, end_month]
-#     c1 = [2, 1, 92, imp_month, imp_month + 60]
-#     c2 = [2, 4, 168, imp_month, imp_month + 60]
-
-#     # dict below is input for assign_cond_ratio_capped function
-#     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
-#     # the job pcnt input is used with enhanced jobs (divides capped limit
-#     # into full/part time level cap)
-#     quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
-#                   (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
-#                   (7, 1): ([2.46, 1], 580, full_time_pcnt1),
-#                   (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1),
-#                   (1, 0): ([2.48, 1], 320, 1),
-#                   (4, 0): ([2.46, 1], 580, 1)}
-
-#     sg_rights = [sg1, sg2, sg3, sg4]
-#     ratio_cond = [r1, r2]
-#     count_cond = [c1, c2]
-
 # # DICTIONARIES, DESCRIPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# # abbrev for groups, last one for standalone
-# eg_dict = {1: 'A', 2: 'B', 3: 'C', 4: 'S'}
-# eg_dict_verbose = {1: 'GrpA', 2: 'GrpB', 3: 'GrpC', 4: 'Standalone'}
-# proposal_dict = {'ds1': 'Group A PROPOSAL', 'ds2': 'Group B PROPOSAL',
-#                  'ds3': 'Group C PROPOSAL', 'ds4': 'Standalone Data'}
+# eg_dict = {1: '1', 2: '2', 3: '3', 4: 'sa'}
+# eg_dict_verbose = {1: 'Group 1', 2: 'Group 2', 3: 'Group 3',
+#                    4: 'Standalone'}
+# proposal_dict = {'ds1': 'Group 1 Proposal', 'ds2': 'Group 2 Proposal',
+#                  'ds3': 'Group 3 Proposal', 'ds4': 'Standalone Data'}
 
 # # detailed job labels...
 # if enhanced_jobs:
 
-#     job_strs = ['Job 1 Full', 'Job 1 Part', 'Job 2 Full', 'Job 3 Full',
-#                 'Job 2 Part', 'Job 3 Part', 'Job 4 Full', 'Job 4 Part',
-#                 'Job 5 Full', 'Job 6 Full', 'Job 7 Full', 'Job 5 Part',
-#                 'Job 6 Part', 'Job 7 Part', 'Job 8 Full', 'Job 8 Part',
-#                 'FUR']
+#     job_strs = ['Capt G4 B', 'Capt G4 R', 'Capt G3 B', 'Capt G2 B',
+#                 'Capt G3 R', 'Capt G2 R', 'F/O  G4 B', 'F/O  G4 R',
+#                 'F/O  G3 B', 'F/O  G2 B', 'Capt G1 B', 'F/O  G3 R',
+#                 'F/O  G2 R', 'Capt G1 R', 'F/O  G1 B', 'F/O  G1 R', 'FUR']
 
-#     jobs_dict = {1: 'Job 1 Full', 2: 'Job 1 Part', 3: 'Job 2 Full',
-#                  4: 'Job 3 Full', 5: 'Job 2 Part', 6: 'Job 3 Part',
-#                  7: 'Job 4 Full', 8: 'Job 4 Part', 9: 'Job 5 Full',
-#                  10: 'Job 6 Full', 11: 'Job 7 Full', 12: 'Job 5 Part',
-#                  13: 'Job 6 Part', 14: 'Job 7 Part', 15: 'Job 8 Full',
-#                  16: 'Job 8 Part', 17: 'FUR'}
+#     jobs_dict = {1: 'Capt G4 B', 2: 'Capt G4 R', 3: 'Capt G3 B',
+#                  4: 'Capt G2 B', 5: 'Capt G3 R', 6: 'Capt G2 R',
+#                  7: 'F/O  G4 B', 8: 'F/O  G4 R', 9: 'F/O  G3 B',
+#                  10: 'F/O  G2 B', 11: 'Capt G1 B', 12: 'F/O  G3 R',
+#                  13: 'F/O  G2 R', 14: 'Capt G1 R', 15: 'F/O  G1 B',
+#                  16: 'F/O  G1 R', 17: 'FUR'}
 
 # # basic job labels...
 # else:
 
-#     job_strs = ['Job 1', 'Job 2', 'Job 3', 'Job 4', 'Job 5',
-#                 'Job 6', 'Job 7', 'Job 8', 'FUR']
+#     job_strs = ['Capt G4', 'Capt G3', 'Capt G2', 'F/O  G4', 'F/O  G3',
+#                 'F/O  G2', 'Capt G1', 'F/O  G1', 'FUR']
 
-#     jobs_dict = {1: 'Job 1', 2: 'Job 2', 3: 'Job 3', 4: 'Job 4',
-#                  5: 'Job 5', 6: 'Job 6', 7: 'Job 7', 8: 'Job 8',
+#     jobs_dict = {1: 'Capt G4', 2: 'Capt G3', 3: 'Capt G2', 4: 'F/O  G4',
+#                  5: 'F/O  G3', 6: 'F/O  G2', 7: 'Capt G1', 8: 'F/O  G1',
 #                  9: 'FUR'}
-
 
 # # CHART COLORS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-# if enhanced_jobs:  # enhanced job level chart colors (16)
+# if enhanced_jobs:  # enhanced job level chart colors (16 with this example)
 
 #     grp1_color = ['#008f00', '#006600', '#7b1979', '#0433ff', '#551154',
 #                   '#4d6dff', '#ff7c00', '#ffa34d', '#ff2600', '#fffb00',
@@ -278,7 +264,7 @@ from collections import OrderedDict as od
 #         [0.5, 0.35, 0.6, 1.0],
 #         [0.9, 0.87, 0.6, 1.0]]
 
-# else:  # basic 8-level chart colors
+# else:  # basic job level chart colors (8 with this example)
 
 #     grp1_color = ['#008f00', '#7b1979', '#0433ff', '#ff7c00', '#ff2600',
 #                   '#fffb00', '#9ec2e9', '#e2a8a5', '#ffb3ff']

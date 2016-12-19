@@ -83,6 +83,7 @@ else:
 eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
 eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
 eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
+# number of furloughed employees for each group, starting with employee group 1
 furlough_count = [340, 0, 23]
 
 # JOB CHANGES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -115,11 +116,41 @@ recall_2 = [10, [10, 0, 0], 75, 150]
 recalls = [recall_1, recall_2]
 
 # CONDITION DATA
-if enhanced_jobs:
-    # sg prex award (all reserve...)  TODO - make function
+if not enhanced_jobs:
+
+    # sg prex award (all reserve...)
     # sequence = [eg, jnum, count, start_month, end_month]
     # Note, for any group to participate in the pre-existing job condition
     # assignments, the sg column must have ones marking those affected...
+    sg1 = [1, 2, 43, 0, 67]
+    sg2 = [1, 3, 130, 0, 67]
+    sg3 = [1, 5, 43, 0, 67]
+    sg4 = [1, 6, 130, 0, 67]
+
+    # ratio condition
+    # sequence = [eg, jnum, start_month, end_month]
+    r1 = [1, 1, imp_month, ratio_final_month]
+    r2 = [1, 4, imp_month, ratio_final_month]
+
+    # count-capped ratio condition
+    # sequence = [eg, jnum, count, start_month, end_month]
+    c1 = [2, 1, 92, imp_month, imp_month + 60]
+    c2 = [2, 4, 168, imp_month, imp_month + 60]
+
+    # dict below is input for assign_cond_ratio_capped function
+    # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
+    # the job pcnt input is used with enhanced jobs (divides capped limit
+    # into full/part time level cap)
+    quota_dict = {(1, 0): ([2.48, 1], 320, 1),
+                  (4, 0): ([2.46, 1], 580, 1)}
+
+    sg_rights = [sg1, sg2, sg3, sg4]
+    ratio_cond = [r1, r2]
+    count_cond = [c1, c2]
+
+else:
+    # sg prex award (all reserve...)  TODO - make function
+    # sequence = [eg, jnum, count, start_month, end_month]
 
     sg1 = [1, 5, 43, 0, 67]
     sg2 = [1, 6, 130, 0, 67]
@@ -127,7 +158,7 @@ if enhanced_jobs:
     sg4 = [1, 13, 130, 0, 67]
 
     # ratio condition
-    # sequence = [eg, jnum, pcnt, start_month, end_month]
+    # sequence = [eg, jnum, start_month, end_month]
     r1 = [1, 1, imp_month, ratio_final_month]
     r2 = [1, 2, imp_month, ratio_final_month]
     r3 = [1, 7, imp_month, ratio_final_month]
@@ -147,47 +178,11 @@ if enhanced_jobs:
     quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
                   (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
                   (7, 1): ([2.46, 1], 580, full_time_pcnt1),
-                  (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1),
-                  (1, 0): ([2.48, 1], 320, 1),
-                  (4, 0): ([2.46, 1], 580, 1)}
+                  (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1)}
 
     sg_rights = [sg1, sg2, sg3, sg4]
     ratio_cond = [r1, r2, r3, r4]
     count_cond = [c1, c2, c3, c4]
-
-else:
-
-    # sg prex award (all reserve...)
-    # sequence = [eg, jnum, count, start_month, end_month]
-    sg1 = [1, 2, 43, 0, 67]
-    sg2 = [1, 3, 130, 0, 67]
-    sg3 = [1, 5, 43, 0, 67]
-    sg4 = [1, 6, 130, 0, 67]
-
-    # ratio condition
-    # sequence = [eg, jnum, pcnt, start_month, end_month]
-    r1 = [1, 1, imp_month, ratio_final_month]
-    r2 = [1, 4, imp_month, ratio_final_month]
-
-    # count-capped ratio condition
-    # sequence = [eg, jnum, count, start_month, end_month]
-    c1 = [2, 1, 92, imp_month, imp_month + 60]
-    c2 = [2, 4, 168, imp_month, imp_month + 60]
-
-    # dict below is input for assign_cond_ratio_capped function
-    # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
-    # the job pcnt input is used with enhanced jobs (divides capped limit
-    # into full/part time level cap)
-    quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
-                  (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
-                  (7, 1): ([2.46, 1], 580, full_time_pcnt1),
-                  (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1),
-                  (1, 0): ([2.48, 1], 320, 1),
-                  (4, 0): ([2.46, 1], 580, 1)}
-
-    sg_rights = [sg1, sg2, sg3, sg4]
-    ratio_cond = [r1, r2]
-    count_cond = [c1, c2]
 
 # DICTIONARIES, DESCRIPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 eg_dict = {1: '1', 2: '2', 3: '3', 4: 'sa'}
@@ -223,7 +218,7 @@ else:
 
 # CHART COLORS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-if enhanced_jobs:  # enhanced job level chart colors (16)
+if enhanced_jobs:  # enhanced job level chart colors (16 with this example)
 
     grp1_color = ['#008f00', '#006600', '#7b1979', '#0433ff', '#551154',
                   '#4d6dff', '#ff7c00', '#ffa34d', '#ff2600', '#fffb00',
@@ -260,7 +255,7 @@ if enhanced_jobs:  # enhanced job level chart colors (16)
         [0.5, 0.35, 0.6, 1.0],
         [0.9, 0.87, 0.6, 1.0]]
 
-else:  # basic 8-level chart colors
+else:  # basic job level chart colors (8 with this example)
 
     grp1_color = ['#008f00', '#7b1979', '#0433ff', '#ff7c00', '#ff2600',
                   '#fffb00', '#9ec2e9', '#e2a8a5', '#ffb3ff']

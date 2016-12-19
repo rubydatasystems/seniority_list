@@ -129,10 +129,10 @@ if enhanced_jobs:
     jd = case.jd
 
 # JOB ASSIGNMENT CONDITIONS DATA
-ratio_cond = case.ratio_cond
-sg_rights = case.sg_rights
-count_cond = case.count_cond
 quota_dict = case.quota_dict
+sg_rights = case.sg_rights
+ratio_cond = case.ratio_cond
+count_cond = case.count_cond
 
 # chart label adjustment
 adjust = case.adjust
