@@ -159,7 +159,7 @@ from collections import OrderedDict as od
 #     count_cond = [c1, c2]
 
 # else:
-#     # sg prex award (all reserve...)  TODO - make function
+#     # sg prex award
 #     # sequence = [eg, jnum, count, start_month, end_month]
 
 #     sg1 = [1, 5, 43, 0, 67]

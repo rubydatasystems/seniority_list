@@ -192,7 +192,7 @@ if cf.delayed_implementation:
 
     dstand = []
 
-    # TODO
+    # TODO (for developer)
     # Refactor section below with loop and dictionary so all column data may be
     # passed for delayed implementation...
     # possibly make function to incorporate section above as well.

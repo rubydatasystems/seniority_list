@@ -195,7 +195,7 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
             visual review is desired
     '''
 
-    # options todo:
+    # options TODO: (for developer)
     #  , absolute=True,
     # invert=False, include_inactives=False, include_fur=True,
     # cut=False, qcut=False, remove_retired=True):

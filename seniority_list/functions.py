@@ -1011,7 +1011,7 @@ def assign_jobs_nbnf_job_changes(df,
                                                  fur_range,
                                                  nonparticip_range)
 
-            # TODO, code speedup...
+            # TODO, (for developer) code speedup...
             # use when not in condition month and monotonic is true
             # (all nbnf distortions gone, no job count changes)
             # if (month > max(job_change_months))
@@ -1046,7 +1046,7 @@ def assign_jobs_nbnf_job_changes(df,
         np.copyto(orig[L_next:U_next], orig_next)
 
         # pass down fur_range
-        #  TODO **
+        #  TODO (for developer) **
         # eliminate this furlough pass down...
         # all fur data including future month fur status
         # can be precalculated with headcount,
@@ -1233,7 +1233,8 @@ def create_snum_array(jobs_held, monthly_population_counts):
             array of non-retired employee counts for each month in model
     '''
     seq_nums = np.arange(1, monthly_population_counts[0] + 1)
-    # TODO consider np.sum vs sum below (is input always np array?)
+    # TODO (for developer) consider np.sum vs sum below
+    # (is input always np array?)
     long_snum_array = np.zeros(sum(monthly_population_counts))
     tcount = 0
 
@@ -1295,7 +1296,8 @@ def create_snum_and_spcnt_arrays(jnums, job_level_count,
     fur_level = job_level_count + 1
     seq_nums = np.arange(1, monthly_population_counts[0] + 1)
 
-    # TODO consider np.sum if monthly_population_counts is always np array
+    # TODO (for developer)
+    # consider np.sum if monthly_population_counts is always np array
     monthly_population = sum(monthly_population_counts)
 
     long_snum_array = np.zeros(monthly_population)
@@ -2277,7 +2279,7 @@ def align_fill_down(l, u, long_indexed_df, long_array):
 
     uses pandas df auto align - relatively slow
 
-    TODO - consider an all numpy solution
+    TODO (for developer) - consider an all numpy solution
 
     inputs
         l, u
@@ -2958,7 +2960,7 @@ def assign_standalone_job_changes(df_align,
                                         (fur_range == 0))[0][:sg_jobs_avail],
                                job)
 
-            # TODO, code speedup...
+            # TODO, (for developer) code speedup...
             # use when not in condition month and monotonic is true
             # (all nbnf distortions gone, no job count changes)
             # if (month > max(job_change_months))
@@ -2993,7 +2995,7 @@ def assign_standalone_job_changes(df_align,
         np.copyto(held_jobs[L_next:U_next], held_next)
 
         # pass down fur_range
-        #  TODO **
+        #  TODO (for developer)**
         # eliminate this furlough pass down...
         # all fur data including future month fur status
         # can be precalculated with headcount,
