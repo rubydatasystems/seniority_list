@@ -6,6 +6,9 @@ from collections import OrderedDict as od
 
 top_of_scale = 12
 
+# set pay_table_exception_year input to excel pay table year value for
+# an interim or temporary pay scale (not a full year or a "bridge" pay scale)
+# leave set to "none" if not applicable
 pay_table_exception_year = 2014.1
 date_exception_start = '2014-12-31'
 date_exception_end = '2014-12-31'
@@ -57,10 +60,10 @@ full_time_pcnt2 = .65
 full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
 
 if not enhanced_jobs:
-    num_of_job_levels = 8
+    num_of_job_levels = 8  # do not include a level for furlough
 else:
     # (basic to enhanced)
-    num_of_job_levels = 16
+    num_of_job_levels = 16  # do not include a level for furlough
 
     # Job dictionary for enhanced jobs conversion:
     # full_time_pcnt1/2 represent different percentages

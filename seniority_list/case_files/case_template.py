@@ -15,7 +15,7 @@ from collections import OrderedDict as od
 # # set pay_table_exception_year input to excel pay table year value for
 # # an interim or temporary pay scale (not a full year or a "bridge" pay scale)
 # # leave set to "none" if not applicable
-# pay_table_exception_year = 2014.1
+# pay_table_exception_year = None
 # date_exception_start = '2014-12-31'
 # date_exception_end = '2014-12-31'
 
@@ -66,16 +66,17 @@ from collections import OrderedDict as od
 # full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
 
 # if not enhanced_jobs:
-#     num_of_job_levels = 8
+#     num_of_job_levels = 8  # do not include a level for furlough
 # else:
 #     # (basic to enhanced)
-#     num_of_job_levels = 16
+#     num_of_job_levels = 16  # do not include a level for furlough
 
 #     # Job dictionary for enhanced jobs conversion:
 #     # full_time_pcnt1/2 represent different percentages
 #     # of full-time positions within each basic job level.
 #     # Note:  the job dict (jd) helper worksheet from the pay_table_data.xlsx
-#     # file within the reports folder will assist in jd dictionary construction
+#     # file within the reports folder will assist
+#     # in jd dictionary construction
 #     jd = {1: [1, 2, full_time_pcnt1],
 #           2: [3, 5, full_time_avg_pcnt],
 #           3: [4, 6, full_time_pcnt2],
@@ -194,35 +195,35 @@ from collections import OrderedDict as od
 #     count_cond = [c1, c2, c3, c4]
 
 # # DICTIONARIES, DESCRIPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# eg_dict = {1: '1', 2: '2', 3: '3', 4: 'sa'}
-# eg_dict_verbose = {1: 'Group 1', 2: 'Group 2', 3: 'Group 3',
-#                    4: 'Standalone'}
-# proposal_dict = {'ds1': 'Group 1 Proposal', 'ds2': 'Group 2 Proposal',
-#                  'ds3': 'Group 3 Proposal', 'ds4': 'Standalone Data'}
+# # abbrev for groups, last one for standalone
+# eg_dict = {1: 'A', 2: 'B', 3: 'C', 4: 'S'}
+# eg_dict_verbose = {1: 'GrpA', 2: 'GrpB', 3: 'GrpC', 4: 'Standalone'}
+# proposal_dict = {'ds1': 'Group A PROPOSAL', 'ds2': 'Group B PROPOSAL',
+#                  'ds3': 'Group C PROPOSAL', 'ds4': 'Standalone Data'}
 
 # # detailed job labels...
 # if enhanced_jobs:
 
-#     job_strs = ['Capt G4 B', 'Capt G4 R', 'Capt G3 B', 'Capt G2 B',
-#                 'Capt G3 R', 'Capt G2 R', 'F/O  G4 B', 'F/O  G4 R',
-#                 'F/O  G3 B', 'F/O  G2 B', 'Capt G1 B', 'F/O  G3 R',
-#                 'F/O  G2 R', 'Capt G1 R', 'F/O  G1 B', 'F/O  G1 R', 'FUR']
+#     job_strs = ['Job 1 Full', 'Job 1 Part', 'Job 2 Full', 'Job 3 Full',
+#                 'Job 2 Part', 'Job 3 Part', 'Job 4 Full', 'Job 4 Part',
+#                 'Job 5 Full', 'Job 6 Full', 'Job 7 Full', 'Job 5 Part',
+#                 'Job 6 Part', 'Job 7 Part', 'Job 8 Full', 'Job 8 Part',
+#                 'FUR']
 
-#     jobs_dict = {1: 'Capt G4 B', 2: 'Capt G4 R', 3: 'Capt G3 B',
-#                  4: 'Capt G2 B', 5: 'Capt G3 R', 6: 'Capt G2 R',
-#                  7: 'F/O  G4 B', 8: 'F/O  G4 R', 9: 'F/O  G3 B',
-#                  10: 'F/O  G2 B', 11: 'Capt G1 B', 12: 'F/O  G3 R',
-#                  13: 'F/O  G2 R', 14: 'Capt G1 R', 15: 'F/O  G1 B',
-#                  16: 'F/O  G1 R', 17: 'FUR'}
-
+#     jobs_dict = {1: 'Job 1 Full', 2: 'Job 1 Part', 3: 'Job 2 Full',
+#                  4: 'Job 3 Full', 5: 'Job 2 Part', 6: 'Job 3 Part',
+#                  7: 'Job 4 Full', 8: 'Job 4 Part', 9: 'Job 5 Full',
+#                  10: 'Job 6 Full', 11: 'Job 7 Full', 12: 'Job 5 Part',
+#                  13: 'Job 6 Part', 14: 'Job 7 Part', 15: 'Job 8 Full',
+#                  16: 'Job 8 Part', 17: 'FUR'}
 # # basic job labels...
 # else:
 
-#     job_strs = ['Capt G4', 'Capt G3', 'Capt G2', 'F/O  G4', 'F/O  G3',
-#                 'F/O  G2', 'Capt G1', 'F/O  G1', 'FUR']
+#     job_strs = ['Job 1', 'Job 2', 'Job 3', 'Job 4', 'Job 5',
+#                 'Job 6', 'Job 7', 'Job 8', 'FUR']
 
-#     jobs_dict = {1: 'Capt G4', 2: 'Capt G3', 3: 'Capt G2', 4: 'F/O  G4',
-#                  5: 'F/O  G3', 6: 'F/O  G2', 7: 'Capt G1', 8: 'F/O  G1',
+#     jobs_dict = {1: 'Job 1', 2: 'Job 2', 3: 'Job 3', 4: 'Job 4',
+#                  5: 'Job 5', 6: 'Job 6', 7: 'Job 7', 8: 'Job 8',
 #                  9: 'FUR'}
 
 # # CHART COLORS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
