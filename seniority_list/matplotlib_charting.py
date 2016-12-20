@@ -5728,3 +5728,98 @@ def mark_quartiles(df, quartiles=10):
     aligned_df['quartile'] = df['quartile']
     return aligned_df
 
+
+def quartile_mean(df, eg_list, measure, quartiles,
+                  colors=cf.eg_colors, xax='date',
+                  job_levels=cf.num_of_job_levels,
+                  line_width=.75, bg_color='.98',
+                  line_alpha=.8, grid_alpha=.5, title_fontsize=12,
+                  tick_size=11, label_size=12,
+                  xsize=10, ysize=8):
+    '''Plot an average of a selected attribute measure for each employee group
+    quartile over time.
+
+    Example use case:
+
+    Plot the average job category rank of each of initial quantile group
+    belonging to one or more employee groups though the life of the data model.
+
+    inputs
+        df (pandas dataframe)
+            Any long-form dataframe which contains ("date" or "mnum") and
+            "eg" columns and at least one attribute column for analysis.
+            The normal input is a calculated dataset with many attribute
+            columns.
+        eg_list (list)
+            list of eg (employee group) codes for analysis
+        measure (string)
+            attribute column name
+        quartiles (integer)
+            The number of quartiles to create and plot for each employee
+            group in the eg_list input.
+        colors (list)
+            The colors to use for plotting each employee group.  Default is
+            the eg_colors list from the configuration file.
+        xax (string)
+            The first groupby level and x axis value for the analysis.  This
+            value defaults to "date" which represents each month of the model.
+            Alternatively, "mnum" may be used.
+        job_levels (integer)
+            The number of job levels (excluding the furlough level) in the data
+            model.
+        line_width (float)
+            The width of the plotted lines.  Default is .75
+        bg_color (string)
+            The background color for the chart.  May be a color name, color
+            abreviation, hex value, or decimal between 0 and 1
+            (shades of black)
+        line_alpha (float)
+            Transparency value of plotted lines (0 to 1)
+        grid_alpha (float)
+            Transparency value of grid lines (0 to 1)
+        title_fontsize (integer or float)
+            Font size value for title
+        tick_size (integer or float)
+            Font size value for chart tick (value) labels
+        label_size (integer or float)
+            Font size value for x and y unit labels
+        xsize, ysize (integers or floats)
+            Width and height of chart
+    '''
+    bin_df = mark_quartiles(df, quartiles)
+    fig, ax = plt.subplots()
+    fig.set_size_inches(xsize, ysize)
+    for eg in eg_list:
+        if measure == 'mpay':
+            gb = bin_df[(bin_df.eg == eg) &
+                        (bin_df.ret_mark != 1)] \
+                .groupby([xax, 'quartile'])[measure].mean()
+        else:
+            gb = bin_df[bin_df.eg == eg] \
+                .groupby([xax, 'quartile'])[measure].mean()
+        # gb.unstack().plot(c=colors[eg - 1], lw=line_width,
+        #                   ax=ax, alpha=line_alpha)
+        gb.unstack().plot(c=colors[eg - 1], lw=line_width,
+                          ax=ax, alpha=line_alpha)
+
+    if measure in ['spcnt', 'lspcnt', 'lnum', 'snum', 'fbff',
+                   'jobp', 'jnum', 'cat_order', 'orig_job',
+                   'rank_in_job']:
+        plt.gca().invert_yaxis()
+    if measure in ['fbff', 'jobp', 'jnum', 'orig_job']:
+        plt.ylim(job_levels + 1.25, 0.75)
+        ax.set_yticks(np.arange(1, job_levels + 2, 1))
+    if measure in ['spcnt', 'lspcnt']:
+        ax.yaxis.set_major_formatter(pct_format)
+        ax.set_yticks(np.arange(0, 1.05, .05))
+    if (max(bin_df.quartile) * len(eg_list)) > 20:
+        ax.legend_.remove()
+    ax.set_axis_bgcolor(bg_color)
+    plt.grid(alpha=grid_alpha)
+    plt.tick_params(axis='both', which='both', labelsize=tick_size)
+    plt.ylabel(measure, fontsize=label_size)
+    plt.xlabel(xax, fontsize=label_size)
+    plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
+              ' quartile average ' + measure,
+              fontsize=title_fontsize)
+
