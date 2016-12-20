@@ -5731,7 +5731,7 @@ def mark_quartiles(df, quartiles=10):
 
 def quartile_mean(df, eg_list, measure, quartiles,
                   colors=cf.eg_colors, xax='date',
-                  job_levels=cf.num_of_job_levels,
+                  job_levels=cf.num_of_job_levels, max_mnum=None,
                   line_width=.75, bg_color='.98',
                   line_alpha=.8, grid_alpha=.5, title_fontsize=12,
                   tick_size=11, label_size=12,
@@ -5767,6 +5767,9 @@ def quartile_mean(df, eg_list, measure, quartiles,
         job_levels (integer)
             The number of job levels (excluding the furlough level) in the data
             model.
+        max_mnum (integer)
+            If set to an integer value, only show results up to and including
+            this month number in the data model.
         line_width (float)
             The width of the plotted lines.  Default is .75
         bg_color (string)
@@ -5787,6 +5790,8 @@ def quartile_mean(df, eg_list, measure, quartiles,
             Width and height of chart
     '''
     bin_df = mark_quartiles(df, quartiles)
+    if max_mnum:
+        bin_df = bin_df[bin_df.mnum <= max_mnum]
     fig, ax = plt.subplots()
     fig.set_size_inches(xsize, ysize)
     for eg in eg_list:
