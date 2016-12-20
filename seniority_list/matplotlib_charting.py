@@ -5678,3 +5678,53 @@ def slice_ds_by_index_array(df, mnum=0, attr='age',
     ds_filter = df[np.in1d(df_index, month_slice_indexes)]
 
     return ds_filter
+
+
+def mark_quartiles(df, quartiles=10):
+    '''add a column to the input dataframe identifying quartile membership as
+    integers (the column is named "quartile").  The quartile membership
+    (category) is calculated for each employee group separately, based on
+    the employee population in month zero.
+
+    The output dataframe permits attributes for employees within month zero
+    quartile categories to be be analyzed throughout all the months of the
+    data model.
+
+    The number of quartiles to create within each employee group is selected
+    by the "quartiles" input.
+
+    The function utilizes numpy arrays and functions to compute the quartile
+    assignments, and pandas index data alignment feature to assign month zero
+    quartile membership to the long-form, multi-month output dataframe.
+
+    inputs
+        df (pandas dataframe)
+            Any pandas dataframe containing an "eg" (employee group) column
+        quartiles (integer)
+            The number of quartiles to create.
+
+            example:
+
+            If the input is 10, the output dataframe will be a column of
+            integers 1 - 10.  The count of each integer will be the same.
+            The first quantile members will be marked with a 1, the second
+            with 2, etc., through to the last quantile, 10.
+
+    '''
+    mult = 1000
+    mod = mult / quartiles
+    aligned_df = df.copy()
+    df = df[df.mnum == 0][['eg']].copy()
+    eg_arr = np.array(df.eg)
+    bins_arr = np.zeros_like(eg_arr)
+    unique_egs = np.arange(eg_arr.max()) + 1
+    for eg in unique_egs:
+        eg_count = eg_arr[eg_arr == eg].size
+        this_eg_arr = np.clip((np.arange(eg_count) + 1) / eg_count, 0, .9999)
+        this_bin_arr = (this_eg_arr * mult // mod).astype(int) + 1
+        np.put(bins_arr, np.where(eg_arr == eg)[0], this_bin_arr)
+
+    df['quartile'] = bins_arr
+    aligned_df['quartile'] = df['quartile']
+    return aligned_df
+
