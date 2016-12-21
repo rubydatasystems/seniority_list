@@ -5697,6 +5697,8 @@ def mark_quartiles(df, quartiles=10):
     assignments, and pandas index data alignment feature to assign month zero
     quartile membership to the long-form, multi-month output dataframe.
 
+    This function is used within the quartile_groupby function.
+
     inputs
         df (pandas dataframe)
             Any pandas dataframe containing an "eg" (employee group) column
@@ -5709,7 +5711,6 @@ def mark_quartiles(df, quartiles=10):
             integers 1 - 10.  The count of each integer will be the same.
             The first quantile members will be marked with a 1, the second
             with 2, etc., through to the last quantile, 10.
-
     '''
     mult = 1000
     mod = mult / quartiles
@@ -5747,7 +5748,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     The quartile group attribute may be analyzed with any of the following
     methods:
 
-    [mean, median, first, last, min, max]
+        [mean, median, first, last, min, max]
 
     inputs
         df (pandas dataframe)
@@ -5817,6 +5818,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     if measure == 'mpay':
         bin_df = bin_df[bin_df.ret_mark != 1]
 
+    y_limit = 0
     for eg in eg_list:
         frame = bin_df[bin_df.eg == eg]
         # group frame for eg by xax and quartile category and include
@@ -5825,8 +5827,16 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         # apply a groupby method to the groups
         gb = getattr(gb, groupby_method)()
         # unstack and plot
-        gb.unstack().plot(c=colors[eg - 1], lw=line_width,
-                          ax=ax, alpha=line_alpha)
+        gb = gb.unstack()
+        y_limit = max(y_limit, max(gb[quartiles]))
+        gb.plot(c=colors[eg - 1], lw=line_width,
+                ax=ax, alpha=line_alpha)
+
+    if measure in ['cat_order', 'snum', 'lnum']:
+        y_limit = (y_limit + 50) // 50 * 50
+        plt.ylim(0, y_limit)
+        tick_stride = min(y_limit / 10 // 10 * 10, 500)
+        ax.set_yticks(np.arange(0, y_limit, tick_stride))
 
     if measure in ['spcnt', 'lspcnt', 'lnum',
                    'snum', 'fbff',
@@ -5835,7 +5845,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
                    'rank_in_job'] \
             and groupby_method not in ['size', 'count']:
 
-        plt.gca().invert_yaxis()
+        ax.invert_yaxis()
 
     if measure in ['fbff', 'jobp', 'jnum', 'orig_job']:
         plt.ylim(job_levels + 1.25, 0.75)
@@ -5851,7 +5861,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     ax.set_axis_bgcolor(bg_color)
     plt.grid(alpha=grid_alpha)
     plt.tick_params(axis='both', which='both', labelsize=tick_size)
-    plt.ylabel(measure + ' quantile ' + groupby_method,
+    plt.ylabel(measure + ' for each quantile',
                fontsize=label_size)
     plt.xlabel(xax, fontsize=label_size)
     plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
