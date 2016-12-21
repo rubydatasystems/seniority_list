@@ -5729,13 +5729,13 @@ def mark_quartiles(df, quartiles=10):
     return aligned_df
 
 
-def quartile_mean(df, eg_list, measure, quartiles,
-                  colors=cf.eg_colors, xax='date',
-                  job_levels=cf.num_of_job_levels, max_mnum=None,
-                  line_width=.75, bg_color='.98',
-                  line_alpha=.8, grid_alpha=.5, title_fontsize=12,
-                  tick_size=11, label_size=12,
-                  xsize=10, ysize=8):
+def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
+                     colors=cf.eg_colors, xax='date',
+                     job_levels=cf.num_of_job_levels, max_mnum=None,
+                     line_width=.75, bg_color='.98',
+                     line_alpha=.8, grid_alpha=.5, title_fontsize=12,
+                     tick_size=11, label_size=12,
+                     xsize=10, ysize=8):
     '''Plot an average of a selected attribute measure for each employee group
     quartile over time.
 
@@ -5744,6 +5744,11 @@ def quartile_mean(df, eg_list, measure, quartiles,
     Plot the average job category rank of each of initial quantile group
     belonging to one or more employee groups though the life of the data model.
 
+    The quartile group attribute may be analyzed with any of the following
+    methods:
+
+    [mean, median, first, last, min, max]
+
     inputs
         df (pandas dataframe)
             Any long-form dataframe which contains ("date" or "mnum") and
@@ -5751,12 +5756,18 @@ def quartile_mean(df, eg_list, measure, quartiles,
             The normal input is a calculated dataset with many attribute
             columns.
         eg_list (list)
-            list of eg (employee group) codes for analysis
+            List of eg (employee group) codes for analysis.  The order of the
+            employee codes will determine the z-order of the plotted lines,
+            last employee group plotted on top of the others.
         measure (string)
-            attribute column name
+            Attribute column name
         quartiles (integer)
             The number of quartiles to create and plot for each employee
             group in the eg_list input.
+        groupby_method (string)
+            The method applied to the attribute data within each quartile.  The
+            allowable methods are listed in the description above.  Default is
+            'median'.
         colors (list)
             The colors to use for plotting each employee group.  Default is
             the eg_colors list from the configuration file.
@@ -5789,42 +5800,62 @@ def quartile_mean(df, eg_list, measure, quartiles,
         xsize, ysize (integers or floats)
             Width and height of chart
     '''
+    # make a dataframe with an added column with quartile membership number
+    # for each employee, each employee group calculated separately...
     bin_df = mark_quartiles(df, quartiles)
+
+    # limit the scope of the plot to a selected month in the future if the
+    # max_mnum argument is assigned an integer
     if max_mnum:
         bin_df = bin_df[bin_df.mnum <= max_mnum]
+
     fig, ax = plt.subplots()
     fig.set_size_inches(xsize, ysize)
+
+    # if mpay is selected, remove employee monthly pay data for retirement
+    # months to exclude partial pay amounts
+    if measure == 'mpay':
+        bin_df = bin_df[bin_df.ret_mark != 1]
+
     for eg in eg_list:
-        if measure == 'mpay':
-            gb = bin_df[(bin_df.eg == eg) &
-                        (bin_df.ret_mark != 1)] \
-                .groupby([xax, 'quartile'])[measure].mean()
-        else:
-            gb = bin_df[bin_df.eg == eg] \
-                .groupby([xax, 'quartile'])[measure].mean()
-        # gb.unstack().plot(c=colors[eg - 1], lw=line_width,
-        #                   ax=ax, alpha=line_alpha)
+        frame = bin_df[bin_df.eg == eg]
+        # group frame for eg by xax and quartile category and include
+        # measure attribute
+        gb = frame.groupby([xax, 'quartile'])[measure]
+        # apply a groupby method to the groups
+        gb = getattr(gb, groupby_method)()
+        # unstack and plot
         gb.unstack().plot(c=colors[eg - 1], lw=line_width,
                           ax=ax, alpha=line_alpha)
 
-    if measure in ['spcnt', 'lspcnt', 'lnum', 'snum', 'fbff',
-                   'jobp', 'jnum', 'cat_order', 'orig_job',
-                   'rank_in_job']:
+    if measure in ['spcnt', 'lspcnt', 'lnum',
+                   'snum', 'fbff',
+                   'jobp', 'jnum',
+                   'cat_order', 'orig_job',
+                   'rank_in_job'] \
+            and groupby_method not in ['size', 'count']:
+
         plt.gca().invert_yaxis()
+
     if measure in ['fbff', 'jobp', 'jnum', 'orig_job']:
         plt.ylim(job_levels + 1.25, 0.75)
         ax.set_yticks(np.arange(1, job_levels + 2, 1))
+
     if measure in ['spcnt', 'lspcnt']:
         ax.yaxis.set_major_formatter(pct_format)
         ax.set_yticks(np.arange(0, 1.05, .05))
+
     if (max(bin_df.quartile) * len(eg_list)) > 20:
         ax.legend_.remove()
+
     ax.set_axis_bgcolor(bg_color)
     plt.grid(alpha=grid_alpha)
     plt.tick_params(axis='both', which='both', labelsize=tick_size)
-    plt.ylabel(measure, fontsize=label_size)
+    plt.ylabel(measure + ' quantile ' + groupby_method,
+               fontsize=label_size)
     plt.xlabel(xax, fontsize=label_size)
     plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
-              ' quartile average ' + measure,
+              ' quartile ' + measure + ' by ' + groupby_method,
               fontsize=title_fontsize)
+    plt.show()
 
