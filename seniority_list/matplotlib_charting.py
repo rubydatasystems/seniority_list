@@ -5732,9 +5732,10 @@ def mark_quartiles(df, quartiles=10):
 
 def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
                      colors=cf.eg_colors, xax='date',
-                     job_levels=cf.num_of_job_levels, max_mnum=None,
-                     line_width=.75, bg_color='.98',
-                     line_alpha=.8, grid_alpha=.5, title_fontsize=12,
+                     through_date=None, show_job_bands=True,
+                     plot_implementation_date=True,
+                     line_width=.75, bg_color='.98', job_bands_alpha=.2,
+                     line_alpha=.8, grid_alpha=.35, title_fontsize=12,
                      tick_size=11, label_size=12,
                      xsize=10, ysize=8):
     '''Plot an average of a selected attribute measure for each employee group
@@ -5752,10 +5753,10 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
 
     inputs
         df (pandas dataframe)
-            Any long-form dataframe which contains ("date" or "mnum") and
-            "eg" columns and at least one attribute column for analysis.
-            The normal input is a calculated dataset with many attribute
-            columns.
+            Any long-form dataframe which contains "date" (and "mnum" if xax
+            input is set to "mnum") and "eg" columns and at least one
+            attribute column for analysis.  The normal input is a calculated
+            dataset with many attribute columns.
         eg_list (list)
             List of eg (employee group) codes for analysis.  The order of the
             employee codes will determine the z-order of the plotted lines,
@@ -5779,19 +5780,29 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         job_levels (integer)
             The number of job levels (excluding the furlough level) in the data
             model.
-        max_mnum (integer)
-            If set to an integer value, only show results up to and including
-            this month number in the data model.
+        through_date (date string)
+            If set as a date string, such as '2020-12-31', only show results
+            up to and including this date.
+        show_job_bands
+            If measure is set to "cat_order", plot properly scaled job level
+            color bands on chart background
+        plot_implementation_date
+            If True and the xax argument is set to "date", plot a dashed
+            vertical line at the implementation date.
         line_width (float)
             The width of the plotted lines.  Default is .75
         bg_color (string)
             The background color for the chart.  May be a color name, color
             abreviation, hex value, or decimal between 0 and 1
             (shades of black)
+        job_bands_alpha (float)
+            If show_job_bands input is set to True and measure is set to
+            "cat_order", this input controls the alpha or transparency of
+            the background job level bands. (0.0 to 1.0)
         line_alpha (float)
-            Transparency value of plotted lines (0 to 1)
+            Transparency value of plotted lines (0.0 to 1.0)
         grid_alpha (float)
-            Transparency value of grid lines (0 to 1)
+            Transparency value of grid lines (0.0 to 1.0)
         title_fontsize (integer or float)
             Font size value for title
         tick_size (integer or float)
@@ -5801,23 +5812,130 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         xsize, ysize (integers or floats)
             Width and height of chart
     '''
+# **************
     # make a dataframe with an added column with quartile membership number
     # for each employee, each employee group calculated separately...
     bin_df = mark_quartiles(df, quartiles)
 
     # limit the scope of the plot to a selected month in the future if the
-    # max_mnum argument is assigned an integer
-    if max_mnum:
-        bin_df = bin_df[bin_df.mnum <= max_mnum]
-
-    fig, ax = plt.subplots()
-    fig.set_size_inches(xsize, ysize)
+    # through_date argument is assigned an integer
+    if through_date:
+        through_date = pd.to_datetime(through_date)
+        bin_df = bin_df[bin_df.date <= through_date]
+    else:
+        through_date = max(df.date)
 
     # if mpay is selected, remove employee monthly pay data for retirement
     # months to exclude partial pay amounts
     if measure == 'mpay':
         bin_df = bin_df[bin_df.ret_mark != 1]
 
+    fig, ax1 = plt.subplots()
+    fig.set_size_inches(xsize, ysize)
+    job_levels = cf.num_of_job_levels
+
+# ************
+    # create the job bands and labels on ax2
+    if measure == 'cat_order' and show_job_bands:
+        bg_color = '#ffffff'
+        band_colors = cf.job_colors
+        job_counts = cf.eg_counts
+        job_change_lists = cf.j_changes
+        fur_lvl = job_levels + 1
+        jobs_dict = cf.jobs_dict
+
+        if cf.enhanced_jobs:
+            # use job dictionary from case-specific configuration file
+            # for conversion
+            eg_counts, j_changes = f.convert_to_enhanced(job_counts,
+                                                         job_change_lists,
+                                                         cf.jd)
+        else:
+            j_changes = job_change_lists
+            eg_counts = job_counts
+
+        jcnts_arr = f.make_jcnts(eg_counts)
+        table = f.job_gain_loss_table(pd.unique(df.mnum).size,
+                                      job_levels,
+                                      jcnts_arr,
+                                      j_changes,
+                                      standalone=False)
+
+        df_table = pd.DataFrame(table[0],
+                                columns=np.arange(1, job_levels + 1),
+                                index=pd.date_range(cf.starting_date,
+                                                    periods=table[0].shape[0],
+                                                    freq='M'))
+        # for band areas
+        jobs_table = df_table[:through_date]
+        # for headcount:
+        df_monthly_non_ret = \
+            pd.DataFrame(df[df.fur == 0].groupby('mnum').size(),
+                         columns=['count'])
+
+        df_monthly_non_ret.set_index(
+            pd.date_range(cf.starting_date,
+                          periods=pd.unique(df_monthly_non_ret.index).size,
+                          freq='M'), inplace=True)
+
+        non_ret_count = df_monthly_non_ret[:through_date]
+        last_month_jobs_series = jobs_table.loc[through_date].sort_index()
+
+        l_mth_counts = pd.DataFrame(last_month_jobs_series,
+                                    index=last_month_jobs_series.index
+                                    ).sort_index()
+
+        l_mth_counts.rename(columns={l_mth_counts.columns[0]: 'counts'},
+                            inplace=True)
+        l_mth_counts['cum_counts'] = l_mth_counts['counts'].cumsum()
+
+        lowest_cat = max(l_mth_counts.index)
+
+        cnts = list(l_mth_counts['cum_counts'])
+        cnts.insert(0, 0)
+        axis2_lbl_locs = []
+        axis2_lbls = []
+
+        adjust = cf.adjust
+
+        i = 0
+        for job_num in l_mth_counts.index:
+            axis2_lbl_locs.append(round((cnts[i] + cnts[i + 1]) / 2))
+            axis2_lbl_locs[i] += adjust[i]
+            axis2_lbls.append(jobs_dict[job_num])
+            i += 1
+
+        with sns.axes_style("white"):
+            non_ret_count['count'].plot(c='grey', ls='--',
+                                        label='active count', ax=ax1)
+
+            ax2 = jobs_table.plot.area(stacked=True,
+                                       figsize=(12, 10),
+                                       sort_columns=True,
+                                       linewidth=2,
+                                       color=band_colors,
+                                       alpha=job_bands_alpha,
+                                       legend=False,
+                                       ax=ax1)
+
+            plt.ylim(0, max(df_monthly_non_ret['count']))
+
+            if lowest_cat == fur_lvl:
+                plt.axhspan(cnts[-2], cnts[-1], facecolor='#fbfbea', alpha=0.9)
+                axis2_lbls[-1] = 'FUR'
+
+        ax2 = ax1.twinx()
+        ax2.set_yticks(axis2_lbl_locs)
+        yticks = ax2.get_yticks().tolist()
+
+        for i in np.arange(len(yticks)):
+            yticks[i] = axis2_lbls[i]
+
+        ax2.set_yticklabels(yticks)
+        ax2.invert_yaxis()
+
+# .............................................................
+    # this section is for the quantile line plots:
     y_limit = 0
     for eg in eg_list:
         frame = bin_df[bin_df.eg == eg]
@@ -5830,13 +5948,13 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         gb = gb.unstack()
         y_limit = max(y_limit, max(gb[quartiles]))
         gb.plot(c=colors[eg - 1], lw=line_width,
-                ax=ax, alpha=line_alpha)
+                ax=ax1, alpha=line_alpha)
 
     if measure in ['cat_order', 'snum', 'lnum']:
         y_limit = (y_limit + 50) // 50 * 50
         plt.ylim(0, y_limit)
         tick_stride = min(y_limit / 10 // 10 * 10, 500)
-        ax.set_yticks(np.arange(0, y_limit, tick_stride))
+        ax1.set_yticks(np.arange(0, y_limit, tick_stride))
 
     if measure in ['spcnt', 'lspcnt', 'lnum',
                    'snum', 'fbff',
@@ -5845,25 +5963,36 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
                    'rank_in_job'] \
             and groupby_method not in ['size', 'count']:
 
-        ax.invert_yaxis()
+        ax1.invert_yaxis()
+        try:
+            ax2.invert_yaxis()
+        except:
+            pass
 
     if measure in ['fbff', 'jobp', 'jnum', 'orig_job']:
         plt.ylim(job_levels + 1.25, 0.75)
-        ax.set_yticks(np.arange(1, job_levels + 2, 1))
+        ax1.set_yticks(np.arange(1, job_levels + 2, 1))
 
     if measure in ['spcnt', 'lspcnt']:
-        ax.yaxis.set_major_formatter(pct_format)
-        ax.set_yticks(np.arange(0, 1.05, .05))
+        ax1.yaxis.set_major_formatter(pct_format)
+        ax1.set_yticks(np.arange(0, 1.05, .05))
 
-    if (max(bin_df.quartile) * len(eg_list)) > 20:
-        ax.legend_.remove()
+    if (max(bin_df.quartile) * len(eg_list)) > 10:
+        ax1.legend_.remove()
 
-    ax.set_axis_bgcolor(bg_color)
-    plt.grid(alpha=grid_alpha)
-    plt.tick_params(axis='both', which='both', labelsize=tick_size)
-    plt.ylabel(measure + ' for each quantile',
-               fontsize=label_size)
-    plt.xlabel(xax, fontsize=label_size)
+    ax1.set_axis_bgcolor(bg_color)
+    ax1.grid(alpha=grid_alpha)
+    ax1.tick_params(axis='both', which='both', labelsize=tick_size)
+    try:
+        ax2.tick_params(axis='both', which='both', labelsize=tick_size)
+    except:
+        pass
+    ax1.set_ylabel(measure + ' for each quantile',
+                   fontsize=label_size)
+    ax1.set_xlabel(xax, fontsize=label_size)
+    print(plot_implementation_date)
+    if plot_implementation_date and xax == 'date':
+        ax1.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
     plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
               ' quartile ' + measure + ' by ' + groupby_method,
               fontsize=title_fontsize)
