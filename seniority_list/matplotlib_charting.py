@@ -65,27 +65,27 @@ def quartile_years_in_position(dfc, dfb, job_levels,
         dfb (string or dataframe variable)
             text name of baseline dataset to explore (ds_dict key)
             or dataframe
-        job_levels
+        job_levels (integer)
             the number of job levels in the model
-        num_bins
+        num_bins (integer)
             the total number of segments (divisions of the population) to
             calculate and display
-        job_str_list
+        job_str_list (list)
             a list of strings which correspond with the job levels, used for
             the chart legend
             example:
                 jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
-        eg_dict
+        eg_dict (dictionary)
             dictionary used to convert employee group numbers to text,
             used with chart title text display
-        color_list
+        color_list (list)
             a list of color codes which control the job level color display
-        style
+        style (string)
             option to select 'area' or 'bar' to determine the type
             of chart output. default is 'bar'.
-        plot_differential
+        plot_differential (boolean)
             if True, plot the difference between dfc and dfb values
-        ds_dict
+        ds_dict (dictionary)
             variable assigned to the output of the load_datasets function.
             This keyword variable must be set if string dictionary keys are
             used as inputs for the dfc and/or dfb inputs.
@@ -95,20 +95,31 @@ def quartile_years_in_position(dfc, dfb, job_levels,
             operator (i.e. <, >, ==, etc.) for attr1 as string
         val(n)
             attr1 limiting value (combined with oper1) as string
-        custom_color, cm_name, start, stop
+        custom_color, cm_name, start, stop (boolean, string, float, float)
             if custom color is set to True, create a custom color map from
             the cm_name color map style.  A portion of the color map may be
             selected for customization using the start and stop inputs.
-        flip_x
+        flip_x (boolean)
             'flip' the chart horizontally if True
-        flip_y
+        flip_y (boolean)
             'flip' the chart vertically if True
-        rotate
+        rotate (boolean)
             transpose the chart output
-        normalize_yr_scale
+        gain_loss_bg (boolean)
+            if True, apply a green and red background to the
+            chart in the gain and loss areas
+        bg_alpha (float)
+            the alpha of the gain_loss_bg (if selected)
+        normalize_yr_scale (boolean)
             set all output charts to have the same x axis range
-        yr_clip
+        yr_clip (integer)
             max x axis value (years) if normalize_yr_scale set True
+        suptitle_fontsize (integer or float)
+            text size of chart super title
+        title_fontsize (integer or float)
+            text size of chart title
+        xsize, ysize (integer or float)
+            size of chart display
         '''
 
     dsc, df_labelc = determine_dataset(dfc, ds_dict, return_label=True)
@@ -520,7 +531,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         color list
             list of colors for plotting
         job_str_list
-            list of string jog descriptions corresponding to
+            list of string job descriptions corresponding to
             number of job levels
         ds_dict
             output of the load_datasets function, dictionary.  This keyword
@@ -848,7 +859,8 @@ def violinplot_by_eg(df, measure, ds_dict=None,
 
 
 def age_kde_dist(df, color_list, eg_dict, ds_dict=None,
-                 mnum=0, title_fontsize=14, chart_example=False):
+                 mnum=0, title_fontsize=14, min_age=25,
+                 max_age=cf.ret_age, chart_example=False):
     '''From the seaborn website:
     Fit and plot a univariate or bivariate kernel density estimate.
 
@@ -894,7 +906,7 @@ def age_kde_dist(df, color_list, eg_dict, ds_dict=None,
         except:
             continue
 
-    ax.set_xlim(25, cf.ret_age)
+    ax.set_xlim(min_age, max_age)
     fig.set_size_inches(10, 8)
     plt.title('Age Distribution Comparison - Month ' + str(mnum), y=1.02,
               fontsize=title_fontsize)
@@ -1380,7 +1392,7 @@ def eg_boxplot(df_list, eg_list,
 # DISTRIBUTION WITHIN JOB LEVEL (NBNF effect)
 def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
                                        eg_colors, band_colors, job_strs,
-                                       eg_dict, ds_dict=None,
+                                       eg_dict, ds_dict=None, adjust=cf.adjust,
                                        attr1=None, oper1='>=', val1='0',
                                        attr2=None, oper2='>=', val2='0',
                                        attr3=None, oper3='>=', val3='0',
@@ -1454,11 +1466,6 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
     data = d_filt[['mnum', 'cat_order', 'jnum', 'eg']].copy()
 
     fur_lvl = job_levels + 1
-    if job_levels == 16:
-        adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0, 0, -50, 50, 75, 0, 0, 0, 0]
-
-    if job_levels == 8:
-        adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]
 
     eg_set = pd.unique(data.eg)
     max_eg_plus_one = max(eg_set) + 1
@@ -4229,48 +4236,62 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
     job levels for quartiles of a selected employee group.
 
     inputs
-        prop_ds (dataframe)
-            proposal dataset to explore
-        sa_ds (dataframe)
-            standalone dataset
-        job_levels
+        dfc (string or dataframe variable)
+            text name of proposal (comparison) dataset to explore (ds_dict key)
+            or dataframe
+        dfb (string or dataframe variable)
+            text name of baseline dataset to explore (ds_dict key)
+            or dataframe
+        job_levels (integer)
             the number of job levels in the model
-        num_bins
+        num_bins (integer)
             the total number of segments (divisions of the population) to
             calculate and display
-        job_str_list
+        job_str_list (list)
             a list of strings which correspond with the job levels, used for
             the chart legend
             example:
-            jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
-        proposal
-            text name of the (proposal) dataset, used as key in the
-            proposal dict
-        proposal_dict
-            a dictionary of proposal text keys and corresponding proposal text
-            descriptions, used for chart titles
-        eg_dict
+                jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
+        eg_dict (dictionary)
             dictionary used to convert employee group numbers to text,
             used with chart title text display
-        color_list
+        color_list (list)
             a list of color codes which control the job level color display
-        style
+        ds_dict (dictionary)
+            variable assigned to the output of the load_datasets function.
+            This keyword variable must be set if string dictionary keys are
+            used as inputs for the dfc and/or dfb inputs.
+        style (string)
             option to select 'area' or 'bar' to determine the type
             of chart output. default is 'bar'.
-        custom_color, cm_name, start, stop
+        plot_differential (boolean)
+            if True, plot the difference between dfc and dfb values
+        custom_color, cm_name, start, stop (boolean, string, float, float)
             if custom color is set to True, create a custom color map from
             the cm_name color map style.  A portion of the color map may be
             selected for customization using the start and stop inputs.
-        flip_x
+        flip_x (boolean)
             'flip' the chart horizontally if True
-        flip_y
+        flip_y (boolean)
             'flip' the chart vertically if True
-        rotate
+        rotate (boolean)
             transpose the chart output
-        normalize_yr_scale
+        gain_loss_bg (boolean)
+            if True, apply a green and red background to the
+            chart in the gain and loss areas
+        bg_alpha (float)
+            the alpha of the gain_loss_bg (if selected)
+        normalize_yr_scale (boolean)
             set all output charts to have the same x axis range
-        yr_clip
-            max x axis value (years) if normalize_yr_scale set True'''
+        yr_clip (integer)
+            max x axis value (years) if normalize_yr_scale set True
+        suptitle_fontsize (integer or float)
+            text size of chart super title
+        title_fontsize (integer or float)
+            text size of chart title
+        xsize, ysize (integer or float)
+            size of chart display
+        '''
 
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
@@ -5530,7 +5551,7 @@ def job_count_bands(df_list, eg_list, job_colors,
             i += 1
 
 
-def determine_dataset(ds_def, ds_dict, return_label=False):
+def determine_dataset(ds_def, ds_dict=None, return_label=False):
     '''this function permits either a dictionary key (string) or a dataframe
     variable to be used in functions as a dataframe object.
     '''
@@ -5539,11 +5560,17 @@ def determine_dataset(ds_def, ds_dict, return_label=False):
         ds_label = 'Proposal'
     else:
         if ds_dict:
-            ds = ds_dict[ds_def][0]
-            ds_label = ds_dict[ds_def][1]
+            try:
+                ds = ds_dict[ds_def][0]
+                ds_label = ds_dict[ds_def][1]
+            except:
+                print('error:\n invalid dataframe or ds_dict key ' +
+                      '(first argument)')
+                return
         else:
-            print('''using a dictionary key as df input, but "ds_dict"
-        is undefined, please set "ds_dict" keyword variable''')
+            print('error:\n it appears that you may be using a dictionary' +
+                  ' key as input, but "ds_dict" is undefined,' +
+                  ' please set "ds_dict" keyword variable')
             return
 
     if return_label:
@@ -5641,14 +5668,18 @@ def display_proposals():
     print(list(pd.read_pickle('dill/proposal_names.pkl').proposals))
 
 
-def slice_ds_by_index_array(df, mnum=0, attr='age',
-                            attr_oper='>=', attr_val=50):
+def slice_ds_by_filtered_index(df, ds_dict=None, mnum=0, attr='age',
+                               attr_oper='>=', attr_val=50):
     '''filter an entire dataframe by only selecting rows which match
     the filtered results from a target month.  In other words, zero in on
     a slice of data from a particular month, such as employees holding a
     specific job in month 25.  Then, using the index of those results,
     find only those employees within the entire dataset as an input for further
     analysis within the program.
+
+    The output may be used as an input to a plotting function or for other
+    analysis.  This function may also be used repeatedly with various filters,
+    using output of one execution as input for another execution.
 
     inputs
         df
@@ -5664,18 +5695,23 @@ def slice_ds_by_index_array(df, mnum=0, attr='age',
             Example filter:
                 jnum >= 7 (in mnum month)
     '''
+    ds = determine_dataset(df, ds_dict)
+
     mnum = str(mnum)
     try:
         attr_val = str(int(attr_val))
     except:
         pass
+
+    # get the indexes (employee numbers) of the filtered data
     month_slice_indexes = \
-        np.array(df[eval('(df[attr]' + attr_oper + attr_val +
-                         ') & (df.mnum == ' + mnum + ')')].index)
+        np.array(ds[eval('(ds[attr]' + attr_oper + attr_val +
+                         ') & (ds.mnum == ' + mnum + ')')].index)
 
-    df_index = np.array(df.index)
-
-    ds_filter = df[np.in1d(df_index, month_slice_indexes)]
+    ds_index = np.array(ds.index)
+    # get all of the dataset rows with an index (employee number) which exists
+    # within the month_slice_indexes array
+    ds_filter = ds[np.in1d(ds_index, month_slice_indexes)]
 
     return ds_filter
 
@@ -5731,15 +5767,19 @@ def mark_quartiles(df, quartiles=10):
 
 
 def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
-                     colors=cf.eg_colors, xax='date',
-                     through_date=None, show_job_bands=True,
+                     colors=cf.eg_colors, xax='date', ds_dict=None,
+                     through_date=None, show_job_bands=True, show_grid=True,
                      plot_implementation_date=True,
-                     line_width=.75, bg_color='.98', job_bands_alpha=.2,
-                     line_alpha=.8, grid_alpha=.35, title_fontsize=12,
+                     line_width=.75, bg_color='.98', job_bands_alpha=.15,
+                     line_alpha=.7, grid_alpha=.25, title_fontsize=12,
                      tick_size=11, label_size=12,
                      xsize=10, ysize=8):
     '''Plot an average of a selected attribute measure for each employee group
     quartile over time.
+
+    Multiple employee groups may be plotted at the same time.  Job bands may
+    be plotted as a chart background to display job level progression when
+    the measure input is set to "cat_order".
 
     Example use case:
 
@@ -5813,6 +5853,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
             Width and height of chart
     '''
 # **************
+    df = determine_dataset(df, ds_dict)
     # make a dataframe with an added column with quartile membership number
     # for each employee, each employee group calculated separately...
     bin_df = mark_quartiles(df, quartiles)
@@ -5831,7 +5872,6 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         bin_df = bin_df[bin_df.ret_mark != 1]
 
     fig, ax1 = plt.subplots()
-    fig.set_size_inches(xsize, ysize)
     job_levels = cf.num_of_job_levels
 
 # ************
@@ -5980,21 +6020,27 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     if (max(bin_df.quartile) * len(eg_list)) > 10:
         ax1.legend_.remove()
 
-    ax1.set_axis_bgcolor(bg_color)
-    ax1.grid(alpha=grid_alpha)
-    ax1.tick_params(axis='both', which='both', labelsize=tick_size)
     try:
         ax2.tick_params(axis='both', which='both', labelsize=tick_size)
+        ax2.grid(b=False)
     except:
         pass
+
+    ax1.set_axis_bgcolor(bg_color)
+    if show_grid:
+        ax1.grid(b=True, c='grey', lw=.5, alpha=grid_alpha)
+    else:
+        ax1.grid(b=False)
+    ax1.tick_params(axis='both', which='both', labelsize=tick_size)
     ax1.set_ylabel(measure + ' for each quantile',
                    fontsize=label_size)
     ax1.set_xlabel(xax, fontsize=label_size)
-    print(plot_implementation_date)
+
     if plot_implementation_date and xax == 'date':
         ax1.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
     plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
               ' quartile ' + measure + ' by ' + groupby_method,
               fontsize=title_fontsize)
+    fig.set_size_inches(xsize, ysize)
     plt.show()
 

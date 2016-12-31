@@ -140,7 +140,6 @@ adjust = case.adjust
 # colors, dicts (matches case jobs and proposal descriptions)
 eg_dict = case.eg_dict
 eg_dict_verbose = case.eg_dict_verbose
-proposal_dict = case.proposal_dict
 
 job_strs = case.job_strs
 jobs_dict = case.jobs_dict

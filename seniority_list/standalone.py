@@ -201,7 +201,7 @@ if cf.compute_job_category_order:
         ds['cat_order'] = ds.groupby('mnum', sort=False)['jobp'] \
             .rank(method='first')
 
-ds.sort_values(by=['mnum', 'snum'], inplace=True)
+ds.sort_values(by=['mnum', 'idx'], inplace=True)
 ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
 
 # save to file

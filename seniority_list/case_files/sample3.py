@@ -26,7 +26,9 @@ enhanced_jobs_part_suffix = 'R'
 init_ret_age_years = 65
 init_ret_age_months = 0
 
+# do not adjust the line immediately below
 init_ret_age = init_ret_age_years + (init_ret_age_months * 1 / 12)
+
 ret_age_increase = False
 # format for ret_incr:
 # ((end of effective month, age increase in months))
@@ -35,28 +37,38 @@ ret_age_increase = False
 ret_incr = (('2018-01-31', 12),
             ('2020-01-31', 12))
 
+# do not adjust the line immediately below
 ret_incr_dict = od(ret_incr)
 
+# do not adjust the 4 lines immediately below
 if ret_age_increase:
     ret_age = init_ret_age + sum(ret_incr_dict.values()) * (1 / 12)
 else:
     ret_age = init_ret_age
 
 starting_date = '2013-12-31'
+
+# do not adjust the line immediately below
 start = to_datetime(starting_date)
 
 implementation_date = '2016-10-31'
+
+# do not adjust the 3 lines immediately below
 imp_date = to_datetime(implementation_date)
 imp_month = ((imp_date.year - start.year) * 12) - \
     (start.month - imp_date.month)
 
 end_date = to_datetime('2020-01-31')
+
+# do not adjust the 2 lines immediately below
 ratio_final_month = ((end_date.year - start.year) * 12) - \
     (start.month - end_date.month)
 
 # NUMBER OF JOB LEVELS, CONVERSION DATA
 full_time_pcnt1 = .6
 full_time_pcnt2 = .65
+
+# do not adjust the line immediately below
 full_time_avg_pcnt = (full_time_pcnt1 + full_time_pcnt2) / 2
 
 if not enhanced_jobs:
@@ -104,6 +116,7 @@ jc5 = [3, [1, 61], 411, [376, 26, 9]]
 jc6 = [6, [1, 61], 411, [376, 26, 9]]
 
 j_changes = [jc1, jc2, jc3, jc4, jc5, jc6]
+
 # eg_counts list below must be in order of eg code,
 # eg 1 count then eg 2 count, etc. (for f.make_jcnts function)
 # list of the job count lists from the section above
@@ -191,8 +204,6 @@ else:
 eg_dict = {1: '1', 2: '2', 3: '3', 4: 'sa'}
 eg_dict_verbose = {1: 'Group 1', 2: 'Group 2', 3: 'Group 3',
                    4: 'Standalone'}
-proposal_dict = {'ds1': 'Group 1 Proposal', 'ds2': 'Group 2 Proposal',
-                 'ds3': 'Group 3 Proposal', 'ds4': 'Standalone Data'}
 
 # detailed job labels...
 if enhanced_jobs:
@@ -219,7 +230,21 @@ else:
                  5: 'F/O  G3', 6: 'F/O  G2', 7: 'Capt G1', 8: 'F/O  G1',
                  9: 'FUR'}
 
+# CHART LABEL ADJUSTMENT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# for chart lable adjustment (secondary y label positioning)
+if enhanced_jobs:
+    adjust = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -75, 50, 0, -160, -40, 120, 0]
+else:
+    adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]
+
 # CHART COLORS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+eg_colors = ['#505050', '#0081ff', '#ff6600']
+
+lin_reg_colors = ['#00b300', '#0086b3', '#cc5200']
+lin_reg_colors2 = ['grey', '#0086b3', '#cc5200']
+mean_colors = ['#4d4d4d', '#3399ff', '#ff8000']
 
 if enhanced_jobs:  # enhanced job level chart colors (16 with this example)
 
@@ -237,8 +262,6 @@ if enhanced_jobs:  # enhanced job level chart colors (16 with this example)
                   '#88cc00', '#66488a', '#9679b9', '#2c93af', '#dd7621',
                   '#7b95c1', '#5cbcd6', '#e89f64', '#ffa64d', '#c67c7b',
                   '#c8b79d', '#fefc05']
-
-    color_lists = [grp1_color, grp2_color, grp3_color]
 
     job_colors = [
         [0.65, 0.81, 0.89, 1.0],
@@ -269,8 +292,6 @@ else:  # basic job level chart colors (8 with this example)
     grp3_color = ['#3064a4', '#aa322f', '#81a33a', '#66488a', '#2c93af',
                   '#dd7621', '#7b95c1', '#c67c7b', '#fefc05']
 
-    color_lists = [grp1_color, grp2_color, grp3_color]
-
     job_colors = [[0.65, 0.8, 0.89, 1.],
                   [0.14, 0.48, 0.7, 1.],
                   [0.66, 0.85, 0.51, 1.],
@@ -280,11 +301,9 @@ else:  # basic job level chart colors (8 with this example)
                   [0.99, 0.79, 0.49, 1.],
                   [0.94, 0.54, 0.2, 1.]]
 
-eg_colors = ['#505050', '#0081ff', '#ff6600']
+color_lists = [grp1_color, grp2_color, grp3_color]
 
-lin_reg_colors = ['#00b300', '#0086b3', '#cc5200']
-lin_reg_colors2 = ['grey', '#0086b3', '#cc5200']
-mean_colors = ['#4d4d4d', '#3399ff', '#ff8000']
+# ADDITIONAL AVIALABLE COLOR LISTS (not required, just extra color options)
 
 # alternate white, grey
 white_grey = ['#999999', '#ffffff', '#999999', '#ffffff', '#999999',
@@ -306,13 +325,6 @@ color3 = ['#ff0066', '#ff4d94', '#0033cc', '#ffff00', '#0040ff',
           '#ffff99', '#ff0066', '#ff4d94', '#0033cc', '#ffff00',
           '#00cc00', '#0040ff', '#ffff99', '#00e600', '#00cc00',
           '#00e600', '#333333']
-
-# CHART LABEL ADJUSTMENT
-# for chart lable adjustment (secondary y label positioning)
-if enhanced_jobs:
-    adjust = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -75, 50, 0, -160, -40, 120, 0]
-else:
-    adjust = [0, 0, 0, 0, 0, 0, -50, 50, 0]
 
 # reference only:
 
