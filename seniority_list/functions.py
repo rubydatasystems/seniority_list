@@ -2463,10 +2463,10 @@ def make_delayed_job_counts(imp_month, delayed_jnums,
     job_numbers = sorted(list(set(delayed_jnums[:imp_high])))
 
     for month in np.arange(imp_month + 1):
-        lm = lower[month]
-        hm = upper[month]
-        jnums_range = delayed_jnums[lm:hm]
-        stand_range = stand_job_counts[lm:hm]
+        low = lower[month]
+        high = upper[month]
+        jnums_range = delayed_jnums[low:high]
+        stand_range = stand_job_counts[low:high]
 
         for job in job_numbers:
             job_indexes = np.where(jnums_range == job)[0]
@@ -3170,3 +3170,70 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
     print('datasets loaded (dictionary keys):', list(ds_dict.keys()))
 
     return ds_dict
+
+
+def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
+                             imp_high, return_array_and_dict=False):
+    '''Copy standalone data to an integrated dataset up to the implementation
+    date.  Only standalone data which has no effect on the integrated dataset
+    may be handled in this fashion.
+
+
+    The col_list contains common columns in standalone and integrated datasets
+    which are calculated and would have different results in each dataset
+    '''
+
+    # only include columns from col_list which exist in both datasets
+    col_list = list(set(col_list).intersection(ds_stand.columns))
+    col_list = list(set(col_list).intersection(ds_integrated.columns))
+
+    # grab appropriate columns from standalone dataset up to end of
+    # implementation month initiate a 'key' column to save assignment
+    # time below
+    ds_stand = ds_stand[col_list][:imp_high].copy()
+    ds_stand['key'] = 0
+
+    # grab the 'mnum' and 'empkey' columns from the ordered dataset to
+    # form a 'key' column with unique values
+    ds_temp = ds_integrated[['mnum', 'empkey']][:imp_high].copy()
+    ds_temp['key'] = 0
+
+    # make numpy arrays out of column values for fast 'key' column generation
+    stand_emp = np.array(ds_stand.empkey) * 1000
+    stand_mnum = np.array(ds_stand.mnum)
+    temp_emp = np.array(ds_temp.empkey) * 1000
+    temp_mnum = np.array(ds_temp.mnum)
+    # make the 'key' columns
+    stand_key = stand_emp + stand_mnum
+    temp_key = temp_emp + temp_mnum
+    # assign to 'key' columns
+    ds_stand['key'] = stand_key
+    ds_temp['key'] = temp_key
+    # now that the 'key' column is in place, we don't need or
+    # want these columns
+    ds_stand.drop(['mnum', 'empkey'], inplace=True, axis=1)
+    ds_temp.drop(['mnum', 'empkey'], inplace=True, axis=1)
+    # merge standalone data to integrated list ordered ds_temp df,
+    # using the unique 'key' column values.
+    # this will generate standalone data ordered to match the employee order
+    # from the integrated dataset
+    ds_temp = pd.merge(ds_temp, ds_stand, on='key')
+    # now drop the 'key' column
+    ds_temp.drop('key', inplace=True, axis=1)
+    # convert the ds_temp dataframe to a 2d numpy array for fast
+    # indexing and retrieval
+    stand_array = ds_temp.values.T
+    # construct a dictionary of columns to numpy row indexes
+    keys = ds_temp.columns
+    values = np.arange(len(ds_temp.columns))
+    stand_dict = od(zip(keys, values))
+
+    if return_array_and_dict:
+        return stand_array, stand_dict
+    else:
+        for col in keys:
+            col_arr = np.array(ds_integrated[col])
+            col_arr[:imp_high] = stand_array[stand_dict[col]]
+            ds_integrated[col] = col_arr
+
+    return ds_integrated

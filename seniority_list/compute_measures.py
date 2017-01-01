@@ -161,15 +161,19 @@ low_limits = f.make_lower_slice_limits(high_limits)
 job_level_counts = np.array(jcnts_arr[1])
 
 if cf.delayed_implementation:
-
+    # get standalone data and order it the same as the integrated dataset.
+    # create a unique key column in the standalone data df and a temporary df
+    # which is ordered according to the integrated dataset
     imp_month = cf.imp_month
     imp_low = low_limits[imp_month]
     imp_high = high_limits[imp_month]
+
     # read the standalone dataset (info is not in integrated order)
-    dstand = pd.read_pickle(stand_path_string)
+    ds_stand = pd.read_pickle(stand_path_string)
     # select columns to use as pre-implementation data for integrated dataset
     # data is limited to the pre-implementation months
-    dstand = dstand[['mnum', 'empkey', 'jnum', 'fur', 'cat_order']][:imp_high]
+    dstand = ds_stand[['mnum', 'empkey', 'jnum',
+                       'fur', 'cat_order']][:imp_high]
     dstand.rename(columns={'jnum': 'stand_jobs',
                            'cat_order': 'stand_cat_order'}, inplace=True)
     # create a key column with unique values
@@ -213,7 +217,13 @@ if cf.delayed_implementation:
     # up to the end of the implementation month, then the standalone value for
     # the implementation month is passed down unchanged for the remainder of
     # months in the model.  These arrays carry over standalone data for each
-    # employee group to be honored until the integrated list is implemented.
+    # employee group to be honored until and when the integrated list is
+    # implemented.
+    # These values from the standalone datasets (furlough status and standalone
+    # job held at the implementation date) are needed for subsequent
+    # integrated dataset job assignment calculations.  Other standalone values
+    # are simply copied and inserted into the pre-implementation months of the
+    # integrated dataset.
     aligned_jnums = f.align_fill_down(imp_low,
                                       imp_high,
                                       ds[[]],  # indexed with empkeys
@@ -392,6 +402,14 @@ if cf.compute_pay_measures:
     # CPAY
 
     ds['cpay'] = ds.groupby('new_order')['mpay'].cumsum()
+
+if cf.delayed_implementation:
+    # copy standalone data to pre-implementation period.
+    # this only applies to attributes which did not affect integrated
+    # dataset calculation (not fur status or job held at implementation date).
+    col_list = ['mnum', 'empkey', 'jnum', 'snum', 'spcnt', 'lnum',
+                'lspcnt', 'jobp', 'mpay', 'cpay']
+    ds = f.assign_preimp_standalone(ds_stand, ds, col_list, imp_high)
 
 # save to file
 if cf.save_to_pickle:
