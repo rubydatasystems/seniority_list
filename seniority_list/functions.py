@@ -3211,8 +3211,11 @@ def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
     ds_temp['key'] = temp_key
     # now that the 'key' column is in place, we don't need or
     # want these columns
-    ds_stand.drop(['mnum', 'empkey'], inplace=True, axis=1)
-    ds_temp.drop(['mnum', 'empkey'], inplace=True, axis=1)
+    # note: pop method is 3 times faster than drop method
+    ds_stand.pop('mnum')
+    ds_stand.pop('empkey')
+    ds_temp.pop('mnum')
+    ds_temp.pop('empkey')
     # merge standalone data to integrated list ordered ds_temp df,
     # using the unique 'key' column values.
     # this will generate standalone data ordered to match the employee order

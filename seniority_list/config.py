@@ -141,6 +141,43 @@ adjust = case.adjust
 eg_dict = case.eg_dict
 eg_dict_verbose = case.eg_dict_verbose
 
+# metric description dict
+m_dict = {'mnum': 'month number',
+          'idx': 'index',
+          'empkey': 'employee number',
+          'mth_pcnt': 'month pay percentage',
+          'date': 'date',
+          'year': 'contract year',
+          'pay_raise': 'pay rate multiplier',
+          'fur': 'furlough',
+          'eg': 'employee group',
+          'retdate': 'retirement date',
+          'doh': 'date of hire',
+          'ldate': 'longevity date',
+          'lname': 'last name',
+          'line': 'active',
+          'sg': 'special group',
+          'ret_mark': 'retirement month',
+          'scale': 'longevity pay scale',
+          's_lmonths': 'starting longevity - months',
+          'age': 'age',
+          'new_order': 'editor order',
+          'orig_job': 'original job',
+          'jnum': 'job level',
+          'fbff': 'full bump, full flush',
+          'snum': 'seniority number',
+          'spcnt': 'seniority list percentage',
+          'lnum': 'list number (includes furloughed employees)',
+          'lspcnt': 'list percentage (includes furloughed employees)',
+          'rank_in_job': 'rank in job level',
+          'job_count': 'job level count',
+          'jobp': 'percentage within job level',
+          'cat_order': 'global job ranking',
+          'mlong': 'longevity (months)',
+          'ylong': 'longevity (years)',
+          'mpay': 'monthly pay',
+          'cpay': 'cumulative career pay'}
+
 job_strs = case.job_strs
 jobs_dict = case.jobs_dict
 

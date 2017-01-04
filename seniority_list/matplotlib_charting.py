@@ -502,7 +502,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
     plt.legend(loc=2, markerscale=1.5, fontsize=legend_fontsize)
     fig = plt.gcf()
     fig.set_size_inches(xsize, ysize)
-    plt.ylabel('spcnt')
+    plt.ylabel('seniority list percentage')
     plt.xlabel('age')
     plt.show()
 
@@ -590,14 +590,18 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         plt.xticks(np.arange(0, 1.1, .1))
         plt.xlim(1, 0)
 
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     if chart_example:
-        plt.title(measure + ' - ' + 'proposal 1', y=1.02)
+        plt.title(m_dict[measure] + ' - ' + 'proposal 1', y=1.02)
     else:
         try:
-            plt.title(measure + ' - ' + df_label, y=1.02)
+            plt.title(m_dict[measure] + ' - ' + df_label, y=1.02)
         except:
-            plt.title(measure + ' - ' + 'proposal', y=1.02)
-    plt.ylabel(measure)
+            plt.title(m_dict[measure] + ' - ' + 'proposal', y=1.02)
+    plt.ylabel(m_dict[measure])
+    plt.xlabel(m_dict[xax])
     plt.legend(loc=4, markerscale=1.5, fontsize=legend_fontsize)
     plt.show()
 
@@ -737,7 +741,10 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
     else:
         prop_text = df_label
 
-    suptitle = measure.upper() + ' ordered by ' + xax + ' - ' + \
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
+    suptitle = m_dict[measure].upper() + ' ordered by ' + xax + ' - ' + \
         prop_text + ' - Month: ' + str(mnum)
 
     if t_string:
@@ -748,8 +755,8 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
 
     if measure == 'ylong':
         plt.ylim(0, 40)
-    plt.ylabel(measure)
-    plt.xlabel(xax)
+    plt.ylabel(m_dict[measure])
+    plt.xlabel(m_dict[xax])
     plt.show()
 
 
@@ -831,19 +838,23 @@ def violinplot_by_eg(df, measure, ds_dict=None,
                    cut=0, scale=scale, inner='box',
                    bw=.1, linewidth=linewidth,
                    palette=['gray', '#3399ff', '#ff8000'])
+
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     if chart_example:
         plt.suptitle('Proposal 3' + ' - ' +
-                     measure.upper() + ' Distribution - Month ' +
-                     str(mnum))
+                     m_dict[measure].upper() + ',  Month ' +
+                     str(mnum) + ' Distribution')
     else:
         try:
             plt.suptitle(df_label + ' - ' +
-                         measure.upper() + ' Distribution - Month ' +
-                         str(mnum))
+                         m_dict[measure].upper() + ',  Month ' +
+                         str(mnum) + ' Distribution')
         except:
             plt.suptitle('proposal' + ' - ' +
-                         measure.upper() + ' Distribution - Month ' +
-                         str(mnum))
+                         m_dict[measure].upper() + ',  Month ' +
+                         str(mnum) + ' Distribution')
 
     plt.title(title_string, fontsize=title_fontsize)
     fig = plt.gca()
@@ -855,6 +866,8 @@ def violinplot_by_eg(df, measure, ds_dict=None,
             fig.yaxis.set_major_formatter(pct_format)
             plt.gca().set_yticks(np.arange(0, 1.05, .05))
             plt.ylim(1.04, -.04)
+    plt.xlabel('employee group')
+    plt.ylabel(m_dict[measure])
     plt.show()
 
 
@@ -1170,8 +1183,12 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
             ax.set_yticks(np.arange(int(-ylimit - 1), int(ylimit + 2)))
             plt.ylim(max(-job_diff_clip, int(-ylimit - 1)),
                      min(job_diff_clip, int(ylimit + 1)))
+
+        # metric description for chart label(s)
+        m_dict = cf.m_dict
+
         if chart_example:
-            plt.suptitle('PROPOSAL vs. standalone ' + measure.upper())
+            plt.suptitle('PROPOSAL vs. standalone ' + m_dict[measure].upper())
         else:
             plt.suptitle(yval_dict[yval], fontsize=suptitle_fontsize)
         plt.title(tb_string, fontsize=title_fontsize)
@@ -1307,6 +1324,9 @@ def eg_boxplot(df_list, eg_list,
     yval_list = []
     title_dict = od()
 
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     i = 1
     for ds in df_list:
         this_measure_col = measure + '_' + str(i)
@@ -1329,7 +1349,7 @@ def eg_boxplot(df_list, eg_list,
             p_label = 'df_list item ' + str(i)
         else:
             p_label = label_dict[i]
-        title_dict[this_measure_col] = p_label + ' ' + measure
+        title_dict[this_measure_col] = p_label + ' ' + m_dict[measure]
 
         i += 1
 
@@ -1541,12 +1561,15 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
         ax2.set_yticklabels(yticks)
         plt.ylim(y_count, 0)
 
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     xticks = plt.gca().get_xticks().tolist()
 
     tick_dummies = []
     if chart_example:
         for tck in xticks:
-            tick_dummies.append('Group ' + str(tck + 1))
+            tick_dummies.append(str(tck + 1))
     else:
         for tck in xticks:
             tick_dummies.append(eg_dict[tck + 1])
@@ -1559,7 +1582,8 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
                  ', distribution within job levels, month ' + str(mnum),
                  fontsize=suptitle_fontsize)
     plt.title(t_string, fontsize=title_fontsize, y=1.02)
-    # plt.xlabel('test')
+    ax1.set_ylabel(m_dict['cat_order'])
+    ax1.set_xlabel(m_dict['eg'])
     fig.set_size_inches(xsize, ysize)
     plt.show()
 
@@ -1750,6 +1774,7 @@ def job_level_progression(df, emp_list, through_date,
 
     ax1.xaxis.grid(True)
     ax1.set_axisbelow(True)
+    ax1.set_ylabel('global job ranking', fontsize=12)
     plt.gcf().set_size_inches(xsize, ysize)
     plt.show()
 
@@ -1976,14 +2001,19 @@ def differential_scatter(df_list, dfb,
                     plt.ylim(-scale_lim, scale_lim)
 
             plt.gcf().set_size_inches(xsize, ysize)
+
+            # metric description for chart label(s)
+            m_dict = cf.m_dict
+
             if chart_example:
-                suptitle_str = ('Proposal' + ' differential: ' + measure)
+                suptitle_str = ('Proposal' + ' differential: ' +
+                                m_dict[measure])
             else:
                 if label_dict[prop_num] == 'Proposal':
                     p_label = 'df_list item ' + str(prop_num)
                 else:
                     p_label = label_dict[prop_num]
-                suptitle_str = (p_label + ' differential: ' + measure)
+                suptitle_str = (p_label + ' differential: ' + m_dict[measure])
             if tb_string:
                 plt.suptitle(suptitle_str, fontsize=suptitle_fontsize)
                 plt.title(tb_string, fontsize=title_fontsize, y=1.005)
@@ -2297,6 +2327,9 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
 
         df_joined.columns = col_list
 
+        # metric description for chart label(s)
+        m_dict = cf.m_dict
+
         with sns.axes_style('whitegrid', {'axes.facecolor': facecolor,
                                           'axes.axisbelow': True,
                                           'axes.edgecolor': '.2',
@@ -2317,7 +2350,7 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
                                      color=color_dict[eg - 1])
 
                 plt.title('Group ' + group_dict[eg].upper() + ' ' +
-                          measure.upper() +
+                          m_dict[measure].upper() +
                           ' ' + str(month) + ' mths',
                           fontsize=title_fontsize, y=1.02)
 
@@ -3691,7 +3724,6 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
     ax1.legend(loc='center left', bbox_to_anchor=(-0.45, 0.9),
                frameon=True, fancybox=True, shadow=True, markerscale=2)
     plt.tick_params(labelsize=tick_fontsize)
-    plt.ylabel(measure)
 
     fig = plt.gca()
 
@@ -3752,6 +3784,9 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         plt.ylim(job_levels + 1.5, 0.5)
 
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     if xax in ['snum']:
         plt.xlim(max_count, 0)
     if xax in ['spcnt', 'lspcnt']:
@@ -3766,6 +3801,8 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
     plt.tick_params(labelsize=tick_fontsize)
 
     plt.gcf().set_size_inches(xsize, ysize)
+    ax1.set_ylabel(m_dict[measure])
+    ax1.set_xlabel(m_dict[xax])
     plt.show()
     sns.set_style('darkgrid')
 
@@ -3902,6 +3939,9 @@ def diff_range(df_list, dfb, measure, eg_list,
 
     cols.extend(col_list)
 
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     for eg in eg_list:
         if show_range:
             with sns.axes_style(plot_style):
@@ -3934,7 +3974,7 @@ def diff_range(df_list, dfb, measure, eg_list,
             plt.yticks = np.arange(.5, -.55, .05)
 
         suptitle = 'Employee Group ' + str(eg) + ' ' +\
-            measure + ' differential'
+            m_dict[measure] + ' differential'
         if tb_string:
             plt.suptitle(suptitle, fontsize=suptitle_fontsize)
             plt.title(tb_string, fontsize=title_fontsize)
@@ -4825,19 +4865,22 @@ def single_emp_compare(emp, measure, df_list, xax,
     eg_colors.append(standalone_color)
     eg_colors.append('green')
 
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     if chart_example:
         for i in range(0, len(df_list)):
             label = 'proposal ' + str(i + 1)
             ax = df_list[i][df_list[i].empkey == emp].set_index(xax)[measure] \
                 .plot(label=label, lw=3,
                       color=eg_colors[i], alpha=.6)
-        plt.title('Employee  ' + '123456' + '  -  ' + str.upper(measure),
+        plt.title('Employee  ' + '123456' + '  -  ' + m_dict[measure],
                   y=1.02, fontsize=title_fontsize)
     else:
         for i in range(0, len(df_list)):
             ax = df_list[i][df_list[i].empkey == emp].set_index(xax)[measure] \
                 .plot(label=label_dict[i], lw=3, color=eg_colors[i], alpha=.6)
-        plt.title('Employee  ' + str(emp) + '  -  ' + str.upper(measure),
+        plt.title('Employee  ' + str(emp) + '  -  ' + m_dict[measure],
                   y=1.02, fontsize=title_fontsize)
 
     if measure in ['snum', 'cat_order', 'spcnt', 'lspcnt',
@@ -4862,8 +4905,8 @@ def single_emp_compare(emp, measure, df_list, xax,
 
     plt.tick_params(axis='y', labelsize=tick_size)
     plt.tick_params(axis='x', labelsize=tick_size)
-    plt.xlabel(xax.upper(), fontsize=label_size)
-    plt.ylabel(measure.upper(), fontsize=label_size)
+    plt.xlabel(m_dict[xax], fontsize=label_size)
+    plt.ylabel(m_dict[measure], fontsize=label_size)
     plt.legend(loc='best', markerscale=1.5, fontsize=legend_fontsize)
     plt.show()
 
@@ -5316,13 +5359,16 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
         plt.axvline(cf.imp_date, c='#33cc00', ls='dashed', alpha=1, lw=1,
                     label='implementation date', zorder=1)
 
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     if compare_to_dfb:
         suptitle_string = (dfc_label +
-                           plot_string.upper() + measure.upper() +
+                           plot_string.upper() + m_dict[measure].upper() +
                            ' vs. ' + dfb_label)
     else:
         suptitle_string = (dfc_label +
-                           plot_string.upper() + measure.upper())
+                           plot_string.upper() + m_dict[measure].upper())
 
     plt.suptitle(suptitle_string, fontsize=16)
     plt.title(t_string + ' ' + title_string, y=1.02, fontsize=14)
@@ -5413,6 +5459,9 @@ def stripplot_eg_density(df, mnum, eg_colors, ds_dict=None,
         plt.title(t_string, fontsize=title_fontsize, y=1.02)
     else:
         plt.title(df_label, fontsize=suptitle_fontsize)
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+    plt.ylabel(m_dict['eg'])
     plt.show()
 
 
@@ -5547,6 +5596,7 @@ def job_count_bands(df_list, eg_list, job_colors,
             ax.xaxis.label.set_size(label_size)
             plt.tick_params(axis='y', labelsize=tick_size)
             plt.tick_params(axis='x', labelsize=tick_size)
+            plt.ylabel('job count', fontsize=10)
             plt.show()
             i += 1
 
@@ -6031,15 +6081,19 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         ax1.grid(b=True, c='grey', lw=.5, alpha=grid_alpha)
     else:
         ax1.grid(b=False)
+
+    # metric description for chart label(s)
+    m_dict = cf.m_dict
+
     ax1.tick_params(axis='both', which='both', labelsize=tick_size)
-    ax1.set_ylabel(measure + ' for each quantile',
+    ax1.set_ylabel(m_dict[measure] + ' for each quantile',
                    fontsize=label_size)
     ax1.set_xlabel(xax, fontsize=label_size)
 
     if plot_implementation_date and xax == 'date':
         ax1.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
     plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
-              ' quartile ' + measure + ' by ' + groupby_method,
+              ' quartile ' + m_dict[measure] + ' by ' + groupby_method,
               fontsize=title_fontsize)
     fig.set_size_inches(xsize, ysize)
     plt.show()

@@ -174,11 +174,12 @@ if cf.delayed_implementation:
     # data is limited to the pre-implementation months
     dstand = ds_stand[['mnum', 'empkey', 'jnum',
                        'fur', 'cat_order']][:imp_high]
-    dstand.rename(columns={'jnum': 'stand_jobs',
-                           'cat_order': 'stand_cat_order'}, inplace=True)
     # create a key column with unique values
     dstand['key'] = (dstand.empkey * 1000) + dstand.mnum
-    dstand.drop(['mnum', 'empkey'], inplace=True, axis=1)
+    # drop mnum and empkey columns before merge operation
+    # note: pop method is 3 times faster than drop method
+    dstand.pop('mnum')
+    dstand.pop('empkey')
 
     # now select columns from the integrated list which can be used to create
     # a key column.  the empkey column reflects the integrated list order.
@@ -187,8 +188,9 @@ if cf.delayed_implementation:
     ds_temp = ds[['mnum', 'empkey']][:imp_high]
     # make the key column
     ds_temp['key'] = (ds_temp.empkey * 1000) + ds_temp.mnum
-    # only retain the key column
-    ds_temp.drop(['mnum', 'empkey'], inplace=True, axis=1)
+    # only retain the key column, drop mnum and empkey columns
+    ds_temp.pop('mnum')
+    ds_temp.pop('empkey')
 
     # now merge the standalone data with the ordered dataframe.  result is that
     # the standalone data is now in sync with the order of the integrated list
@@ -202,7 +204,7 @@ if cf.delayed_implementation:
     # possibly make function to incorporate section above as well.
     # ***********************************************************************
 
-    temp_jnums = np.array(ds_temp.stand_jobs)
+    temp_jnums = np.array(ds_temp.jnum)
     delayed_jnums = np.zeros(all_months)
     # assign standalone job number data (up through implementation month) to
     # delayed jnums numpy array
@@ -248,7 +250,7 @@ if cf.delayed_implementation:
     # CAT_ORDER preliminary
     # grab standalone data for pre-implementation period
     if cf.compute_job_category_order:
-        temp_cat = np.array(ds_temp.stand_cat_order)
+        temp_cat = np.array(ds_temp.cat_order)
         delayed_cat = np.zeros(all_months)
         delayed_cat[:imp_high] = temp_cat
 
