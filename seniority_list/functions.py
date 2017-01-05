@@ -306,8 +306,7 @@ def contract_pay_year_and_raise(date_list, future_raise=cf.future_raise,
     year_scale = find_scale(series_years,
     future_raise = True, annual_raise = .02)
 
-    NOTE: **(this function can accept a one-month pay exception
-    for an outlier pay month...)**
+    NOTE: **(this function can accept a pay exception time period...)**
 
     inputs
         date_list
@@ -316,8 +315,6 @@ def contract_pay_year_and_raise(date_list, future_raise=cf.future_raise,
             option for pay calculations to apply a
             percentage increase for each year beyond
             the last contract year
-        exception
-            allows for an outlier pay month to be calculated
         date_exception_start
             date representing the first month of the outlier pay month
             range as a string, example: '2014-12-31'
@@ -3175,28 +3172,37 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
 def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
                              imp_high, return_array_and_dict=False):
     '''Copy standalone data to an integrated dataset up to the implementation
-    date.  Only standalone data which has no effect on the integrated dataset
-    may be handled in this fashion.
+    date.
 
-
-    The col_list contains common columns in standalone and integrated datasets
-    which are calculated and would have different results in each dataset
+    inputs
+        ds_stand (dataframe)
+            standalone dataset
+        ds_integrated (dataframe)
+            integrated dataset
+        col_list
+            common columns in standalone and integrated datasets.  These
+            are calculated columns and have different results in each dataset.
+        imp_high
+            highest index (row number) from implementation month data
+            (from long-form dataset)
+        return_array_and_dict
+            if True, return the standalone data array and column-name to numpy
+            array index dictionary
     '''
 
     # only include columns from col_list which exist in both datasets
     col_list = list(set(col_list).intersection(ds_stand.columns))
     col_list = list(set(col_list).intersection(ds_integrated.columns))
+    key_cols = ['mnum', 'empkey']
 
     # grab appropriate columns from standalone dataset up to end of
     # implementation month initiate a 'key' column to save assignment
     # time below
     ds_stand = ds_stand[col_list][:imp_high].copy()
-    ds_stand['key'] = 0
 
     # grab the 'mnum' and 'empkey' columns from the ordered dataset to
     # form a 'key' column with unique values
-    ds_temp = ds_integrated[['mnum', 'empkey']][:imp_high].copy()
-    ds_temp['key'] = 0
+    ds_temp = ds_integrated[key_cols][:imp_high].copy()
 
     # make numpy arrays out of column values for fast 'key' column generation
     stand_emp = np.array(ds_stand.empkey) * 1000
@@ -3209,23 +3215,26 @@ def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
     # assign to 'key' columns
     ds_stand['key'] = stand_key
     ds_temp['key'] = temp_key
-    # now that the 'key' column is in place, we don't need or
-    # want these columns
-    # note: pop method is 3 times faster than drop method
-    ds_stand.pop('mnum')
-    ds_stand.pop('empkey')
-    ds_temp.pop('mnum')
-    ds_temp.pop('empkey')
+    # now that the 'key' columns are in place, we don't need or
+    # want the key making columns.
+    # get ds_stand columns except for key making columns ('mnum', 'empkey')
+    stand_cols = list(set(ds_stand.columns).difference(key_cols))
+    # redefine ds_stand to include original columns less key making columns
+    ds_stand = ds_stand[stand_cols]
+    # redefine ds_temp to only include 'key' column (retains index)
+    ds_temp = ds_temp[['key']]
     # merge standalone data to integrated list ordered ds_temp df,
     # using the unique 'key' column values.
     # this will generate standalone data ordered to match the employee order
     # from the integrated dataset
     ds_temp = pd.merge(ds_temp, ds_stand, on='key')
-    # now drop the 'key' column
-    ds_temp.drop('key', inplace=True, axis=1)
+    # now get rid of the 'key' column
+    temp_cols = list(set(ds_temp.columns).difference(['key']))
+    ds_temp = ds_temp[temp_cols]
     # convert the ds_temp dataframe to a 2d numpy array for fast
     # indexing and retrieval
     stand_array = ds_temp.values.T
+
     # construct a dictionary of columns to numpy row indexes
     keys = ds_temp.columns
     values = np.arange(len(ds_temp.columns))
@@ -3240,3 +3249,87 @@ def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
             ds_integrated[col] = col_arr
 
     return ds_integrated
+
+
+def make_preimp_array(ds_stand, ds_integrated, imp_high):
+    '''Create an ordered numpy array of pre-implementation data gathered from
+    the pre-calculated standalone dataset and a dictionary to keep track of the
+    information.  This data will be joined by post_implementation integrated
+    data and then copied into the appropriate columns of the final integrated
+    dataset.
+
+    inputs
+        ds_stand (dataframe)
+            standalone dataset
+        ds_integrated (dataframe)
+            dataset ordered for proposal
+        imp_high
+            highest index (row number) from implementation month data
+            (from long-form dataset)
+    '''
+    key_cols = ['mnum', 'empkey']
+    imp_cols = ['mnum', 'empkey', 'job_count', 'orig_job', 'jnum', 'lnum',
+                'lspcnt', 'snum', 'spcnt', 'rank_in_job', 'jobp', 'fur']
+    if cf.compute_job_category_order:
+        imp_cols.append('cat_order')
+    if cf.compute_pay_measures:
+        imp_cols.extend(['mpay', 'cpay'])
+    # only include columns from col_list which exist in both datasets
+    filtered_cols = list(set(imp_cols).intersection(ds_stand.columns))
+
+    # grab appropriate columns from standalone dataset up to end of
+    # implementation month initiate a 'key' column to save assignment
+    # time below
+    ds_stand = ds_stand[filtered_cols][:imp_high].copy()
+
+    # grab the 'mnum' and 'empkey' columns from the ordered dataset to
+    # form a 'key' column with unique values
+    ds_temp = ds_integrated[key_cols][:imp_high].copy()
+
+    # make numpy arrays out of column values for fast 'key' column generation
+    stand_emp = np.array(ds_stand.empkey) * 1000
+    stand_mnum = np.array(ds_stand.mnum)
+    temp_emp = np.array(ds_temp.empkey) * 1000
+    temp_mnum = np.array(ds_temp.mnum)
+    # make the 'key' columns
+    stand_key = stand_emp + stand_mnum
+    temp_key = temp_emp + temp_mnum
+    # assign to 'key' columns
+    ds_stand['key'] = stand_key
+    ds_temp['key'] = temp_key
+    # now that the 'key' columns are in place, we don't need or
+    # want the key making columns.
+    # get ds_stand columns except for key making columns ('mnum', 'empkey')
+    stand_cols = list(set(ds_stand.columns).difference(key_cols))
+    # redefine ds_stand to include original columns less key making columns
+    ds_stand = ds_stand[stand_cols]
+    # redefine ds_temp to only include 'key' column (retains index)
+    ds_temp = ds_temp[['key']]
+
+    # merge standalone data to integrated list ordered ds_temp df,
+    # using the unique 'key' column values.
+    # this will generate standalone data ordered to match the employee order
+    # from the integrated dataset
+    ds_temp = pd.merge(ds_temp, ds_stand, on='key')
+    # now get rid of the 'key' column
+    temp_cols = list(set(ds_temp.columns).difference(['key']))
+    ordered_cols = []
+    for col in imp_cols:
+        if col in temp_cols:
+            ordered_cols.append(col)
+    ds_temp = ds_temp[ordered_cols]
+
+    # convert the ds_temp dataframe to a 2d numpy array for fast
+    # indexing and retrieval
+    stand_arr = ds_temp.values.T
+
+    # construct a dictionary of columns to numpy row indexes
+    values = np.arange(len(ordered_cols))
+    delay_dict = od(zip(ordered_cols, values))
+
+    final_array = np.zeros((len(ordered_cols), len(ds_integrated)))
+
+    for col in ordered_cols:
+        final_array[delay_dict[col]][:imp_high] = stand_arr[delay_dict[col]]
+
+    return ordered_cols, delay_dict, final_array

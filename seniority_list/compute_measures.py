@@ -161,59 +161,22 @@ low_limits = f.make_lower_slice_limits(high_limits)
 job_level_counts = np.array(jcnts_arr[1])
 
 if cf.delayed_implementation:
-    # get standalone data and order it the same as the integrated dataset.
-    # create a unique key column in the standalone data df and a temporary df
-    # which is ordered according to the integrated dataset
+
     imp_month = cf.imp_month
     imp_low = low_limits[imp_month]
     imp_high = high_limits[imp_month]
 
     # read the standalone dataset (info is not in integrated order)
     ds_stand = pd.read_pickle(stand_path_string)
-    # select columns to use as pre-implementation data for integrated dataset
-    # data is limited to the pre-implementation months
-    dstand = ds_stand[['mnum', 'empkey', 'jnum',
-                       'fur', 'cat_order']][:imp_high]
-    # create a key column with unique values
-    dstand['key'] = (dstand.empkey * 1000) + dstand.mnum
-    # drop mnum and empkey columns before merge operation
-    # note: pop method is 3 times faster than drop method
-    dstand.pop('mnum')
-    dstand.pop('empkey')
 
-    # now select columns from the integrated list which can be used to create
-    # a key column.  the empkey column reflects the integrated list order.
-    # data is only for pre-implementation months, just like the standalone
-    # data above
-    ds_temp = ds[['mnum', 'empkey']][:imp_high]
-    # make the key column
-    ds_temp['key'] = (ds_temp.empkey * 1000) + ds_temp.mnum
-    # only retain the key column, drop mnum and empkey columns
-    ds_temp.pop('mnum')
-    ds_temp.pop('empkey')
+    # get standalone data and order it the same as the integrated dataset.
+    # create a unique key column in the standalone data df and a temporary df
+    # which is ordered according to the integrated dataset
+    imp_cols, arr_dict, col_array = \
+        f.make_preimp_array(ds_stand, ds, imp_high)
 
-    # now merge the standalone data with the ordered dataframe.  result is that
-    # the standalone data is now in sync with the order of the integrated list
-    ds_temp = pd.merge(ds_temp, dstand, on='key')
-
-    dstand = []
-
-    # TODO (for developer)
-    # Refactor section below with loop and dictionary so all column data may be
-    # passed for delayed implementation...
-    # possibly make function to incorporate section above as well.
-    # ***********************************************************************
-
-    temp_jnums = np.array(ds_temp.jnum)
-    delayed_jnums = np.zeros(all_months)
-    # assign standalone job number data (up through implementation month) to
-    # delayed jnums numpy array
-    delayed_jnums[:imp_high] = temp_jnums
-
-    temp_fur = np.array(ds_temp.fur)
-    delayed_fur = np.zeros(all_months)
-    # same for standalone furlough data
-    delayed_fur[:imp_high] = temp_fur
+    # # select columns to use as pre-implementation data for integrated dataset
+    # # data is limited to the pre-implementation months
 
     # aligned_jnums and aligned_fur arrays are the same as standalone data
     # up to the end of the implementation month, then the standalone value for
@@ -226,6 +189,10 @@ if cf.delayed_implementation:
     # integrated dataset job assignment calculations.  Other standalone values
     # are simply copied and inserted into the pre-implementation months of the
     # integrated dataset.
+
+    delayed_jnums = col_array[arr_dict['jnum']]
+    delayed_fur = col_array[arr_dict['fur']]
+
     aligned_jnums = f.align_fill_down(imp_low,
                                       imp_high,
                                       ds[[]],  # indexed with empkeys
@@ -238,39 +205,36 @@ if cf.delayed_implementation:
 
     # now assign "filled-down" job numbers to numpy array
     delayed_jnums[imp_low:] = aligned_jnums[imp_low:]
+    delayed_fur[imp_low:] = aligned_fur[imp_low:]
+
+    # ORIG_JOB and FUR (delayed implementation)
     # then assign numpy array values to orig_job column of integrated dataset
     # as starting point for integrated job assignments
     ds['orig_job'] = delayed_jnums
-
-    delayed_fur[imp_low:] = aligned_fur[imp_low:]
     ds['fur'] = delayed_fur
 
-    # ***********************************************************************
-
-    # CAT_ORDER preliminary
-    # grab standalone data for pre-implementation period
-    if cf.compute_job_category_order:
-        temp_cat = np.array(ds_temp.cat_order)
-        delayed_cat = np.zeros(all_months)
-        delayed_cat[:imp_high] = temp_cat
-
-    # this function assigns combined job counts wiping out
-    # standalone counts...refactor to add (skip this?) option
-    # to keep standalone job counts
-    standalone_preimp_job_counts = \
-        f.make_delayed_job_counts(imp_month,
-                                  delayed_jnums,
-                                  low_limits,
-                                  high_limits)
-    ds_temp = []
+    if cf.int_job_counts:
+        # assign combined job counts prior to the implementation date.
+        # (otherwise, separate employee group counts will be used when
+        # data is transferred from col_array at end of script)
+        standalone_preimp_job_counts = \
+            f.make_delayed_job_counts(imp_month,
+                                      delayed_jnums,
+                                      low_limits,
+                                      high_limits)
+        col_array[arr_dict['job_count']][:imp_high] = \
+            standalone_preimp_job_counts
 
 else:
-
+    # set implementation month at zero for job assignment routine
     imp_month = 0
-    # ORIG_JOB
+
+    # ORIG_JOB and FUR (no delayed implementation)
     # transfer proposal stovepipe jobs (month_form) to long_form via index
     # (empkey) alignment...
     ds['orig_job'] = df_master['orig_job']
+    # developer note:  test to verify this is not instantiated elsewhere...
+    ds['fur'] = df_master['fur']
 
 # grab long_form indexed stovepipe jobs (int)
 orig = np.array(ds['orig_job'])
@@ -282,7 +246,9 @@ table = f.job_gain_loss_table(nonret_each_month.size,
 
 job_change_months = f.get_job_change_months(j_changes)
 reduction_months = f.get_job_reduction_months(j_changes)
-# copy selected columns from ds for job assignment function input below
+# copy selected columns from ds for job assignment function input below.
+# note:  if delayed implementation, the 'fur' and 'orig_job' columns contain
+# standalone data through the implementation month.
 df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 
 # this is the main job assignment function.  It loops through all of the
@@ -298,8 +264,6 @@ jobs_and_counts = f.assign_jobs_nbnf_job_changes(df_align, low_limits,
 
 # if job_changes, replace original fur column...
 ds['fur'] = jobs_and_counts[3]
-# remove this assignment when testing complete...
-# ds['func_job'] = jobs_and_counts[2]
 
 # JNUM, NBNF, FBFF
 
@@ -312,9 +276,8 @@ if cf.no_bump:
     ds['jnum'] = nbnf
     ds['fbff'] = job_col
 else:
-    ds['jnum'] = job_col
     ds['nbnf'] = nbnf
-
+    ds['jnum'] = job_col
 
 jnum_jobs = np.array(ds['jnum']).astype(int)
 
@@ -327,42 +290,31 @@ ds['snum'], ds['spcnt'], ds['lnum'], ds['lspcnt'] = \
                                    job_count_each_month,
                                    lspcnt_calc)
 
-
 # RANK in JOB
 
 ds['rank_in_job'] = ds.groupby(['mnum', 'jnum'], sort=False).cumcount() + 1
 
-
 # JOB_COUNT
-if cf.delayed_implementation:
-    delayed_job_counts = np.zeros(len(ds))
-    delayed_job_counts[:imp_high] = standalone_preimp_job_counts
-    delayed_job_counts[imp_high:] = jobs_and_counts[1][imp_high:]
-    ds['job_count'] = delayed_job_counts.astype(int)
-else:
-    ds['job_count'] = jobs_and_counts[1]
+
+ds['job_count'] = jobs_and_counts[1]
 
 # JOBP
 
 ds['jobp'] = (ds['rank_in_job'] / ds['job_count']) + (ds['jnum'] - .001)
 
-# CAT_ORDER final
-# rank integrated jobp data then assign from implementation date forward
+# CAT_ORDER
+# rank integrated 'jobp' data then assign from implementation date forward
 if cf.compute_job_category_order:
     cat_arr = np.array(ds.groupby('mnum', sort=False)['jobp']
                        .rank(method='first'))
-    if cf.delayed_implementation:
-        delayed_cat[imp_high:] = cat_arr[imp_high:]
-        ds['cat_order'] = delayed_cat
-    else:
-        ds['cat_order'] = cat_arr
+    ds['cat_order'] = cat_arr
 
 # PAY - merge with pay table - provides monthly pay
 if cf.compute_pay_measures:
 
     # account for furlough time (only count active months)
     if cf.discount_longev_for_fur:
-
+        # skel(ds) provides pre-calculated non-discounted scale data
         # flip ones and zeros...
         ds['non_fur'] = 1 - ds.fur
 
@@ -406,12 +358,12 @@ if cf.compute_pay_measures:
     ds['cpay'] = ds.groupby('new_order')['mpay'].cumsum()
 
 if cf.delayed_implementation:
-    # copy standalone data to pre-implementation period.
-    # this only applies to attributes which did not affect integrated
-    # dataset calculation (not fur status or job held at implementation date).
-    col_list = ['mnum', 'empkey', 'jnum', 'snum', 'spcnt', 'lnum',
-                'lspcnt', 'jobp', 'mpay', 'cpay']
-    ds = f.assign_preimp_standalone(ds_stand, ds, col_list, imp_high)
+    # grab each imp_col (column to insert standalone or pre-implementation
+    # date data) and replace integrated data up through implementation date
+    for col in imp_cols:
+        arr = np.array(ds[col])
+        arr[:imp_high] = col_array[arr_dict[col]][:imp_high]
+        ds[col] = arr
 
 # save to file
 if cf.save_to_pickle:

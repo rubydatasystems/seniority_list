@@ -1739,7 +1739,8 @@ def job_level_progression(df, emp_list, through_date,
         if len(emp_list) <= max_plots_for_legend:
             ax1.legend()
 
-        plt.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
+        if cf.delayed_implementation:
+            plt.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
 
     with sns.axes_style("white"):
         ax2 = jobs_table.plot.area(stacked=True,
@@ -6090,7 +6091,8 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
                    fontsize=label_size)
     ax1.set_xlabel(xax, fontsize=label_size)
 
-    if plot_implementation_date and xax == 'date':
+    if (cf.delayed_implementation and
+            plot_implementation_date and xax == 'date'):
         ax1.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
     plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
               ' quartile ' + m_dict[measure] + ' by ' + groupby_method,

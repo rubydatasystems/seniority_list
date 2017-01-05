@@ -172,11 +172,14 @@ if cf.add_sg_col:
 
 # RET_MARK
 if cf.add_ret_mark:
+    # add last month number to df
     df['ret_month'] = cmonths
+    # data align to long-form skel
     skel['ret_mark'] = df.ret_month
     mnums = np.array(skel.mnum)
     lmonth_arr = np.zeros(mnums.size).astype(int)
     ret_month = np.array(skel.ret_mark)
+    # mark array where retirement month is equal to month number
     np.put(lmonth_arr, np.where(ret_month == mnums)[0], 1)
     skel['ret_mark'] = lmonth_arr
 

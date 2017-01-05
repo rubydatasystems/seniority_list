@@ -83,7 +83,8 @@ for eg in egs:
         df_align_cols.append('sg')
 
     df_align = df_long[df_align_cols]
-    fur_codes = np.array(df_align.fur)
+    # TODO: developer note - remove 'fur_codes' variable below after testing
+    # fur_codes = np.array(df_align.fur)
 
     # pre-existing employee group special job assignment is included within
     # the job assignment function below...
@@ -107,6 +108,7 @@ for eg in egs:
     fur = results[3]
     orig_jobs = results[4]
     # HELD JOB
+    # job from previous month
     df_long['held'] = held
     # JOB_COUNT
     df_long['job_count'] = count_col
@@ -153,17 +155,19 @@ for eg in egs:
     if cf.compute_pay_measures:
 
         if cf.discount_longev_for_fur:
+            # skel provides non-discounted scale data
             # flip ones and zeros...
             df_long['non_fur'] = 1 - fur
             df_long['fur'] = fur
 
             non_fur = np.array(df_long.groupby('empkey')['non_fur'].cumsum())
+            df_long.pop('non_fur')
             starting_mlong = np.array(df_long.s_lmonths)
             cum_active_months = non_fur + starting_mlong
-
+            df_long['mlong'] = cum_active_months
+            df_long['ylong'] = df_long['mlong'] / 12
             df_long['scale'] = np.clip((cum_active_months / 12) + 1,
                                        1, cf.top_of_scale).astype(int)
-            df_long.pop('non_fur')
 
         df_pt_index = pd.DataFrame(
             index=(df_long['scale'] * 100) + df_long['jnum'] +
