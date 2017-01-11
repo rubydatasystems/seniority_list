@@ -1838,8 +1838,8 @@ def get_job_change_months(job_changes):
         month_list = np.concatenate((month_list,
                                      np.arange(change[1][0],
                                                change[1][1])))
-        month_list = np.unique(month_list).astype(int)
-    return month_list
+        month_list = np.unique(month_list)
+    return month_list.astype(int)
 
 
 # GET_REDUCTION_MONTHS
@@ -2689,7 +2689,7 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
             [1, [35, 64], 87, [80, 7, 0]]
 
-            [job level, [start and end month],
+            [[job level, [start and end month],
             total job count change,
             [eg allotment of change for standalone calculations]]
         job_dict
@@ -2774,7 +2774,7 @@ def assign_standalone_job_changes(df_align,
                                   job_change_months,
                                   job_reduction_months,
                                   start_month,
-                                  df_index,
+                                  eg,
                                   apply_sg_cond=True,
                                   fur_return=False):
     '''Long_Form
@@ -2821,8 +2821,8 @@ def assign_standalone_job_changes(df_align,
         start_month
             starting month for calculations, likely implementation month
             from case-specific file
-        df_index
-            integer input from an incremental loop which selects the proper
+        eg (integer)
+            input from an incremental loop which is used to select the proper
             employee group recall scedule
         apply_sg_cond (boolean)
             compute with pre-existing special job quotas for certain
@@ -2884,20 +2884,23 @@ def assign_standalone_job_changes(df_align,
     held_jobs = np.zeros(total_months, dtype=int)
 
     num_of_months = upper.size
+    this_eg_sg = None
 
     if apply_sg_cond:
 
         sg_rights = np.array(cf.sg_rights)
+        sg_egs = np.unique(np.transpose(sg_rights)[0])
+        if eg in sg_egs:
+            this_eg_sg = True
+            sg_jobs = np.transpose(sg_rights)[1]
+            sg_counts = np.transpose(sg_rights)[2]
+            sg_dict = dict(zip(sg_jobs, sg_counts))
 
-        sg_jobs = np.transpose(sg_rights)[1]
-        sg_counts = np.transpose(sg_rights)[2]
-        sg_dict = dict(zip(sg_jobs, sg_counts))
-
-        # calc sg sup c condition month range and concat
-        sg_month_range = np.arange(np.min(sg_rights[:, 3]),
-                                   np.max(sg_rights[:, 4]))
-        job_change_months = np.concatenate((job_change_months,
-                                            sg_month_range))
+            # calc sg sup c condition month range and concat
+            sg_month_range = np.arange(np.min(sg_rights[:, 3]),
+                                       np.max(sg_rights[:, 4]))
+            job_change_months = np.concatenate((job_change_months,
+                                                sg_month_range))
 
     if fur_return:
 
@@ -2940,7 +2943,7 @@ def assign_standalone_job_changes(df_align,
                             fur_range, month, cf.recalls,
                             total_monthly_job_count,
                             standalone=True,
-                            eg_index=df_index - 1)
+                            eg_index=eg - 1)
 
         while job <= num_of_job_levels:
 
@@ -2948,7 +2951,7 @@ def assign_standalone_job_changes(df_align,
 
             if month in job_change_months:
 
-                if apply_sg_cond:
+                if this_eg_sg:
 
                     if month in sg_month_range and job in sg_jobs:
 
@@ -3274,7 +3277,7 @@ def make_preimp_array(ds_stand, ds_integrated, imp_high):
         imp_cols.append('cat_order')
     if cf.compute_pay_measures:
         imp_cols.extend(['mpay', 'cpay'])
-    # only include columns from col_list which exist in both datasets
+    # only include columns from col_list which exist in ds_stand
     filtered_cols = list(set(imp_cols).intersection(ds_stand.columns))
 
     # grab appropriate columns from standalone dataset up to end of
@@ -3283,7 +3286,8 @@ def make_preimp_array(ds_stand, ds_integrated, imp_high):
     ds_stand = ds_stand[filtered_cols][:imp_high].copy()
 
     # grab the 'mnum' and 'empkey' columns from the ordered dataset to
-    # form a 'key' column with unique values
+    # form a 'key' column with unique values.
+    # The ds_temp dataframe is used to sort the ds_stand dataframe.
     ds_temp = ds_integrated[key_cols][:imp_high].copy()
 
     # make numpy arrays out of column values for fast 'key' column generation
@@ -3313,6 +3317,7 @@ def make_preimp_array(ds_stand, ds_integrated, imp_high):
     ds_temp = pd.merge(ds_temp, ds_stand, on='key')
     # now get rid of the 'key' column
     temp_cols = list(set(ds_temp.columns).difference(['key']))
+    # re-order the ds_temp columns according to the imp_cols order
     ordered_cols = []
     for col in imp_cols:
         if col in temp_cols:
@@ -3327,9 +3332,83 @@ def make_preimp_array(ds_stand, ds_integrated, imp_high):
     values = np.arange(len(ordered_cols))
     delay_dict = od(zip(ordered_cols, values))
 
+    # make a numpy array as wide as the stand_arr and
+    # as long as the integrated dataset
     final_array = np.zeros((len(ordered_cols), len(ds_integrated)))
 
+    # assign the standalone data to the final_array.  The data will extend
+    # in each column up to the imp_high index
     for col in ordered_cols:
         final_array[delay_dict[col]][:imp_high] = stand_arr[delay_dict[col]]
 
     return ordered_cols, delay_dict, final_array
+
+
+def make_cat_order(ds, table):
+    '''make a long-form "cat_order" (global job ranking) column
+
+    This function assigns a global job position value to each employee,
+    considering the modeled job level hierarchy and the job count within
+    each level.  For example, if a case study contains 3 job levels with
+    100 jobs in each level, an employee holding a job in the middle of
+    job level 2 would be assigned a cat_order value of 150.
+
+    Category order for standalone employee groups is "normalized" to an
+    integrated scale by applying *standalone* job level percentage
+    (relative position within a job level) to the *integrated* job level
+    counts.  This process allows "apples to apples" comparison between
+    standalone and integrated job progression.
+
+    Standalone cat_order will only reflect job levels available within the
+    standalone scenario.  If the integrated model contains job levels which
+    do not exist within a standalone employee group model, standalone
+    cat_order results will exclude the respective job level rank segments
+    and will rank the existing standalone data according to the integrated
+    ranking scale.
+
+    The routine creates numpy array lookup tables from integrated job
+    level count data for each month of the model.  The tables are the source
+    for count and additive information which is to calculate a rank number
+    within job level and cumulative job count additives.
+
+    Month number and job number arrays (from the input ds (dataset)) are used
+    to index into the numpy lookup arrays, producing the count and additive
+    arrays.
+
+    A simple formula is then applied to the percentage, count, and additive
+    arrays to produce the cat_order array.
+
+    inputs
+        ds (dataframe)
+            a dataset containing ['jobp', 'mnum', 'jnum'] columns
+        table (numpy array)
+            the first output from the job_gain_loss_table function which
+            is a numpy array with total job counts for each job level for
+            each month of the data model
+    '''
+
+    ds = ds[['jobp', 'mnum', 'jnum']].copy()
+
+    zero_col = np.zeros((table.shape[0], 1)).T
+
+    cat_counts = table.T
+    cat_counts = np.concatenate((cat_counts, zero_col), axis=0)
+
+    cat_add = np.add.accumulate(table, axis=1).T
+    cat_add = np.concatenate((zero_col, cat_add), axis=0)
+    cat_add = cat_add[0:-1]
+    cat_add = np.concatenate((cat_add, zero_col), axis=0)
+
+    cat_add[-1] = np.nan
+    cat_counts[-1] = np.nan
+
+    mnum_arr = np.array(ds.mnum)
+    jnum_arr = np.array(ds.jnum) - 1
+    jpcnt_arr = np.array(ds.jobp % 1)
+
+    cnt_arr = cat_counts[jnum_arr, mnum_arr]
+    add_arr = cat_add[jnum_arr, mnum_arr]
+
+    cat_arr = (jpcnt_arr * cnt_arr) + add_arr
+
+    return cat_arr

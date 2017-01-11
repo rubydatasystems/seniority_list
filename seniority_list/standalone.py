@@ -26,6 +26,11 @@ num_of_months = pd.unique(ds.mnum).size
 egs = np.unique(ds.eg)
 start_month = 0
 
+if 'prex' in conditions:
+    prex = True
+else:
+    prex = False
+
 if cf.enhanced_jobs:
     # use job dictionary from case-specific configuration file for conversion
     eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
@@ -100,6 +105,7 @@ for eg in egs:
                                               job_reduction_months,
                                               start_month,
                                               eg,
+                                              apply_sg_cond=prex,
                                               fur_return=cf.recall)
 
     jnums = results[0]
@@ -148,8 +154,9 @@ for eg in egs:
 
     # jobp
 
-    df_long['jobp'] = (df_long['rank_in_job'] /
-                       df_long['job_count']) + (df_long['jnum'] - .0001)
+    jpcnt = df_long['rank_in_job'] / df_long['job_count']
+    jnum_adj = df_long['jnum'] - .0001
+    df_long['jobp'] = jpcnt + jnum_adj
 
     # PAY - merge with pay table - provides monthly pay
     if cf.compute_pay_measures:
@@ -201,12 +208,18 @@ for eg in egs:
 
     ds = pd.concat([ds, df_long], ignore_index=True)
 
-if cf.compute_job_category_order:
-        ds['cat_order'] = ds.groupby('mnum', sort=False)['jobp'] \
-            .rank(method='first')
-
 ds.sort_values(by=['mnum', 'idx'], inplace=True)
 ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
+
+# CAT_ORDER
+# global job ranking
+
+if cf.compute_job_category_order:
+    table = f.job_gain_loss_table(num_of_months,
+                                  num_of_job_levels,
+                                  jcnts_arr,
+                                  j_changes)
+    ds['cat_order'] = f.make_cat_order(ds, table[0])
 
 # save to file
 if cf.save_to_pickle:

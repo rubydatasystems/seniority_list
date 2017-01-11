@@ -217,6 +217,9 @@ if cf.delayed_implementation:
         # assign combined job counts prior to the implementation date.
         # (otherwise, separate employee group counts will be used when
         # data is transferred from col_array at end of script)
+        # NOTE:  this data is the actual number of jobs held within each
+        # category; could be less than the number of jobs available as
+        # attrition occurs
         standalone_preimp_job_counts = \
             f.make_delayed_job_counts(imp_month,
                                       delayed_jnums,
@@ -279,9 +282,9 @@ else:
     ds['nbnf'] = nbnf
     ds['jnum'] = job_col
 
-jnum_jobs = np.array(ds['jnum']).astype(int)
-
 # SNUM, SPCNT, LNUM, LSPCNT
+
+jnum_jobs = np.array(ds['jnum']).astype(int)
 job_count_each_month = table[1]
 
 ds['snum'], ds['spcnt'], ds['lnum'], ds['lspcnt'] = \
@@ -301,13 +304,6 @@ ds['job_count'] = jobs_and_counts[1]
 # JOBP
 
 ds['jobp'] = (ds['rank_in_job'] / ds['job_count']) + (ds['jnum'] - .001)
-
-# CAT_ORDER
-# rank integrated 'jobp' data then assign from implementation date forward
-if cf.compute_job_category_order:
-    cat_arr = np.array(ds.groupby('mnum', sort=False)['jobp']
-                       .rank(method='first'))
-    ds['cat_order'] = cat_arr
 
 # PAY - merge with pay table - provides monthly pay
 if cf.compute_pay_measures:
@@ -358,12 +354,19 @@ if cf.compute_pay_measures:
     ds['cpay'] = ds.groupby('new_order')['mpay'].cumsum()
 
 if cf.delayed_implementation:
+    ds_cols = ds.columns
     # grab each imp_col (column to insert standalone or pre-implementation
     # date data) and replace integrated data up through implementation date
     for col in imp_cols:
-        arr = np.array(ds[col])
-        arr[:imp_high] = col_array[arr_dict[col]][:imp_high]
-        ds[col] = arr
+        if col in ds_cols:
+            arr = np.array(ds[col])
+            arr[:imp_high] = col_array[arr_dict[col]][:imp_high]
+            ds[col] = arr
+
+# CAT_ORDER
+# global job ranking
+if cf.compute_job_category_order:
+    ds['cat_order'] = f.make_cat_order(ds, table[0])
 
 # save to file
 if cf.save_to_pickle:

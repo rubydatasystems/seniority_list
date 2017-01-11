@@ -860,7 +860,8 @@ def violinplot_by_eg(df, measure, ds_dict=None,
     fig = plt.gca()
     if measure == 'age':
         plt.ylim(25, 70)
-    if measure in ['snum', 'spcnt', 'lspcnt', 'jnum', 'jobp', 'cat_order']:
+    if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
+                   'jobp', 'cat_order']:
         fig.invert_yaxis()
         if measure in ['spcnt', 'lspcnt']:
             fig.yaxis.set_major_formatter(pct_format)
@@ -1413,6 +1414,7 @@ def eg_boxplot(df_list, eg_list,
 def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
                                        eg_colors, band_colors, job_strs,
                                        eg_dict, ds_dict=None, adjust=cf.adjust,
+                                       rank_metric='cat_order',
                                        attr1=None, oper1='>=', val1='0',
                                        attr2=None, oper2='>=', val2='0',
                                        attr3=None, oper3='>=', val3='0',
@@ -1483,7 +1485,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
                                  attr3=attr3, oper3=oper3, val3=val3)
 
     d_filt = d_filt[[]].join(dsm).reindex(dsm.index)
-    data = d_filt[['mnum', 'cat_order', 'jnum', 'eg']].copy()
+    data = d_filt[['mnum', rank_metric, 'jnum', 'eg']].copy()
 
     fur_lvl = job_levels + 1
 
@@ -1504,7 +1506,7 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
 
     with sns.axes_style('white'):
         fig, ax1 = plt.subplots()
-        ax1 = sns.stripplot(y='cat_order', x='eg', data=data, jitter=.5,
+        ax1 = sns.stripplot(y=rank_metric, x='eg', data=data, jitter=.5,
                             order=np.arange(1, max_eg_plus_one),
                             palette=eg_colors, size=size,
                             linewidth=0, split=True)
@@ -1582,14 +1584,14 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
                  ', distribution within job levels, month ' + str(mnum),
                  fontsize=suptitle_fontsize)
     plt.title(t_string, fontsize=title_fontsize, y=1.02)
-    ax1.set_ylabel(m_dict['cat_order'])
+    ax1.set_ylabel(m_dict[rank_metric])
     ax1.set_xlabel(m_dict['eg'])
     fig.set_size_inches(xsize, ysize)
     plt.show()
 
 
 def job_level_progression(df, emp_list, through_date,
-                          ds_dict=None,
+                          ds_dict=None, rank_metric='cat_order',
                           job_levels=cf.num_of_job_levels,
                           eg_colors=cf.eg_colors,
                           band_colors=cf.job_colors,
@@ -1722,15 +1724,17 @@ def job_level_progression(df, emp_list, through_date,
         if chart_example:
             for emp in emp_list:
                 c_idx = egs.loc[emp] - 1
-                ax1 = ds[ds.empkey == emp].set_index('date')[:through_date] \
-                    .cat_order.plot(lw=lw, color=eg_colors[c_idx],
-                                    label='Employee ' + str(i + 1))
+                ax1 = (ds[ds.empkey == emp].set_index('date')[:through_date]
+                       [rank_metric].plot(y=rank_metric,
+                                          lw=lw, color=eg_colors[c_idx],
+                                          label='Employee ' + str(i + 1)))
                 i += 1
         else:
             for emp in emp_list:
                 c_idx = egs.loc[emp] - 1
-                ax1 = ds[ds.empkey == emp].set_index('date')[:through_date] \
-                    .cat_order.plot(lw=lw, color=eg_colors[c_idx], label=emp)
+                ax1 = (ds[ds.empkey == emp].set_index('date')[:through_date]
+                       [rank_metric].plot(lw=lw, color=eg_colors[c_idx],
+                                          label=emp))
                 i += 1
 
         non_ret_count['count'].plot(c='grey', ls='--',
@@ -3963,7 +3967,8 @@ def diff_range(df_list, dfb, measure, eg_list,
 
         ax = plt.gca()
 
-        if measure in ['spcnt', 'lspcnt', 'jobp', 'jnum', 'cat_order']:
+        if measure in ['spcnt', 'lspcnt', 'jobp', 'jnum',
+                       'cat_order']:
             ax.invert_yaxis()
 
         plt.axhline(c='m', lw=2, ls='--')
@@ -5832,10 +5837,8 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     be plotted as a chart background to display job level progression when
     the measure input is set to "cat_order".
 
-    Example use case:
-
-    Plot the average job category rank of each of initial quantile group
-    belonging to one or more employee groups though the life of the data model.
+    Example use case: plot the average job category rank of each employee
+    quantile group, from the start date though the life of the data model.
 
     The quartile group attribute may be analyzed with any of the following
     methods:
@@ -5927,7 +5930,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
 
 # ************
     # create the job bands and labels on ax2
-    if measure == 'cat_order' and show_job_bands:
+    if measure in ['cat_order'] and show_job_bands:
         bg_color = '#ffffff'
         band_colors = cf.job_colors
         job_counts = cf.eg_counts
@@ -6017,12 +6020,8 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
 
         ax2 = ax1.twinx()
         ax2.set_yticks(axis2_lbl_locs)
-        yticks = ax2.get_yticks().tolist()
 
-        for i in np.arange(len(yticks)):
-            yticks[i] = axis2_lbls[i]
-
-        ax2.set_yticklabels(yticks)
+        ax2.set_yticklabels(axis2_lbls)
         ax2.invert_yaxis()
 
 # .............................................................
@@ -6037,24 +6036,28 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         gb = getattr(gb, groupby_method)()
         # unstack and plot
         gb = gb.unstack()
-        y_limit = max(y_limit, max(gb[quartiles]))
+
+        y_limit = max(y_limit, np.nanmax(gb[quartiles])[0])
+
         gb.plot(c=colors[eg - 1], lw=line_width,
                 ax=ax1, alpha=line_alpha)
 
+    # set "dense" tick labels
     if measure in ['cat_order', 'snum', 'lnum']:
-        y_limit = (y_limit + 50) // 50 * 50
-        plt.ylim(0, y_limit)
-        tick_stride = min(y_limit / 10 // 10 * 10, 500)
-        ax1.set_yticks(np.arange(0, y_limit, tick_stride))
+        try:
+            y_limit = (y_limit + 50) // 50 * 50
+            plt.ylim(0, y_limit)
+            tick_stride = min(y_limit / 10 // 10 * 10, 500)
+            ax1.set_yticks(np.arange(0, y_limit, tick_stride))
+        except:
+            pass
 
-    if measure in ['spcnt', 'lspcnt', 'lnum',
-                   'snum', 'fbff',
-                   'jobp', 'jnum',
-                   'cat_order', 'orig_job',
-                   'rank_in_job'] \
-            and groupby_method not in ['size', 'count']:
+    m_list = ['spcnt', 'lspcnt', 'lnum', 'snum', 'fbff', 'jobp', 'jnum',
+              'cat_order', 'orig_job', 'rank_in_job']
 
+    if (measure in m_list) and (groupby_method not in ['size', 'count']):
         ax1.invert_yaxis()
+
         try:
             ax2.invert_yaxis()
         except:
@@ -6068,8 +6071,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         ax1.yaxis.set_major_formatter(pct_format)
         ax1.set_yticks(np.arange(0, 1.05, .05))
 
-    if (max(bin_df.quartile) * len(eg_list)) > 10:
-        ax1.legend_.remove()
+    ax1.legend_.remove()
 
     try:
         ax2.tick_params(axis='both', which='both', labelsize=tick_size)
@@ -6099,4 +6101,3 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
               fontsize=title_fontsize)
     fig.set_size_inches(xsize, ysize)
     plt.show()
-

@@ -37,7 +37,7 @@ lspcnt_calc_on_remaining_population = False
 # for unmerged job assignment calculations:
 delayed_implementation = True
 # use_integrated_job_counts_preimplementation
-int_job_counts = True
+int_job_counts = False
 
 save_to_pickle = True
 
