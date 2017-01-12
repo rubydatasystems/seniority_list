@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+'''create the standalone dataset
+
+output is a single dataset containing independent results for each
+employee group
+
+'prex' may be included as a condition if the dataset should be constructed
+with pre-existing job rights conditions
+'''
+
 import pandas as pd
 import numpy as np
 
@@ -26,10 +35,8 @@ num_of_months = pd.unique(ds.mnum).size
 egs = np.unique(ds.eg)
 start_month = 0
 
-if 'prex' in conditions:
-    prex = True
-else:
-    prex = False
+# make prex True or False (for input to assign_standalone_job_changes function)
+prex = 'prex' in conditions
 
 if cf.enhanced_jobs:
     # use job dictionary from case-specific configuration file for conversion

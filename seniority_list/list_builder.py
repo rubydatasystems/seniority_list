@@ -366,7 +366,6 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
         names = list(pd.Series(names).str.lower())
 
     if normalize_alpha:
-        # names = np.append(names, ['aaaaaaaaaa', 'zzzzzzzzzz'])
         names.extend(['aaaaaaaaaa', 'zzzzzzzzzz'])
     int_names = np.zeros_like(names)
     max_str_len = len(max(names, key=len))

@@ -5,19 +5,37 @@
 inactive employees), with a proposed list dataframe which may contain all
 employees or only active (and optionally furloughed) employees.
 
-If the proposed list ordering does not contain the inactive employees, the
-'fill_style' argument determines where the inactive employees will be
-placed within the combined list relative to their same employee group
-active cohorts, just senior to the closest junior cohort or just junior to
-closest senior cohort.
-
-"ffill" - inactives attached to just *senior* same-group cohort
-
-"bfill" - inactives attached to just *junior* same-group cohort
-
 Writes the result list/dataframe to a pickle file (within 'dill' folder) and
 an Excel file (within the case-specific folder located in
 the 'reports' folder).
+
+arguments (all strings with no quotes)
+    script
+        'join inactives'
+    master_name
+        name of the master file, normally 'master'
+    proposed_order_df
+        the name of the proposal to be used as the final ordering from the
+        dill folder, without the "p_" prefix and ".pkl" file extension.
+        A file named "p_p1.pkl" would have a proposed_order_df input name
+        of "p1"
+    output_name
+        name to assign to output, normally "final".  A prefix equal to the
+        case_study name and a ".pkl" file extension will be added.  If the
+        output_name input is "final", the output file will be named
+        "<case_study>_final.pkl"
+    fill_style
+        "ffill" or "bfill"
+
+        If the proposed list ordering does not contain the inactive employees,
+        the 'fill_style' argument determines where the inactive employees will
+        be placed within the combined list relative to their same employee
+        group active cohorts, just senior to the closest junior cohort or
+        just junior to closest senior cohort.
+
+            "ffill" - inactives attached to just *senior* same-group cohort
+
+            "bfill" - inactives attached to just *junior* same-group cohort
 
 example jupyter notebook usage:
     %run join_inactives.py master p1 final bfill
