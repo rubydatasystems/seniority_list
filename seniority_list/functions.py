@@ -1965,7 +1965,6 @@ def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
     '''
     eg_1_count = 0
     eg_2_count = 0
-    enhanced_jobs = cf.enhanced_jobs
 
     # find the indexes of each ratio group
     eg_1_indexes = np.in1d(eg_range, eg_codes_arr1)
@@ -2004,8 +2003,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
     eg_1_count = np.where((assign_range == job) & (eg_1_indexes))[0].size
     eg_2_count = np.where((assign_range == job) & (eg_2_indexes))[0].size
 
-    weights, limit, pcnt = quota_dict[(job, enhanced_jobs)]
-    limit = limit * pcnt
+    weights, limit = quota_dict[job]
     max_quota = min(this_job_count, round(limit))
 
     available = max_quota - exclude_count
@@ -2053,7 +2051,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
         eg_2_shortfall = max(0, eg_quotas[1] - eg_2_count)
 
         if eg_2_shortfall > 0:
-            eg_2_to_add = min(eg_2_shortfall, open_jobs)
+            eg_2_to_add = min(eg_2_shortfall, open_jobs).astype(int)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (eg_2_indexes) &
@@ -2061,7 +2059,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
                    job)
 
         if eg_1_shortfall > 0:
-            eg_1_to_add = min(eg_1_shortfall, open_jobs)
+            eg_1_to_add = min(eg_1_shortfall, open_jobs).astype(int)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (eg_1_indexes) &
@@ -2896,7 +2894,7 @@ def assign_standalone_job_changes(df_align,
             sg_counts = np.transpose(sg_rights)[2]
             sg_dict = dict(zip(sg_jobs, sg_counts))
 
-            # calc sg sup c condition month range and concat
+            # calc sg prex condition month range and concat
             sg_month_range = np.arange(np.min(sg_rights[:, 3]),
                                        np.max(sg_rights[:, 4]))
             job_change_months = np.concatenate((job_change_months,

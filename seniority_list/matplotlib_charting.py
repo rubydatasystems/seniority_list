@@ -5119,15 +5119,19 @@ def job_time_change(df_list, dfb, eg_list,
             for mark in lgnd.legendHandles:
                 mark._sizes = [legend_marker_size]
 
-            plt.xlim(xmin=0, xmax=1.02)
-            plt.axhline(c=zeroline_color, lw=zeroline_width)
+            if xax in ['spcnt', 'lspcnt']:
+                plt.xlim(xmin=0, xmax=1.02)
+                ax.xaxis.set_major_formatter(pct_format)
+                ax.set_xticks(np.arange(0, 1.05, .05))
+            if xax in ['cat_order']:
+                plt.xlim(xmin=0)
 
-            ax.xaxis.set_major_formatter(pct_format)
-            ax.set_xticks(np.arange(0, 1.05, .05))
+            plt.axhline(c=zeroline_color, lw=zeroline_width)
 
             plt.tick_params(labelsize=13, labelright=True)
             plt.ylabel('months differential', fontsize=label_fontsize)
-            plt.xlabel('proposed list percentage', fontsize=label_fontsize)
+            m_dict = cf.m_dict
+            plt.xlabel(m_dict[xax], fontsize=label_fontsize)
             plt.title('Months in job differential, ' +
                       label_dict[j] + ', eg ' + str(eg),
                       fontsize=title_fontsize)

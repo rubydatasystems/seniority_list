@@ -105,7 +105,8 @@ from collections import OrderedDict as od
 # eg1_job_count = [197, 470, 1056, 412, 628, 1121, 0, 0]
 # eg2_job_count = [80, 85, 443, 163, 96, 464, 54, 66]
 # eg3_job_count = [0, 26, 319, 0, 37, 304, 0, 0]
-# # number of furloughed employees for each group, starting with employee group 1
+# # number of furloughed employees for each group,
+# starting with employee group 1
 # furlough_count = [340, 0, 23]
 
 # # JOB CHANGES >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -139,73 +140,57 @@ from collections import OrderedDict as od
 # recalls = [recall_1, recall_2]
 
 # # CONDITION DATA
-# if not enhanced_jobs:
+# all data is entered for basic job levels
+# data will be converted to enhanced job levels via the "convert" function
+# below if the enhanced_jobs variable is True
 
-#     # sg prex award (all reserve...)
-#     # sequence = [eg, jnum, count, start_month, end_month]
-#     # Note, for any group to participate in the pre-existing job condition
-#     # assignments, the sg column must have ones marking those affected...
-#     sg1 = [1, 2, 43, 0, 67]
-#     sg2 = [1, 3, 130, 0, 67]
-#     sg3 = [1, 5, 43, 0, 67]
-#     sg4 = [1, 6, 130, 0, 67]
+# sg prex (pre-existing job rights)
+# sequence = [eg, jnum, count, start_month, end_month]
+# Note, for any group to participate in the pre-existing job condition
+# assignments, the sg column in the master.xlsx file must have ones marking
+# the affected employees...
 
-#     # ratio condition
-#     # sequence = [eg, jnum, start_month, end_month]
-#     r1 = [1, 1, imp_month, ratio_final_month]
-#     r2 = [1, 4, imp_month, ratio_final_month]
+# sg1 = [1, 2, 43, 0, 67]
+# sg2 = [1, 3, 130, 0, 67]
+# sg3 = [1, 5, 43, 0, 67]
+# sg4 = [1, 6, 130, 0, 67]
 
-#     # count-capped ratio condition
-#     # sequence = [eg, jnum, count, start_month, end_month]
-#     c1 = [2, 1, 92, imp_month, imp_month + 60]
-#     c2 = [2, 4, 168, imp_month, imp_month + 60]
+# # ratio condition
+# # sequence = [eg, jnum, start_month, end_month]
+# r1 = [1, 1, imp_month, ratio_final_month]
+# r2 = [1, 4, imp_month, ratio_final_month]
 
-#     # dict below is input for assign_cond_ratio_capped function
-#     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
-#     # the job pcnt input is used with enhanced jobs (divides capped limit
-#     # into full/part time level cap)
-#     quota_dict = {(1, 0): ([2.48, 1], 320, 1),
-#                   (4, 0): ([2.46, 1], 580, 1)}
+# # count-capped ratio condition
+# # sequence = [eg, jnum, count, start_month, end_month]
+# c1 = [2, 1, 92, imp_month, imp_month + 60]
+# c2 = [2, 4, 168, imp_month, imp_month + 60]
 
-#     sg_rights = [sg1, sg2, sg3, sg4]
-#     ratio_cond = [r1, r2]
-#     count_cond = [c1, c2]
+# # Set any of the following 3 variables empty list if no condition applies
+# sg_rights = [sg1, sg2, sg3, sg4]
+# ratio_cond = [r1, r2]
+# count_cond = [c1, c2]
 
-# else:
-#     # sg prex award
-#     # sequence = [eg, jnum, count, start_month, end_month]
+# # dict below is input for assign_cond_ratio_capped function
+# # sequence = job: ([weights], capped limit)
+# # OK to set to empty dictionary if there are no conditions to apply
+# quota_dict = {1: ([2.48, 1], 320),
+#               4: ([2.46, 1], 580)}
 
-#     sg1 = [1, 5, 43, 0, 67]
-#     sg2 = [1, 6, 130, 0, 67]
-#     sg3 = [1, 12, 43, 0, 67]
-#     sg4 = [1, 13, 130, 0, 67]
+# # auto-convert basic job conditional data to enhanced job conditional data
+# # with the convert function
+# if enhanced_jobs:
+#     # select the appropriate enhanced job distribution method
+#     # (see converter.convert function docstring)
+#     sg_dist = 'part'
+#     ratio_dist = 'split'
+#     count_dist = 'split'
+#     quota_dist = 'split'
+#     # do not adjust the next 4 lines immediately below
+#     sg_rights, ratio_cond, count_cond, quota_dict = \
+#         cnv.convert(sg_rights, ratio_cond, count_cond, quota_dict,
+#                     jd, sg_dist=sg_dist, ratio_dist=ratio_dist,
+#                     count_dist=count_dist, quota_dist=quota_dist)
 
-#     # ratio condition
-#     # sequence = [eg, jnum, start_month, end_month]
-#     r1 = [1, 1, imp_month, ratio_final_month]
-#     r2 = [1, 2, imp_month, ratio_final_month]
-#     r3 = [1, 7, imp_month, ratio_final_month]
-#     r4 = [1, 8, imp_month, ratio_final_month]
-
-#     # count-capped ratio condition
-#     # sequence = [eg, jnum, count, start_month, end_month]
-#     c1 = [2, 1, 55, imp_month, imp_month + 60]
-#     c2 = [2, 2, 37, imp_month, imp_month + 60]
-#     c3 = [2, 7, 101, imp_month, imp_month + 60]
-#     c4 = [2, 8, 67, imp_month, imp_month + 60]
-
-#     # dict below is input for assign_cond_ratio_capped function
-#     # sequence = (job, enhanced_jobs): ([weights, capped limit, job pcnt])
-#     # the job pcnt input is used with enhanced jobs (divides capped limit
-#     # into full/part time level cap)
-#     quota_dict = {(1, 1): ([2.48, 1], 320, full_time_pcnt1),
-#                   (2, 1): ([2.48, 1], 320, 1 - full_time_pcnt1),
-#                   (7, 1): ([2.46, 1], 580, full_time_pcnt1),
-#                   (8, 1): ([2.46, 1], 580, 1 - full_time_pcnt1)}
-
-#     sg_rights = [sg1, sg2, sg3, sg4]
-#     ratio_cond = [r1, r2, r3, r4]
-#     count_cond = [c1, c2, c3, c4]
 
 # # DICTIONARIES, DESCRIPTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
