@@ -5912,8 +5912,9 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     '''
 # **************
     df = determine_dataset(df, ds_dict)
-    # make a dataframe with an added column with quartile membership number
-    # for each employee, each employee group calculated separately...
+    # make a dataframe with an added column ('quartile') indicating quartile
+    # membership number (integer) for each employee, each employee group
+    # calculated separately...
     bin_df = mark_quartiles(df, quartiles)
 
     # limit the scope of the plot to a selected month in the future if the
@@ -6040,16 +6041,17 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         gb = getattr(gb, groupby_method)()
         # unstack and plot
         gb = gb.unstack()
-
-        y_limit = max(y_limit, np.nanmax(gb[quartiles])[0])
+        y_limit = max(y_limit, np.nanmax(gb.values))
 
         gb.plot(c=colors[eg - 1], lw=line_width,
                 ax=ax1, alpha=line_alpha)
 
     # set "dense" tick labels
-    if measure in ['cat_order', 'snum', 'lnum']:
+    # if measure in ['cat_order', 'snum', 'lnum']:
+    if measure in ['cat_order']:
         try:
-            y_limit = (y_limit + 50) // 50 * 50
+            y_limit = (y_limit + 500) // 50 * 50
+            print(y_limit)
             plt.ylim(0, y_limit)
             tick_stride = min(y_limit / 10 // 10 * 10, 500)
             ax1.set_yticks(np.arange(0, y_limit, tick_stride))
