@@ -159,11 +159,13 @@ for eg in egs:
 
     df_long['rank_in_job'] = df_long.groupby(['mnum', 'jnum']).cumcount() + 1
 
-    # jobp
+    # JOBP
+    # make last percentage position in each job category .99999 vs 1.0
+    # so that jobp calculations are correct
+    jpcnt = np.array(df_long.rank_in_job / df_long.job_count)
+    np.put(jpcnt, np.where(jpcnt == 1.0)[0], .99999)
 
-    jpcnt = df_long['rank_in_job'] / df_long['job_count']
-    jnum_adj = df_long['jnum'] - .0001
-    df_long['jobp'] = jpcnt + jnum_adj
+    df_long['jobp'] = df_long['jnum'] + jpcnt
 
     # PAY - merge with pay table - provides monthly pay
     if cf.compute_pay_measures:
