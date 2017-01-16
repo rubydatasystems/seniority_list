@@ -6051,7 +6051,6 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     if measure in ['cat_order']:
         try:
             y_limit = (y_limit + 500) // 50 * 50
-            print(y_limit)
             plt.ylim(0, y_limit)
             tick_stride = min(y_limit / 10 // 10 * 10, 500)
             ax1.set_yticks(np.arange(0, y_limit, tick_stride))
