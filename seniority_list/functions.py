@@ -1071,7 +1071,7 @@ def assign_jobs_nbnf_job_changes(df,
 
 
 # PUT-MAP function
-def put_map(jobs_array, job_cnts, fur_count):
+def put_map(jobs_array, job_cnts):
     '''Any_Form (Practical application is Long_Form)
 
     Best use when values array is limited set of integers.
@@ -1082,7 +1082,7 @@ def put_map(jobs_array, job_cnts, fur_count):
     inputs
         jobs_array
             long_form jnums
-        jobs_count_array
+        jobs_cnts
             array of job counts from config file
             example: with 3 egs, array of 3 lists of counts
 
@@ -1098,16 +1098,16 @@ def put_map(jobs_array, job_cnts, fur_count):
     '''
     target_array = np.zeros(jobs_array.size)
 
-    counts_arr = np.append(job_cnts, fur_count)
+    # counts_arr = np.append(job_cnts, fur_count)
 
-    counts_arr = np.take(counts_arr, np.where(counts_arr != 0))[0]
+    job_cnts = np.take(job_cnts, np.where(job_cnts != 0))[0]
 
     i = 0
 
     for job in sorted(list(set(jobs_array))):
         np.put(target_array,
                np.where(jobs_array == job),
-               counts_arr[i])
+               job_cnts[i])
 
         i += 1
 
@@ -3022,13 +3022,15 @@ def assign_standalone_job_changes(df_align,
 
 
 def print_config_selections():
-    '''grab config file data settings and put it in a dataframe
+    '''grab config file data settings and put it in a dataframe and then
+    print it for a quick summary of config inputs
     '''
     config_dict = {'case_study': cf.case_study,
                    'compute_with_job_changes': cf.compute_with_job_changes,
                    'discount_longev_for_fur': cf.discount_longev_for_fur,
                    'lspcnt_calc_on_remaining_population':
                    cf.lspcnt_calc_on_remaining_population,
+                   'int_job_counts': cf.int_job_counts,
                    'enhanced_jobs': cf.enhanced_jobs,
                    'starting_date': cf.starting_date,
                    'delayed_implementation': cf.delayed_implementation,
@@ -3038,12 +3040,21 @@ def print_config_selections():
                    'no_bump': cf.no_bump,
                    'ret_age': cf.ret_age,
                    'recall': cf.recall,
-                   'pay_raise': cf.future_raise,
+                   'future_raise': cf.future_raise,
                    'annual_pcnt_raise': cf.annual_pcnt_raise,
                    'top_of_scale': cf.top_of_scale,
                    'compute_job_category_order': cf.compute_job_category_order,
                    'compute_pay_measures': cf.compute_pay_measures,
-                   'num_of_job_levels': cf.num_of_job_levels}
+                   'num_of_job_levels': cf.num_of_job_levels,
+                   'pay_table_exception_year':
+                   cf.case.pay_table_exception_year,
+                   'date_exception_start': cf.case.date_exception_start,
+                   'date_exception_end': cf.case.date_exception_end,
+                   'last_contract_year': cf.case.last_contract_year,
+                   'ret_age_increase': cf.case.ret_age_increase,
+                   'pay_table_year_sort': cf.case.pay_table_year_sort,
+                   'pay_table_longevity_sort':
+                   cf.case.pay_table_longevity_sort}
 
     settings = pd.DataFrame(config_dict, index=['setting']).stack()
     df = pd.DataFrame(settings, columns=['setting'])

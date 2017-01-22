@@ -2763,13 +2763,6 @@ def quartile_bands_over_time(df, eg, measure, bins=20, ds_dict=None,
 
     with sns.axes_style('white'):
 
-        # if custom_color:
-        #     cm_subsection = np.linspace(custom_start, custom_finish, bins)
-        #     colormap = eval('cm.' + cm_name)
-        #     quartile_colors = [colormap(x) for x in cm_subsection]
-        # else:
-        #     quartile_colors = cf.color1
-
         step = 1 / bins
         offset = step / 2
         legend_pos_adj = 0
@@ -4927,7 +4920,7 @@ def job_time_change(df_list, dfb, eg_list,
                     job_list=np.arange(cf.num_of_job_levels, 0, -1),
                     jobs_dict=cf.jobs_dict,
                     marker='o', edgecolor='k', linewidth=.05, size=25,
-                    alpha=.95, bg_color=None, xmax=1.02,
+                    alpha=.95, bg_color='#ffffff', xmax=1.02,
                     limit_yax=False, ylimit=40, zeroline_color='m',
                     zeroline_width=1.5, pos_neg_face=True,
                     legend_job_strings=True,
@@ -5615,6 +5608,18 @@ def job_count_bands(df_list, eg_list, job_colors,
 def determine_dataset(ds_def, ds_dict=None, return_label=False):
     '''this function permits either a dictionary key (string) or a dataframe
     variable to be used in functions as a dataframe object.
+
+    inputs
+        ds_def (dataframe or string)
+            A pandas dataframe or a string representing a key for a dictionary
+            which contains dataframe(s) as values
+        ds_dict (dictionary)
+            A dictionary containing string to dataframes, used if ds_def input
+            is not a dataframe
+        return_label (boolean)
+            If True, return a descriptive dataframe label if the
+            ds_dict was referenced, otherwise return a generic "Proposal"
+            string
     '''
     if type(ds_def) == pd.core.frame.DataFrame:
         ds = ds_def
@@ -5641,6 +5646,14 @@ def determine_dataset(ds_def, ds_dict=None, return_label=False):
 
 
 def numeric_test(value):
+    '''determine if a variable is numeric
+
+    returns a boolean value
+
+    input
+        value
+            any variable
+    '''
     try:
         float(value)
         return True
@@ -5656,12 +5669,27 @@ def filter_ds(ds,
 
     '''Filter a dataset (dataframe) by attribute(s).
 
-    Filter process is ignored if attr(x) input is None.
+    Filter process is ignored if attr(n) input is None.
     All attr, oper, and val inputs must be strings.
     Up to 3 attribute filters may be combined.
 
-    If return_title_string, returns tuple (ds, title_string), otherwise
-    returns ds.
+    Attr, oper, and val inputs are combined and then evaluated as expressions.
+
+    If return_title_string is set to True, returns tuple (ds, title_string),
+    otherwise returns ds.
+
+    inputs
+        ds (dataframe)
+            the dataframe to filter
+        attr(n) (string)
+            an attribute (column) to filter.  Example: 'ldate'
+        oper(n) (string)
+            an operator to apply to the attr(n) input.  Example:  '<='
+        val(n) (string, float, integer)
+            limiting value to apply to the the attr(n) with the oper(n)
+        return_title_string (boolean)
+            If True, returns a string which dexcribes the filter(s) applied to
+            the dataframe (ds)
     '''
 
     title_string = ''
