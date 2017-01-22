@@ -2051,7 +2051,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
         eg_2_shortfall = max(0, eg_quotas[1] - eg_2_count)
 
         if eg_2_shortfall > 0:
-            eg_2_to_add = min(eg_2_shortfall, open_jobs).astype(int)
+            eg_2_to_add = np.min((eg_2_shortfall, open_jobs)).astype(int)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (eg_2_indexes) &
@@ -2059,7 +2059,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
                    job)
 
         if eg_1_shortfall > 0:
-            eg_1_to_add = min(eg_1_shortfall, open_jobs).astype(int)
+            eg_1_to_add = np.min((eg_1_shortfall, open_jobs)).astype(int)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (eg_1_indexes) &

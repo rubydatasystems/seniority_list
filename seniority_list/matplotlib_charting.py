@@ -2763,12 +2763,12 @@ def quartile_bands_over_time(df, eg, measure, bins=20, ds_dict=None,
 
     with sns.axes_style('white'):
 
-        if custom_color:
-            cm_subsection = np.linspace(custom_start, custom_finish, bins)
-            colormap = eval('cm.' + cm_name)
-            quartile_colors = [colormap(x) for x in cm_subsection]
-        else:
-            quartile_colors = cf.color1
+        # if custom_color:
+        #     cm_subsection = np.linspace(custom_start, custom_finish, bins)
+        #     colormap = eval('cm.' + cm_name)
+        #     quartile_colors = [colormap(x) for x in cm_subsection]
+        # else:
+        #     quartile_colors = cf.color1
 
         step = 1 / bins
         offset = step / 2
@@ -3995,6 +3995,7 @@ def diff_range(df_list, dfb, measure, eg_list,
         plt.tick_params(axis='y', labelsize=tick_size)
         plt.tick_params(axis='x', labelsize=tick_size)
         ax.xaxis.label.set_size(label_size)
+        plt.tight_layout()
         plt.show()
 
 
@@ -4002,11 +4003,12 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
                      attr1=None, oper1='>=', val1=0,
                      attr2=None, oper2='>=', val2=0,
                      attr3=None, oper3='>=', val3=0,
-                     plot_egs_sep=False, plot_total=True, year_max=None,
+                     plot_egs_sep=False, plot_total=True,
+                     xax='date', year_max=None,
                      base_ls='solid', prop_ls='dotted',
                      base_lw=1.6, prop_lw=2.5,
                      suptitle_fontsize=14, title_fontsize=12,
-                     total_color='g', xsize=6, ysize=5):
+                     total_color='g', xsize=5, ysize=4):
     '''line-style charts displaying job category counts over time.
 
     optionally display employee group results on separate charts or together
@@ -4034,6 +4036,9 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
             if True, plot each employee group job level counts separately
         plot_total
             if True, include the combined job counts on chart(s)
+        xax (string)
+            x axis groupby attribute, options are 'date' or 'mnum', default is
+            'date'
         year_max
             maximum year to include on chart
             Example:  if input is 2030, chart would display data from
@@ -4069,10 +4074,11 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
                                    attr2=attr2, oper2=oper2, val2=val2,
                                    attr3=attr3, oper3=oper3, val3=val3)
 
-    suptitle = dfc_label + ' vs ' + dfb_label + '\n' + t_string
+    suptitle = dfc_label + ' vs ' + dfb_label + \
+        ' (dotted line is comparison, solid line is base)' + '\n' + t_string
 
-    prop = dfc_filt[['date', 'jnum', 'eg']]
-    base = dfb_filt[['date', 'jnum', 'eg']]
+    prop = dfc_filt[[xax, 'jnum', 'eg']]
+    base = dfb_filt[[xax, 'jnum', 'eg']]
 
     max_mnum = dsb.mnum.max()
 
@@ -4088,11 +4094,6 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
         num_egplots = len(eg_list)
     else:
         num_egplots = 1
-
-    fig, ax = plt.subplots(num_jobs, num_egplots)
-
-    fig = plt.gcf()
-    fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
 
     if year_max:
         min_date = base.date.min()
@@ -4155,8 +4156,6 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
 
                 plt.title(cf.eg_dict_verbose[eg] + '  ' +
                           cf.jobs_dict[jnum], fontsize=title_fontsize)
-                plt.suptitle(suptitle, fontsize=suptitle_fontsize,
-                             y=1.005)
                 plot_idx += 1
 
         # plot all employee groups on same job level chart
@@ -4188,15 +4187,17 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
                            ax, prop_lw, 1, ls=prop_ls)
 
             plt.title(cf.jobs_dict[jnum], fontsize=title_fontsize)
-            plt.suptitle(suptitle, fontsize=suptitle_fontsize, y=1.005)
             plot_idx += 1
 
+    fig = plt.gcf()
     for ax in fig.axes:
         try:
             ax.legend_.remove()
         except:
             pass
 
+    fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
+    fig.suptitle(suptitle, fontsize=suptitle_fontsize, y=1.005)
     fig.tight_layout()
     plt.show()
 
