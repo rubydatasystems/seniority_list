@@ -16,11 +16,9 @@ import scipy.stats as st
 from numba import jit
 from collections import OrderedDict as od
 
-import config as cf
-
 
 # CAREER MONTHS
-def career_months_list_in(ret_list, start_date=cf.starting_date):
+def career_months_list_in(ret_list, start_date):
     '''Short_Form
 
     Determine how many months each employee will work
@@ -47,7 +45,7 @@ def career_months_list_in(ret_list, start_date=cf.starting_date):
 
 
 # CAREER MONTHS
-def career_months_df_in(df, startdate=cf.starting_date):
+def career_months_df_in(df, startdate):
     '''Short_Form
 
     Determine how many months each employee will work
@@ -76,8 +74,8 @@ def career_months_df_in(df, startdate=cf.starting_date):
 
 
 # LONGEVITY AT STARTDATE (for pay purposes)
-def longevity_at_startdate(ldates_list, return_months=False,
-                           start_date=cf.starting_date):
+def longevity_at_startdate(ldates_list, start_date,
+                           return_months=False):
     ''' Short_Form
 
     - determine how much longevity (years) each employee has accrued
@@ -90,11 +88,11 @@ def longevity_at_startdate(ldates_list, return_months=False,
     inputs
         ldates_list
             list of longevity dates in datetime format
-        return_months (boolean)
-            option to return result as month value instead of year value
         start_date
             comparative date for retirement dates, starting date for the
             data model
+        return_months (boolean)
+            option to return result as month value instead of year value
     '''
     start_date = pd.to_datetime(start_date)
     s_year = start_date.year
@@ -116,7 +114,7 @@ def longevity_at_startdate(ldates_list, return_months=False,
 
 
 # AGE AT START DATE
-def starting_age(dob_list, start_date=cf.starting_date):
+def starting_age(dob_list, start_date):
     '''Short_Form
 
     Returns decimal age at given date.
@@ -253,7 +251,7 @@ def gen_skel_emp_idx(monthly_count_array,
 
 # AGE FOR EACH MONTH (correction to starting age)
 # @jit  (jit broken with numba version update 0.28.1, np111py35_0)
-def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
+def age_correction(month_nums_array, ages_array, retage):
     '''Long_Form
 
     Returns a long_form (all months) array of employee ages by
@@ -266,7 +264,7 @@ def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
             starting_age function output aligned with long_form (ndarray)
             i.e. s_age is starting age (aligned to empkeys)
             repeated each month.
-        retage option
+        retage
             output clip upper limit
 
     Output is s_age incremented by a decimal month value according to month_num
@@ -284,12 +282,12 @@ def age_correction(month_nums_array, ages_array, retage=cf.ret_age):
 
 # FIND CONTRACT PAY YEAR AND RAISE (contract pay year
 # and optional raise multiplier)
-def contract_pay_year_and_raise(date_list, future_raise=cf.future_raise,
-                                date_exception_start=cf.date_exception_start,
-                                date_exception_end=cf.date_exception_end,
-                                exception_year=cf.pay_table_exception_year,
-                                annual_raise=cf.annual_pcnt_raise,
-                                last_contract_year=cf.last_contract_year):
+def contract_pay_year_and_raise(date_list, future_raise,
+                                date_exception_start,
+                                date_exception_end,
+                                exception_year,
+                                annual_raise,
+                                last_contract_year):
     '''Month_Form
 
     Generate the contract pay year for indexing into the pay table.
@@ -528,8 +526,8 @@ def make_stovepipe_prex_shortform(job_list, sg_codes,
     this_count = 0
     job = 0
     sg_jobs_and_counts = [
-        np.array(sg_rights)[:, 1],
-        np.array(sg_rights)[:, 2]]
+        np.array(sg_rights).astype(int)[:, 1],
+        np.array(sg_rights).astype(int)[:, 2]]
 
     for i in job_list:
 
@@ -757,6 +755,8 @@ def assign_jobs_full_flush_with_job_changes(monthly_nonret_counts,
 
 # ASSIGN JOBS NBNF JOB CHANGES
 def assign_jobs_nbnf_job_changes(df,
+                                 num_of_job_levels,
+                                 delay,
                                  lower,
                                  upper,
                                  total_months,
@@ -766,6 +766,11 @@ def assign_jobs_nbnf_job_changes(df,
                                  job_reduction_months,
                                  start_month,
                                  condition_list,
+                                 sg_rights,
+                                 ratio_cond,
+                                 count_cond,
+                                 quota_dict,
+                                 recalls,
                                  fur_return=False):
     '''Long_Form
 
@@ -780,13 +785,17 @@ def assign_jobs_nbnf_job_changes(df,
     Returns tuple (long_assign_column, long_count_column, orig jobs, fur_data)
 
     inputs
-        df
+        df (dataframe)
             long-form dataframe with ['eg', 'sg', 'fur', 'orig_job']
             columns.
-        lower
+        num_of_job_levels (integer)
+            the number of job levels in the data model
+        delay (boolean)
+            if True, calculate dataset incorporating a delayed implementation
+        lower (array)
             ndarry from make_lower_slice_limits function
             (calculation derived from cumsum of count_per_month function)
-        upper
+        upper (array)
             cumsum of count_per_month function
         total_months
             sum of count_per_month function output
@@ -810,9 +819,34 @@ def assign_jobs_nbnf_job_changes(df,
             integer representing the month number to begin calculations,
             likely month of integration when there exists a delayed
             integration (from config file)
-        condition_list
+        condition_list (list)
             list of special job assignment conditions to apply,
             example: ['prex', 'count', 'ratio']
+        sg_rights (list)
+            list of 5-element lists for a pre-existing job assignment
+            condition calculation (special group)
+
+            Formant: [employee group number, job number, count, start_month,
+                end_month]
+        ratio_cond (list)
+            list of 4-element lists for a ratio job assignment condition.
+
+            Format: [employee group number, job number, start_month, end_month]
+        count_cond (list)
+            list of 5-element lists for ratio-count condition calculation.
+
+            Format: [employee group number, job number, count, start month,
+                end month]
+        quota_dict (dictionary)
+            dictionary used as input for assign_cond_ratio_capped function
+
+            Format: {job: ([weights], capped limit)}
+        recalls (list)
+            lists of integers and a nested list for recall calculations.
+
+            Format: [total monthly_recall_count,
+                [employee group recall allocation],
+                start_month, end_month]
         fur_return (boolean)
             model employee recall from furlough if True using recall
             schedule from case-specific file (allows call to
@@ -849,7 +883,6 @@ def assign_jobs_nbnf_job_changes(df,
     treated as furloughed employees.  No jobs are assigned to
     furloughees unless furlough_return option is selected.
     '''
-    num_of_job_levels = cf.num_of_job_levels
     orig = np.array(df.orig_job)
     eg_data = np.array(df.eg)
     sg_ident = np.array(df.sg)
@@ -869,16 +902,16 @@ def assign_jobs_nbnf_job_changes(df,
 
     num_of_months = upper.size
 
-    if cf.delayed_implementation:
+    if delay:
         long_assign_column[:upper[start_month]] = \
             orig[:upper[start_month]]
 
     if 'prex' in condition_list:
 
-        sg_rights = np.array(cf.sg_rights)
+        sg_rights = np.array(sg_rights)
 
-        sg_jobs = np.transpose(sg_rights)[1]
-        sg_counts = np.transpose(sg_rights)[2]
+        sg_jobs = np.transpose(sg_rights)[1].astype(int)
+        sg_counts = np.transpose(sg_rights)[2].astype(int)
         sg_dict = dict(zip(sg_jobs, sg_counts))
 
         # calc sg prex condition month range and concat
@@ -890,7 +923,7 @@ def assign_jobs_nbnf_job_changes(df,
     # calc ratio condition month range and concat to
     # job_change_months
     if 'ratio' in condition_list:
-        ratio_cond = np.array(cf.ratio_cond)
+        ratio_cond = np.array(ratio_cond)
         ratio_jobs = np.transpose(ratio_cond)[1]
         ratio_cond_month = ratio_cond[0][2]
         ratio_cond_job = 1
@@ -901,9 +934,9 @@ def assign_jobs_nbnf_job_changes(df,
 
         # calc capped count condition month range and concat
     if 'count' in condition_list:
-        count_cond = np.array(cf.count_cond)
+        count_cond = np.array(count_cond)
         count_jobs = np.transpose(count_cond)[1]
-        quota_dict = cf.quota_dict
+
         # count_cond_start_month = count_cond[0][3]
         count_month_range = np.arange(np.min(count_cond[:, 3]),
                                       np.max(count_cond[:, 4]))
@@ -913,7 +946,7 @@ def assign_jobs_nbnf_job_changes(df,
 
     if fur_return:
 
-        recall_months = get_recall_months(cf.recalls)
+        recall_months = get_recall_months(recalls)
         job_change_months = np.concatenate((job_change_months,
                                             recall_months))
     # np.unique returns an ordered numpy array
@@ -950,7 +983,7 @@ def assign_jobs_nbnf_job_changes(df,
 
         if fur_return and (month in recall_months):
             mark_for_recall(orig_job_range, num_of_job_levels,
-                            fur_range, month, cf.recalls,
+                            fur_range, month, recalls,
                             total_monthly_job_count, standalone=False)
 
         while job <= num_of_job_levels:
@@ -1088,17 +1121,15 @@ def put_map(jobs_array, job_cnts):
 
     Example:
 
-    function call:
-    map_jobs = put_map(no_bump_jnums, job_level_counts)
+        function call:
+        map_jobs = put_map(no_bump_jnums, job_level_counts)
 
-    assigned to df:
-    df['nbnf_job_count'] = map_jobs.astype(int)
+        assigned to df:
+        df['nbnf_job_count'] = map_jobs.astype(int)
 
-    len(set(jobs_array)) must equal length of jobs_count_array.
+    length of set(jobs_array) must equal length of job_cnts.
     '''
     target_array = np.zeros(jobs_array.size)
-
-    # counts_arr = np.append(job_cnts, fur_count)
 
     job_cnts = np.take(job_cnts, np.where(job_cnts != 0))[0]
 
@@ -2609,23 +2640,31 @@ def job_gain_loss_table(months, job_levels, init_job_counts,
         gain_loss = []
 
         for change in job_changes:
-            job_list.append(change[0])
-            start.append(change[1][0])
-            end.append(change[1][1])
+
+            jnum = int(change[0])
+            start_mth = int(change[1][0])
+            end_mth = int(change[1][1])
+            total_change = change[2]
+            eg_dist = change[3]
+
+            job_list.append(jnum)
+            start.append(start_mth)
+            end.append(end_mth)
             if standalone:
-                delta = (change[3][sep_index])
+                delta = eg_dist[sep_index]
             else:
-                delta = (change[2])
+                delta = total_change
             gain_loss.append(delta)
-            if this_job_table[0][change[0] - 1] + delta < 0:
+            if this_job_table[0][jnum - 1] + delta < 0:
                 print('Group ' + str(sep_index + 1) +
-                      ' ERROR: job reduction below zero, job ' +
-                      str(change[0]) +
+                      ' ERROR: job_gain_loss_table function: \n' +
+                      'job reduction below zero, job ' +
+                      str(jnum) +
                       ', final job total is ' +
-                      str(this_job_table[0][change[0] - 1] + delta) +
+                      str(this_job_table[0][jnum - 1] + delta) +
                       ', fur delta input: ' + str(delta) +
                       ', start count: ' +
-                      str(this_job_table[0][change[0] - 1]) +
+                      str(this_job_table[0][jnum - 1]) +
                       ' job_levels: ' + str(job_levels))
 
         for i in np.arange(len(job_changes)):
@@ -2763,6 +2802,7 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
 # ASSIGN JOBS STANDALONE WITH JOB CHANGES and prex option
 def assign_standalone_job_changes(df_align,
+                                  num_of_job_levels,
                                   lower,
                                   upper,
                                   total_months,
@@ -2773,6 +2813,8 @@ def assign_standalone_job_changes(df_align,
                                   job_reduction_months,
                                   start_month,
                                   eg,
+                                  sg_rights,
+                                  recalls,
                                   apply_sg_cond=True,
                                   fur_return=False):
     '''Long_Form
@@ -2789,8 +2831,11 @@ def assign_standalone_job_changes(df_align,
     fur_data, orig_jobs)
 
     inputs
-        df_align
+        df_align (dataframe)
             dataframe with ['sg', 'fur'] columns
+        num_of_job_levels (integer)
+            number of job levels in the data model (excluding a furlough
+            level)
         lower
             ndarry from make_lower_slice_limits function
             (calculation derived from cumsum of count_per_month function)
@@ -2816,12 +2861,24 @@ def assign_standalone_job_changes(df_align,
         job_reduction_months
             months in which the number of jobs is decreased (list).
             from the get_job_reduction_months function
-        start_month
+        start_month (integer)
             starting month for calculations, likely implementation month
             from case-specific file
         eg (integer)
             input from an incremental loop which is used to select the proper
             employee group recall scedule
+        sg_rights (list)
+            list of 5-element lists for a pre-existing job assignment
+            condition calculation (special group)
+
+            Formant: [employee group number, job number, count, start_month,
+                end_month]
+        recalls (list)
+            lists of integers and a nested list for recall calculations.
+
+            Format: [total monthly_recall_count,
+                [employee group recall allocation],
+                start_month, end_month]
         apply_sg_cond (boolean)
             compute with pre-existing special job quotas for certain
             employees marked with a one in the sg column (special group)
@@ -2863,7 +2920,6 @@ def assign_standalone_job_changes(df_align,
     to furloughees unless furlough_return option is selected.
 
     '''
-    num_of_job_levels = cf.num_of_job_levels
     sg_ident = np.array(df_align.sg)
     fur_data = np.array(df_align.fur)
     index_data = np.array(df_align.index)
@@ -2886,7 +2942,7 @@ def assign_standalone_job_changes(df_align,
 
     if apply_sg_cond:
 
-        sg_rights = np.array(cf.sg_rights)
+        sg_rights = np.array(sg_rights)
         sg_egs = np.unique(np.transpose(sg_rights)[0])
         if eg in sg_egs:
             this_eg_sg = True
@@ -2902,7 +2958,7 @@ def assign_standalone_job_changes(df_align,
 
     if fur_return:
 
-        recall_months = get_recall_months(cf.recalls)
+        recall_months = get_recall_months(recalls)
         job_change_months = np.concatenate((job_change_months,
                                             recall_months))
 
@@ -2938,7 +2994,7 @@ def assign_standalone_job_changes(df_align,
 
         if fur_return and (month in recall_months):
             mark_for_recall(held_job_range, num_of_job_levels,
-                            fur_range, month, cf.recalls,
+                            fur_range, month, recalls,
                             total_monthly_job_count,
                             standalone=True,
                             eg_index=eg - 1)
@@ -3025,36 +3081,39 @@ def print_config_selections():
     '''grab config file data settings and put it in a dataframe and then
     print it for a quick summary of config inputs
     '''
-    config_dict = {'case_study': cf.case_study,
-                   'compute_with_job_changes': cf.compute_with_job_changes,
-                   'discount_longev_for_fur': cf.discount_longev_for_fur,
+    sdict = pd.read_pickle('dill/dict_settings.pkl')
+    config_dict = {'case_study': sdict['case_study'],
+                   'compute_with_job_changes':
+                   sdict['compute_with_job_changes'],
+                   'discount_longev_for_fur': sdict['discount_longev_for_fur'],
                    'lspcnt_calc_on_remaining_population':
-                   cf.lspcnt_calc_on_remaining_population,
-                   'int_job_counts': cf.int_job_counts,
-                   'enhanced_jobs': cf.enhanced_jobs,
-                   'starting_date': cf.starting_date,
-                   'delayed_implementation': cf.delayed_implementation,
-                   'full_time_pcnt1': cf.full_time_pcnt1,
-                   'full_time_pcnt2': cf.full_time_pcnt2,
-                   'implementation_date': cf.implementation_date,
-                   'no_bump': cf.no_bump,
-                   'ret_age': cf.ret_age,
-                   'recall': cf.recall,
-                   'future_raise': cf.future_raise,
-                   'annual_pcnt_raise': cf.annual_pcnt_raise,
-                   'top_of_scale': cf.top_of_scale,
-                   'compute_job_category_order': cf.compute_job_category_order,
-                   'compute_pay_measures': cf.compute_pay_measures,
-                   'num_of_job_levels': cf.num_of_job_levels,
+                   sdict['lspcnt_calc_on_remaining_population'],
+                   'int_job_counts': sdict['int_job_counts'],
+                   'enhanced_jobs': sdict['enhanced_jobs'],
+                   'starting_date': sdict['starting_date'],
+                   'delayed_implementation': sdict['delayed_implementation'],
+                   'full_time_pcnt1': sdict['full_time_pcnt1'],
+                   'full_time_pcnt2': sdict['full_time_pcnt2'],
+                   'implementation_date': sdict['implementation_date'],
+                   'no_bump': sdict['no_bump'],
+                   'ret_age': sdict['ret_age'],
+                   'recall': sdict['recall'],
+                   'future_raise': sdict['future_raise'],
+                   'annual_pcnt_raise': sdict['annual_pcnt_raise'],
+                   'top_of_scale': sdict['top_of_scale'],
+                   'compute_job_category_order':
+                   sdict['compute_job_category_order'],
+                   'compute_pay_measures': sdict['compute_pay_measures'],
+                   'num_of_job_levels': sdict['num_of_job_levels'],
                    'pay_table_exception_year':
-                   cf.case.pay_table_exception_year,
-                   'date_exception_start': cf.case.date_exception_start,
-                   'date_exception_end': cf.case.date_exception_end,
-                   'last_contract_year': cf.case.last_contract_year,
-                   'ret_age_increase': cf.case.ret_age_increase,
-                   'pay_table_year_sort': cf.case.pay_table_year_sort,
+                   sdict['case.pay_table_exception_year'],
+                   'date_exception_start': sdict['case.date_exception_start'],
+                   'date_exception_end': sdict['case.date_exception_end'],
+                   'last_contract_year': sdict['case.last_contract_year'],
+                   'ret_age_increase': sdict['case.ret_age_increase'],
+                   'pay_table_year_sort': sdict['case.pay_table_year_sort'],
                    'pay_table_longevity_sort':
-                   cf.case.pay_table_longevity_sort}
+                   sdict['case.pay_table_longevity_sort']}
 
     settings = pd.DataFrame(config_dict, index=['setting']).stack()
     df = pd.DataFrame(settings, columns=['setting'])
@@ -3263,7 +3322,8 @@ def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
     return ds_integrated
 
 
-def make_preimp_array(ds_stand, ds_integrated, imp_high):
+def make_preimp_array(ds_stand, ds_integrated, imp_high,
+                      compute_cat, compute_pay):
     '''Create an ordered numpy array of pre-implementation data gathered from
     the pre-calculated standalone dataset and a dictionary to keep track of the
     information.  This data will be joined by post_implementation integrated
@@ -3278,13 +3338,19 @@ def make_preimp_array(ds_stand, ds_integrated, imp_high):
         imp_high
             highest index (row number) from implementation month data
             (from long-form dataset)
+        compute_cat (boolean)
+            if True, compute and append a job category order column
+        compute_pay (boolean)
+            if True, compute and append a monthly pay column and a career
+            pay column
+
     '''
     key_cols = ['mnum', 'empkey']
     imp_cols = ['mnum', 'empkey', 'job_count', 'orig_job', 'jnum', 'lnum',
                 'lspcnt', 'snum', 'spcnt', 'rank_in_job', 'jobp', 'fur']
-    if cf.compute_job_category_order:
+    if compute_cat:
         imp_cols.append('cat_order')
-    if cf.compute_pay_measures:
+    if compute_pay:
         imp_cols.extend(['mpay', 'cpay'])
     # only include columns from col_list which exist in ds_stand
     filtered_cols = list(set(imp_cols).intersection(ds_stand.columns))
@@ -3421,3 +3487,69 @@ def make_cat_order(ds, table):
     cat_arr = (jpcnt_arr * cnt_arr) + add_arr
 
     return cat_arr
+
+
+def make_tuples_from_columns(df, columns, return_as_list=True,
+                             return_dates_as_strings=False,
+                             date_cols=[]):
+    '''Combine row values from selected columns to form tuples.
+
+    Returns a list of tuples which may be assigned to a new column.
+
+    The length of the list is equal to the length of the input dataframe.
+
+    inputs
+        df (dataframe)
+            input dataframe
+        columns (list)
+            columns from which to create tuples
+    '''
+    i = 0
+    col_list = columns[:]
+    for col in columns:
+        if col in date_cols and return_dates_as_strings:
+            col_list[i] = list(df[col].dt.strftime('%Y-%m-%d'))
+        else:
+            col_list[i] = list(df[col])
+        i += 1
+    zipped = zip(*col_list)
+    if return_as_list:
+        return list(zipped)
+    else:
+        return tuple(zipped)
+
+
+def make_dict_from_columns(df, key_col, value_col):
+    '''
+    '''
+    keys = df[key_col]
+    values = df[value_col]
+
+    return dict(zip(keys, values))
+
+
+def make_intlists_from_columns(df, columns):
+    '''
+    '''
+    df_cols = df[columns]
+    try:
+        arrays = list(df_cols.values.astype(int))
+    except:
+        arrays = list(df_cols.values)
+    column_list = []
+    for e in arrays:
+        e = list(e)
+        column_list.append(e)
+    return column_list
+
+
+def make_lists_from_columns(df, columns):
+    '''
+    '''
+    df_cols = df[columns]
+    arrays = list(df_cols.values)
+    column_list = []
+    for e in arrays:
+        e = list(e)
+        column_list.append(e)
+    return column_list

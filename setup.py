@@ -31,12 +31,10 @@ If you have any questions or comments about seniority_list, please feel free to 
 This project is hosted at https://github.com/rubydatasystems/seniority_list
 ''',
     zip_safe=True,
-    install_requires=['numpy', 'scipy', 'pandas', 'matplotlib', 'numba', 'ipython', 'seaborn', 'notebook'],
+    install_requires=['numpy', 'scipy', 'pandas', 'matplotlib', 'numba', 'ipython', 'seaborn', 'notebook', 'ipywidgets'],
     # Choose more classifiers from here: https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',

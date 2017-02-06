@@ -15,7 +15,6 @@ import pandas as pd
 import numpy as np
 
 import functions as f
-import config as cf
 
 from sys import argv
 from collections import OrderedDict as od
@@ -32,28 +31,34 @@ stand_path_string = (pre + 'standalone' + suf)
 
 output_name = 'ds_' + proposal_name
 
+try:
+    df_master = pd.read_pickle(pre + 'master' + suf)
+except:
+    print('Master list not found.  Run build_program_files script?')
+
 ds = pd.read_pickle(skeleton_path_string)
 df_order = pd.read_pickle(proposal_order_string)
-df_master = pd.read_pickle(pre + 'master' + suf)
 
-start_date = pd.to_datetime(cf.starting_date)
+sdict = pd.read_pickle('dill/dict_settings.pkl')
+
+start_date = pd.to_datetime(sdict['starting_date'])
 
 # do not include inactive employees (other than furlough) in data model
 df_master = df_master[
     (df_master.line == 1) | (df_master.fur == 1)].copy()
 
 population = len(df_master)
-num_of_job_levels = cf.num_of_job_levels
-lspcnt_calc = cf.lspcnt_calc_on_remaining_population
+num_of_job_levels = sdict['num_of_job_levels']
+lspcnt_calc = sdict['lspcnt_calc_on_remaining_population']
 
-if cf.enhanced_jobs:
+if sdict['enhanced_jobs']:
     # use job dictionary from case-specific configuration file for conversion
-    eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
-                                                 cf.j_changes,
-                                                 cf.jd)
+    eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
+                                                 sdict['j_changes'],
+                                                 sdict['jd'])
 else:
-    eg_counts = cf.eg_counts
-    j_changes = cf.j_changes
+    eg_counts = sdict['eg_counts']
+    j_changes = sdict['j_changes']
 
 # grab the job counts from the config file and insert into array (and
 # compute totals)
@@ -91,7 +96,7 @@ egs = sorted(pd.unique(eg_sequence))
 
 if 'prex' in conditions:
 
-    sg_rights = cf.sg_rights
+    sg_rights = sdict['sg_rights']
     sg_eg_list = []
     sg_dict = od()
     stove_dict = od()
@@ -151,7 +156,7 @@ df_master['orig_job'] = orig_jobs
 
 # cmonths - career length in months for each employee.
 #   length is equal to number of employees
-cmonths = f.career_months_df_in(df_master)
+cmonths = f.career_months_df_in(df_master, sdict['starting_date'])
 
 # nonret_each_month: count of non-retired employees remaining
 # in each month until no more remain -
@@ -163,9 +168,9 @@ low_limits = f.make_lower_slice_limits(high_limits)
 
 job_level_counts = np.array(jcnts_arr[1])
 
-if cf.delayed_implementation:
+if sdict['delayed_implementation']:
 
-    imp_month = cf.imp_month
+    imp_month = sdict['imp_month']
     imp_low = low_limits[imp_month]
     imp_high = high_limits[imp_month]
 
@@ -176,7 +181,9 @@ if cf.delayed_implementation:
     # create a unique key column in the standalone data df and a temporary df
     # which is ordered according to the integrated dataset
     imp_cols, arr_dict, col_array = \
-        f.make_preimp_array(ds_stand, ds, imp_high)
+        f.make_preimp_array(ds_stand, ds,
+                            imp_high, sdict['compute_job_category_order'],
+                            sdict['compute_pay_measures'])
 
     # # select columns to use as pre-implementation data for integrated dataset
     # # data is limited to the pre-implementation months
@@ -216,7 +223,7 @@ if cf.delayed_implementation:
     ds['orig_job'] = delayed_jnums
     ds['fur'] = delayed_fur
 
-    if cf.int_job_counts:
+    if sdict['int_job_counts']:
         # assign combined job counts prior to the implementation date.
         # (otherwise, separate employee group counts will be used when
         # data is transferred from col_array at end of script)
@@ -259,14 +266,23 @@ df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 
 # this is the main job assignment function.  It loops through all of the
 # months in the model and assigns jobs
-jobs_and_counts = f.assign_jobs_nbnf_job_changes(df_align, low_limits,
-                                                 high_limits, all_months,
-                                                 table[0], table[1],
-                                                 job_change_months,
-                                                 reduction_months,
-                                                 imp_month,
-                                                 conditions,
-                                                 fur_return=cf.recall)
+jobs_and_counts = \
+    f.assign_jobs_nbnf_job_changes(df_align,
+                                   sdict['num_of_job_levels'],
+                                   sdict['delayed_implementation'],
+                                   low_limits,
+                                   high_limits, all_months,
+                                   table[0], table[1],
+                                   job_change_months,
+                                   reduction_months,
+                                   imp_month,
+                                   conditions,
+                                   sdict['sg_rights'],
+                                   sdict['ratio_cond'],
+                                   sdict['count_cond'],
+                                   sdict['quota_dict'],
+                                   sdict['recalls'],
+                                   fur_return=sdict['recall'])
 
 # if job_changes, replace original fur column...
 ds['fur'] = jobs_and_counts[3]
@@ -278,7 +294,7 @@ nbnf = jobs_and_counts[0]
 job_col = f.assign_jobs_full_flush_with_job_changes(
     nonret_each_month, table[1], num_of_job_levels)
 
-if cf.no_bump:
+if sdict['no_bump']:
     ds['jnum'] = nbnf
     ds['fbff'] = job_col
 else:
@@ -313,10 +329,10 @@ np.put(jpcnt, np.where(jpcnt == 1.0)[0], .99999)
 ds['jobp'] = ds['jnum'] + jpcnt
 
 # PAY - merge with pay table - provides monthly pay
-if cf.compute_pay_measures:
+if sdict['compute_pay_measures']:
 
     # account for furlough time (only count active months)
-    if cf.discount_longev_for_fur:
+    if sdict['discount_longev_for_fur']:
         # skel(ds) provides pre-calculated non-discounted scale data
         # flip ones and zeros...
         ds['non_fur'] = 1 - ds.fur
@@ -328,7 +344,7 @@ if cf.compute_pay_measures:
         ds['mlong'] = cum_active_months
         ds['ylong'] = ds['mlong'] / 12
         ds['scale'] = np.clip((cum_active_months / 12) + 1, 1,
-                              cf.top_of_scale).astype(int)
+                              sdict['top_of_scale']).astype(int)
 
     # make a new long_form dataframe and assign a combination of
     # pay-related ds columns from large dataset as its index...
@@ -339,7 +355,7 @@ if cf.compute_pay_measures:
     df_pt_index = pd.DataFrame(
         index=(ds['scale'] * 100) + ds['jnum'] + (ds['year'] * 100000))
 
-    if cf.enhanced_jobs:
+    if sdict['enhanced_jobs']:
         df_pt = pd.read_pickle('dill/pay_table_enhanced.pkl')
     else:
         df_pt = pd.read_pickle('dill/pay_table_basic.pkl')
@@ -360,7 +376,7 @@ if cf.compute_pay_measures:
 
     ds['cpay'] = ds.groupby('new_order')['mpay'].cumsum()
 
-if cf.delayed_implementation:
+if sdict['delayed_implementation']:
     ds_cols = ds.columns
     # grab each imp_col (column to insert standalone or pre-implementation
     # date data) and replace integrated data up through implementation date
@@ -372,9 +388,9 @@ if cf.delayed_implementation:
 
 # CAT_ORDER
 # global job ranking
-if cf.compute_job_category_order:
+if sdict['compute_job_category_order']:
     ds['cat_order'] = f.make_cat_order(ds, table[0])
 
 # save to file
-if cf.save_to_pickle:
+if sdict['save_to_pickle']:
     ds.to_pickle(dataset_path_string)

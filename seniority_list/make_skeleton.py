@@ -10,20 +10,25 @@ import pandas as pd
 import numpy as np
 
 import functions as f
-import config as cf
 
 # read prepared list dataframe - proper column headers, column formats...
 # this is master.pkl, order-independent, concatenated list data
 pre, suf = 'dill/', '.pkl'
 master_list = 'master'
 master_path = (pre + master_list + suf)
-df_list = pd.read_pickle(master_path)
+
+try:
+    df_list = pd.read_pickle(master_path)
+except:
+    print('Master list not found.  Run build_program_files script?')
 
 output_name = 'skeleton'
 skel_path_string = (pre + output_name + suf)
 
+sdict = pd.read_pickle('dill/dict_settings.pkl')
+
 # only include pilots that are not retired prior to the starting_month
-start_date = pd.to_datetime(cf.starting_date)
+start_date = sdict['starting_date']
 
 df_list = df_list[
     df_list.retdate >= start_date - pd.DateOffset(months=1)]
@@ -36,7 +41,7 @@ df_list = []
 # calculate the number of career months for each employee (short_form)
 # cmonths is used for mnum, idx, and mth_pcnt calculations
 
-cmonths = f.career_months_df_in(df)
+cmonths = f.career_months_df_in(df, sdict['starting_date'])
 
 # convert the python cmonths list to a numpy array and
 # use that array as input for the count_per_month function.
@@ -109,7 +114,7 @@ skel['mth_pcnt'] = skel.mth_pcnt.fillna(1)
 
 # set up date_range - end of month dates
 
-df_dates = pd.DataFrame(pd.date_range(cf.starting_date,
+df_dates = pd.DataFrame(pd.date_range(sdict['starting_date'],
                                       periods=len(nonret_each_month),
                                       freq='M'), columns=['date'])
 
@@ -122,9 +127,14 @@ date_series = pd.to_datetime(list(df_dates['date']))
 # The second column is either 1.0 or
 # a calculated percentage pay raise after the last contract year.
 
-if cf.compute_pay_measures:
+if sdict['compute_pay_measures']:
     year_and_scale = \
-        f.contract_pay_year_and_raise(date_series)
+        f.contract_pay_year_and_raise(date_series, sdict['future_raise'],
+                                      sdict['date_exception_start'],
+                                      sdict['date_exception_end'],
+                                      sdict['pay_table_exception_year'],
+                                      sdict['annual_pcnt_raise'],
+                                      sdict['last_contract_year'])
 
     df_dates['year'] = year_and_scale[0]
 
@@ -144,7 +154,7 @@ skel = pd.merge(skel, df_dates, right_index=True, left_on=['mnum'])
 # Merged here so that they could be done together
 # after setting indexes to match.
 
-s_age = f.starting_age(dobs)
+s_age = f.starting_age(dobs, sdict['starting_date'])
 df['s_age'] = s_age
 
 # data alignment magic...set index to empkey
@@ -155,39 +165,39 @@ skel.set_index('empkey', inplace=True, verify_integrity=False, drop=False)
 skel['s_age'] = df.s_age
 skel['fur'] = df.fur
 
-if cf.add_eg_col:
+if sdict['add_eg_col']:
     skel['eg'] = df.eg
-if cf.add_retdate_col:
+if sdict['add_retdate_col']:
     skel['retdate'] = df.retdate
-if cf.add_doh_col:
+if sdict['add_doh_col']:
     skel['doh'] = df.doh
-if cf.add_ldate_col:
+if sdict['add_ldate_col']:
     skel['ldate'] = df.ldate
-if cf.add_lname_col:
+if sdict['add_lname_col']:
     skel['lname'] = df.lname
-if cf.add_line_col:
+if sdict['add_line_col']:
     skel['line'] = df.line
-if cf.add_sg_col:
+if sdict['add_sg_col']:
     skel['sg'] = df.sg
 
 # RET_MARK
-if cf.add_ret_mark:
-    # add last month number to df
-    df['ret_month'] = cmonths
-    # data align to long-form skel
-    skel['ret_mark'] = df.ret_month
-    mnums = np.array(skel.mnum)
-    lmonth_arr = np.zeros(mnums.size).astype(int)
-    ret_month = np.array(skel.ret_mark)
-    # mark array where retirement month is equal to month number
-    np.put(lmonth_arr, np.where(ret_month == mnums)[0], 1)
-    skel['ret_mark'] = lmonth_arr
+# add last month number to df
+df['ret_month'] = cmonths
+# data align to long-form skel
+skel['ret_mark'] = df.ret_month
+mnums = np.array(skel.mnum)
+lmonth_arr = np.zeros(mnums.size).astype(int)
+ret_month = np.array(skel.ret_mark)
+# mark array where retirement month is equal to month number
+np.put(lmonth_arr, np.where(ret_month == mnums)[0], 1)
+skel['ret_mark'] = lmonth_arr
 
 # SCALE*
 
-if cf.compute_pay_measures:
+if sdict['compute_pay_measures']:
 
-    df['s_lyears'] = f.longevity_at_startdate(list(df['ldate']))
+    df['s_lyears'] = f.longevity_at_startdate(list(df['ldate']),
+                                              sdict['starting_date'])
     skel['s_lyears'] = df.s_lyears
 
     month_inc = (1 / 12)
@@ -201,13 +211,14 @@ if cf.compute_pay_measures:
     skel['scale'] = np.clip(((skel['mnum'] * month_inc) +
                             skel['s_lyears']).astype(int),
                             1,
-                            cf.top_of_scale)
+                            sdict['top_of_scale'])
     skel.pop('s_lyears')
 
     # this column is only used for calculating furloughed employee pay
     # longevity in compute_measures routine.
     # ...could be an option if recalls are not part of model
     df['s_lmonths'] = f.longevity_at_startdate(list(df['ldate']),
+                                               sdict['starting_date'],
                                                return_months=True)
     skel['s_lmonths'] = df.s_lmonths
 
@@ -217,10 +228,11 @@ if cf.compute_pay_measures:
 
 age_list = np.array(skel.s_age)
 
-corr_ages = f.age_correction(long_form_skeleton, age_list)
+corr_ages = f.age_correction(long_form_skeleton, age_list, sdict['ret_age'])
 
-if cf.ret_age_increase:
-    skel['age'] = f.clip_ret_ages(cf.ret_incr_dict, cf.init_ret_age,
+if sdict['ret_age_increase']:
+    skel['age'] = f.clip_ret_ages(sdict['ret_incr_dict'],
+                                  sdict['init_ret_age'],
                                   np.array(skel.date), corr_ages)
 else:
     skel['age'] = corr_ages
@@ -231,5 +243,5 @@ skel.pop('s_age')
 # this is for easy data alignment with different list order keys
 
 # save results to pickle
-if cf.save_to_pickle:
+if sdict['save_to_pickle']:
     skel.to_pickle(skel_path_string)

@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''built-in plotting functions
 '''
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib
 from matplotlib import cm
 from matplotlib import colors
 from matplotlib.ticker import FuncFormatter
@@ -18,8 +18,9 @@ from collections import OrderedDict as od
 import pandas as pd
 from pandas.tools.plotting import parallel_coordinates
 import numpy as np
-import config as cf
 import functions as f
+
+from cycler import cycler
 
 
 # TO_PERCENT (matplotlib percentage axis)
@@ -30,12 +31,7 @@ def to_percent(y, position):
     tick locations.
     '''
     s = str(np.round(100 * y, 0).astype(int))
-
-    # The percent symbol needs to be escaped in latex
-    if matplotlib.rcParams['text.usetex'] is True:
-        return s + r'$\%$'
-    else:
-        return s + '%'
+    return s + '%'
 
 
 pct_format = FuncFormatter(to_percent)
@@ -48,12 +44,12 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                                attr1=None, oper1='>=', val1=0,
                                attr2=None, oper2='>=', val2=0,
                                attr3=None, oper3='>=', val3=0,
-                               suptitle_fontsize=14, title_fontsize=12,
-                               fur_color='#404040',
-                               custom_color=False, cm_name='Dark2', start=0.0,
-                               stop=1.0, flip_x=False, flip_y=False,
+                               custom_color=False, cm_name='Dark2',
+                               start=0.0, stop=1.0, fur_color=None,
+                               flip_x=False, flip_y=False,
                                rotate=False, gain_loss_bg=False, bg_alpha=.05,
                                normalize_yr_scale=False, year_clip=30,
+                               suptitle_fontsize=14, title_fontsize=12,
                                xsize=12, ysize=12):
     '''stacked bar or area chart presenting the time spent in the various
     job levels for quartiles of a selected employee group.
@@ -79,7 +75,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
             dictionary used to convert employee group numbers to text,
             used with chart title text display
         color_list (list)
-            a list of color codes which control the job level color display
+            a list of color codes for the job level color display
         style (string)
             option to select 'area' or 'bar' to determine the type
             of chart output. default is 'bar'.
@@ -99,6 +95,9 @@ def quartile_years_in_position(dfc, dfb, job_levels,
             if custom color is set to True, create a custom color map from
             the cm_name color map style.  A portion of the color map may be
             selected for customization using the start and stop inputs.
+        fur_color (color code in rgba, hex, or string style)
+            custom color to signify furloughed employees (otherwise, last
+            color in color_list input will be used)
         flip_x (boolean)
             'flip' the chart horizontally if True
         flip_y (boolean)
@@ -150,9 +149,6 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                                'new_order', 'doh', 'retdate']].copy()
         plot_differential = False
 
-    # add color for furloughed employees...
-    color_list.append(fur_color)
-
     mnum0 = ds_sel_cols[ds_sel_cols.mnum == 0][[]]
     mnum0['order'] = np.arange(len(mnum0)) + 1
 
@@ -167,6 +163,16 @@ def quartile_years_in_position(dfc, dfb, job_levels,
 
     fig, ax = plt.subplots(num_rows, num_cols)
     plot_num = 1
+
+    if custom_color:
+        num_of_colors = job_levels + 1
+        cm_subsection = np.linspace(start, stop, num_of_colors)
+        colormap = eval('cm.' + cm_name)
+        color_list = [colormap(x) for x in cm_subsection]
+
+    if fur_color:
+        # insert custom color for furloughed employees...
+        color_list[-1] = fur_color
 
     for eg in egs:
 
@@ -189,12 +195,6 @@ def quartile_years_in_position(dfc, dfb, job_levels,
         result_arr = np.zeros((num_bins, len(months_in_jobs.columns)))
 
         cols = list(months_in_jobs.columns)
-
-        if custom_color:
-            num_of_colors = cf.num_of_job_levels + 1
-            cm_subsection = np.linspace(start, stop, num_of_colors)
-            colormap = eval('cm.' + cm_name)
-            color_list = [colormap(x) for x in cm_subsection]
 
         labels = []
         colors = []
@@ -268,6 +268,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                 else:
                     kind = 'bar'
                 quantile_yrs.plot(kind=kind, width=1,
+                                  edgecolor='k', linewidth=.5,
                                   stacked=True, color=colors, ax=ax)
 
             if normalize_yr_scale:
@@ -312,6 +313,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                     else:
                         kind = 'bar'
                     diff.plot(kind=kind, width=1,
+                              edgecolor='k', linewidth=.5,
                               stacked=True, color=colors, ax=ax)
 
                 if rotate:
@@ -399,7 +401,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
 
 
 def age_vs_spcnt(df, eg_list, mnum, color_list,
-                 eg_dict, ds_dict=None,
+                 eg_dict, ret_age, ds_dict=None,
                  attr1=None, oper1='>=', val1=0,
                  attr2=None, oper2='>=', val2=0,
                  attr3=None, oper3='>=', val3=0,
@@ -474,7 +476,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
                        label=eg_dict[grp])
 
     plt.ylim(1, 0)
-    plt.xlim(25, cf.ret_age)
+    plt.xlim(25, ret_age)
     plt.tight_layout()
     ax.yaxis.set_major_formatter(pct_format)
     ax.set_yticks(np.arange(0, 1.05, .05))
@@ -508,8 +510,8 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
 
 
 def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
-                          color_list, job_str_list,
-                          ds_dict=None,
+                          ret_age, color_list, job_str_list,
+                          attr_dict, ds_dict=None,
                           legend_fontsize=14,
                           chart_example=False):
     '''select example individual employees and plot career measure
@@ -517,44 +519,50 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     earnings, job level, etc.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe or a string key with the
             ds_dict dictionary object
-        measure
+        measure (string)
             dataset attribute to plot
-        xax
+        xax (string)
             dataset attribute for x axis
-        emp_list
+        emp_list (list)
             list of employee numbers or ids
-        job_levels
+        job_levels (integer)
             number of job levels in model
-        color list
+        ret_age (float)
+            retirement age (example: 65.0)
+        color list (list)
             list of colors for plotting
-        job_str_list
+        job_str_list (list)
             list of string job descriptions corresponding to
             number of job levels
-        ds_dict
+        ds_dict (dictionary)
             output of the load_datasets function, dictionary.  This keyword
             argument must be set if a string key is used as the df input.
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of chart legend
-        chart_example
+        chart_example (boolean)
             if True, remove case-specific descriptions from chart
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
     frame = ds.copy()
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
-        frame = frame[frame.jnum <= cf.num_of_job_levels]
+        frame = frame[frame.jnum <= job_levels]
     if measure in ['mpay']:
-        frame = frame[frame.age < cf.ret_age]
+        if 'ret_mark' in list(frame):
+            frame = frame[frame.ret_mark != 1]
+        else:
+            frame = frame[frame.age < ret_age]
 
     i = 0
 
     for emp in emp_list:
         if chart_example:
             ax = frame[frame.empkey == emp] \
-                .set_index(xax)[measure].plot(label='Employee ' + str(i + 1))
+                .set_index(xax)[measure].plot(label='Employee ' +
+                                              str(i + 1))
             i += 1
         else:
             if len(emp_list) == 3:
@@ -590,29 +598,27 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         plt.xticks(np.arange(0, 1.1, .1))
         plt.xlim(1, 0)
 
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
-
     if chart_example:
-        plt.title(m_dict[measure] + ' - ' + 'proposal 1', y=1.02)
+        plt.title(attr_dict[measure] + ' - ' + 'proposal 1', y=1.02)
     else:
         try:
-            plt.title(m_dict[measure] + ' - ' + df_label, y=1.02)
+            plt.title(attr_dict[measure] + ' - ' + df_label, y=1.02)
         except:
-            plt.title(m_dict[measure] + ' - ' + 'proposal', y=1.02)
-    plt.ylabel(m_dict[measure])
-    plt.xlabel(m_dict[xax])
+            plt.title(attr_dict[measure] + ' - ' + 'proposal', y=1.02)
+    plt.ylabel(attr_dict[measure])
+    plt.xlabel(attr_dict[xax])
     plt.legend(loc=4, markerscale=1.5, fontsize=legend_fontsize)
     plt.show()
 
 
 def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
-                         job_levels, colors, ds_dict=None, mnum=0,
+                         job_levels, colors, ret_age, attr_dict,
+                         ds_dict=None, mnum=0,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
                          attr3=None, oper3='>=', val3=0,
-                         scatter=False, exclude_fur=False,
-                         suptitle_fontsize=14, title_fontsize=12,
+                         scatter=False, scatter_size=7, exclude_fur=False,
+                         suptitle_fontsize=14, title_fontsize=14,
                          legend_fontsize=14, xsize=8, ysize=6,
                          full_pcnt_xscale=False, chart_example=False):
     '''plot separate selected employee group data for a specific month.
@@ -620,47 +626,49 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
     chart type may be line or scatter.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        measure
+        measure (string)
             attribute to plot on y axis
-        xax
+        xax (string)
             x axis attribute
-        eg_list
+        eg_list (list)
             list of employee groups to plot (integer codes)
-        job_strs
+        job_strs (list)
             job text labels for y axis when job number measure selected
-        job_levels
-            number of job levels in model
-        colors
+        job_levels (integer)
+            number of job levels in model (excluding furlough)
+        colors (list)
             colors for eg plots
-        ds_dict
+        ret_age (float)
+            retirement age (example: 65.0)
+        ds_dict (dictionary)
             output of the load_datasets function, dictionary.  This keyword
             argument must be set if a string key is used as the df input.
-        mnum
+        mnum (integer)
             month number for analysis
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (string, integer, float, date as string as appropriate)
             attr1 limiting value (combined with oper1) as string
-        scatter
+        scatter (boolean)
             plot a scatter chart (vs. default line chart)
-        exclude_fur
+        exclude_fur (boolean)
             do not plot furoughed employees
-        suptitle_fontsize
+        suptitle_fontsize (integer or float)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of chart legend
         xsize, ysize (integer or float)
             plot size in inches
-        full_pcnt_xscale
+        full_pcnt_xscale (boolean)
             plot x axis percentage from 0 to 100 percent
-        chart_example
+        chart_example (boolean)
             remove case-specific text from chart
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -688,7 +696,8 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
         x = frame_for_plot[xax]
         y = frame_for_plot[measure]
         if scatter:
-            ax.scatter(x=x, y=y, color=colors[i - 1], label=i, alpha=.5)
+            ax.scatter(x=x, y=y, color=colors[i - 1],
+                       s=scatter_size, label=i, alpha=.5)
         else:
             frame_for_plot.set_index(xax)[measure].plot(label=i,
                                                         color=colors[i - 1],
@@ -741,10 +750,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
     else:
         prop_text = df_label
 
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
-
-    suptitle = m_dict[measure].upper() + ' ordered by ' + xax + ' - ' + \
+    suptitle = attr_dict[measure].upper() + ' ordered by ' + xax + ' - ' + \
         prop_text + ' - Month: ' + str(mnum)
 
     if t_string:
@@ -755,12 +761,12 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
 
     if measure == 'ylong':
         plt.ylim(0, 40)
-    plt.ylabel(m_dict[measure])
-    plt.xlabel(m_dict[xax])
+    plt.ylabel(attr_dict[measure])
+    plt.xlabel(attr_dict[xax])
     plt.show()
 
 
-def violinplot_by_eg(df, measure, ds_dict=None,
+def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
                      mnum=0, linewidth=1.5, chart_example=False,
                      attr1=None, oper1='>=', val1='0',
                      attr2=None, oper2='>=', val2='0',
@@ -777,33 +783,35 @@ def violinplot_by_eg(df, measure, ds_dict=None,
     plot features a kernel density estimation of the underlying distribution.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        measure
+        measure (string)
             attribute to plot
+        ret_age (float)
+            retirement age (example: 65.0)
         ds_dict (dictionary)
             output from load_datasets function
-        mnum
+        mnum (integer)
             month number to analyze
-        linewidth
+        linewidth (integer or float)
             width of line surrounding each violin plot
-        chart_example
+        chart_example (boolean)
             remove case-specific text data from chart
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (string, integer, float, date as string as appropriate)
             attr1 limiting value (combined with oper1) as string
-        scale
+        scale (string)
             From the seaborn website:
             The method used to scale the width of each violin.
             If 'area', each violin will have the same area.
             If 'count', the width of the violins will be scaled by
             the number of observations in that bin.
             If 'width', each violin will have the same width.
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -832,28 +840,25 @@ def violinplot_by_eg(df, measure, ds_dict=None,
     frame.reset_index(drop=True, inplace=True)
 
     if measure == 'mpay':
-        frame = frame[frame.age < cf.ret_age]
+        frame = frame[frame.ret_mark == 0]
 
     sns.violinplot(x=frame.eg, y=frame[measure],
                    cut=0, scale=scale, inner='box',
                    bw=.1, linewidth=linewidth,
                    palette=['gray', '#3399ff', '#ff8000'])
 
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
-
     if chart_example:
         plt.suptitle('Proposal 3' + ' - ' +
-                     m_dict[measure].upper() + ',  Month ' +
+                     attr_dict[measure].upper() + ',  Month ' +
                      str(mnum) + ' Distribution')
     else:
         try:
             plt.suptitle(df_label + ' - ' +
-                         m_dict[measure].upper() + ',  Month ' +
+                         attr_dict[measure].upper() + ',  Month ' +
                          str(mnum) + ' Distribution')
         except:
             plt.suptitle('proposal' + ' - ' +
-                         m_dict[measure].upper() + ',  Month ' +
+                         attr_dict[measure].upper() + ',  Month ' +
                          str(mnum) + ' Distribution')
 
     plt.title(title_string, fontsize=title_fontsize)
@@ -868,31 +873,34 @@ def violinplot_by_eg(df, measure, ds_dict=None,
             plt.gca().set_yticks(np.arange(0, 1.05, .05))
             plt.ylim(1.04, -.04)
     plt.xlabel('employee group')
-    plt.ylabel(m_dict[measure])
+    plt.ylabel(attr_dict[measure])
     plt.show()
 
 
-def age_kde_dist(df, color_list, eg_dict, ds_dict=None,
-                 mnum=0, title_fontsize=14, min_age=25,
-                 max_age=cf.ret_age, chart_example=False):
+def age_kde_dist(df, color_list, eg_dict, max_age,
+                 ds_dict=None, mnum=0,
+                 title_fontsize=14, min_age=25,
+                 chart_example=False):
     '''From the seaborn website:
     Fit and plot a univariate or bivariate kernel density estimate.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        color_list
+        color_list (list)
             list of colors for employee group plots
-        eg_dict
+        eg_dict (dictionary)
             eg to string dict for plot labels
+        max_age (float)
+            maximum age to plot (x axis limit)
         ds_dict (dictionary)
             output from load_datasets function
-        mnum
+        mnum (integer)
             month number to analyze
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        chart_example
+        chart_example (boolean)
             remove case-specific text from chart
     '''
     ds = determine_dataset(df, ds_dict)
@@ -927,7 +935,8 @@ def age_kde_dist(df, color_list, eg_dict, ds_dict=None,
     plt.show()
 
 
-def eg_diff_boxplot(df_list, dfb, eg_list,
+def eg_diff_boxplot(df_list, dfb, eg_list, eg_colors, job_levels,
+                    job_diff_clip, attr_dict,
                     measure='spcnt',
                     comparison='baseline', ds_dict=None,
                     attr1=None, oper1='>=', val1=0,
@@ -936,11 +945,9 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
                     suptitle_fontsize=14, title_fontsize=12,
                     tick_size=11, label_size=12, year_clip=2035,
                     exclude_fur=False,
-                    use_eg_colors=False,
                     width=.8, chart_style='dark',
                     notch=True, linewidth=1.0,
-                    job_diff_clip=cf.num_of_job_levels + 1,
-                    xsize=10, ysize=6, chart_example=False):
+                    xsize=12, ysize=8, chart_example=False):
     '''create a differential box plot chart comparing a selected measure from
     computed integrated dataset(s) vs. a baseline (likely standalone) dataset
     or with other integrated datasets.
@@ -955,6 +962,10 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
         eg_list (list)
             list of integers for employee groups to be included in analysis
             example: [1, 2, 3]
+        eg_colors (list)
+            corresponding plot colors for eg_list input
+        job_levels (integer)
+            number of job levels in the data model (excluding furlough)
         measure (string)
             differential data to compare
         comparison (string)
@@ -963,19 +974,19 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
             baseline dataset (dfb)
         ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (string, integer, float, date as string as appropriate)
             attr1 limiting value (combined with oper1) as string
-        suptitle_fontsize
+        suptitle_fontsize (integer or float)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        tick_size
+        tick_size (integer or float)
             text size of x and y tick labels
-        label_size
+        label_size (integer or float)
             text size of x and y descriptive labels
         year_clip (integer)
             only present results through this year
@@ -995,7 +1006,7 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
             if measure is jnum or jobp, limit y axis range to +/- this value
         xsize, ysize (integer or float)
             plot size in inches
-        chart_example
+        chart_example (boolean)
             if True, remove case-specific descriptions from chart
     '''
 
@@ -1025,15 +1036,10 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
                  'mpay': 1,
                  'cpay': 10}
 
-    if use_eg_colors:
-        colors = cf.eg_colors
-    else:
-        colors = ['grey', '#66b3ff', '#ff884d', '#00ff99']
-
     # set boxplot color to match employee group(s) color
-    color_index = np.array(eg_list) - 1
-    color_arr = np.array(colors)
-    colors = list(color_arr[color_index])
+    color_index = sorted(list(np.array(eg_list) - 1))
+    color_arr = np.array(eg_colors)
+    eg_clrs = list(color_arr[color_index])
 
     ds_dict = od()
 
@@ -1166,7 +1172,7 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
         with sns.axes_style(chart_style):
             sns.boxplot(x='date', y=yval,
                         hue='eg', data=y_clip,
-                        palette=colors, width=width,
+                        palette=eg_clrs, width=width,
                         notch=notch,
                         linewidth=linewidth, fliersize=1.0)
         fig = plt.gcf()
@@ -1185,11 +1191,9 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
             plt.ylim(max(-job_diff_clip, int(-ylimit - 1)),
                      min(job_diff_clip, int(ylimit + 1)))
 
-        # metric description for chart label(s)
-        m_dict = cf.m_dict
-
         if chart_example:
-            plt.suptitle('PROPOSAL vs. standalone ' + m_dict[measure].upper())
+            plt.suptitle('PROPOSAL vs. standalone ' +
+                         attr_dict[measure].upper())
         else:
             plt.suptitle(yval_dict[yval], fontsize=suptitle_fontsize)
         plt.title(tb_string, fontsize=title_fontsize)
@@ -1201,6 +1205,7 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
 
 
 def eg_boxplot(df_list, eg_list,
+               eg_colors, job_clip, attr_dict,
                measure='spcnt',
                ds_dict=None,
                attr1=None, oper1='>=', val1=0,
@@ -1208,7 +1213,6 @@ def eg_boxplot(df_list, eg_list,
                attr3=None, oper3='>=', val3=0,
                year_clip=2035,
                exclude_fur=False,
-               use_eg_colors=False,
                saturation=.8,
                chart_style='dark',
                width=.7,
@@ -1218,12 +1222,11 @@ def eg_boxplot(df_list, eg_list,
                show_ygrid=True,
                grid_alpha=.4,
                grid_linestyle='solid',
-               job_clip=cf.num_of_job_levels + 1,
                whisker=1.5, fliersize=1.0,
-               linewidth=.5,
+               linewidth=.75,
                suptitle_fontsize=14, title_fontsize=12,
                tick_size=11, label_size=12,
-               xsize=10, ysize=6):
+               xsize=12, ysize=8):
     '''create a box plot chart displaying actual attribute values
     (vs. differential values) from a selected dataset(s) for selected
     employee group(s).
@@ -1231,52 +1234,50 @@ def eg_boxplot(df_list, eg_list,
     df_list (list)
         list of datasets to compare, may be ds_dict (output of load_datasets
         function) string keys or dataframe variable(s) or mixture of each
-    eg_list
+    eg_list (list)
         list of integers for employee groups to be included in analysis
         example: [1, 2, 3]
-    measure
+    measure (string)
         attribute for analysis
     ds_dict (dictionary)
         output from load_datasets function
-    attr(n)
+    attr(n) (string)
         filter attribute or dataset column as string
-    oper(n)
+    oper(n) (string)
         operator (i.e. <, >, ==, etc.) for attr1 as string
-    val(n)
+    val(n) (string, integer, float, date as string as appropriate)
         attr1 limiting value (combined with oper1) as string
-    year_clip
+    year_clip (integer)
         only present results through this year
-    exclude_fur
+    exclude_fur (boolean)
         remove all employees from analysis who are furloughed within the
         data model at any time (boolean)
-    use_eg_colors
-        use case-specific employee group colors vs. default colors (boolean)
-    chart_style
+    chart_style (string)
         chart styling (string), any valid seaborn chart style
-    width
+    width (float)
         plotting width of boxplot or grouped boxplots for each year.
         a width of 1 leaves no gap between groups
-    notch
+    notch (boolean)
         If True, show boxplots with a notch at median point
-    show_xgrid
+    show_xgrid (boolean)
         include vertical grid lines on chart
-    show_ygrid
+    show_ygrid (boolean)
         include horizontal grid lines on chart
-    grid_alpha
+    grid_alpha (float)
         opacity value for grid lines
-    grid_linestyle
+    grid_linestyle (string)
         examples: 'solid', 'dotted', 'dashed'
-    job_clip
+    job_clip (float)
         if measure is jnum or jobp, limit max y axis range to this value
-    suptitle_fontsize
+    suptitle_fontsize (integer or float)
         text size of chart super title
-    title_fontsize
+    title_fontsize (integer or float)
         text size of chart title
-    tick_size
+    tick_size (integer or float)
         text size of x and y tick labels
-    label_size
+    label_size (integer or float)
         text size of x and y descriptive labels
-    xsize, ysize
+    xsize, ysize (integer or float)
         plot size in inches
     '''
     label_dict = {}
@@ -1303,15 +1304,10 @@ def eg_boxplot(df_list, eg_list,
                  'lnum': 50,
                  'jobp': .5}
 
-    if use_eg_colors:
-        colors = cf.eg_colors
-    else:
-        colors = ['grey', '#66b3ff', '#ff884d', '#00ff99']
-
     # set boxplot color to match employee group(s) color
-    color_index = np.array(eg_list) - 1
-    color_arr = np.array(colors)
-    colors = list(color_arr[color_index])
+    color_index = sorted(list(np.array(eg_list) - 1))
+    color_arr = np.array(eg_colors)
+    eg_clrs = list(color_arr[color_index])
 
     temp_frame = df_list[0][['empkey', 'mnum', 'eg', 'date']].copy()
     temp_frame['year'] = temp_frame.date.dt.year
@@ -1324,9 +1320,6 @@ def eg_boxplot(df_list, eg_list,
 
     yval_list = []
     title_dict = od()
-
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
 
     i = 1
     for ds in df_list:
@@ -1350,7 +1343,7 @@ def eg_boxplot(df_list, eg_list,
             p_label = 'df_list item ' + str(i)
         else:
             p_label = label_dict[i]
-        title_dict[this_measure_col] = p_label + ' ' + m_dict[measure]
+        title_dict[this_measure_col] = p_label + ' ' + attr_dict[measure]
 
         i += 1
 
@@ -1371,7 +1364,7 @@ def eg_boxplot(df_list, eg_list,
         with sns.axes_style(chart_style):
             sns.boxplot(x='year', y=yval,
                         hue='eg', data=y_clip,
-                        palette=colors,
+                        palette=eg_clrs,
                         notch=notch, whis=whisker,
                         saturation=saturation, width=width,
                         linewidth=linewidth, fliersize=fliersize)
@@ -1411,19 +1404,20 @@ def eg_boxplot(df_list, eg_list,
 
 
 # DISTRIBUTION WITHIN JOB LEVEL (NBNF effect)
-def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
+def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
                                        eg_colors, band_colors, job_strs,
-                                       eg_dict, ds_dict=None, adjust=cf.adjust,
+                                       attr_dict,
+                                       eg_dict, ds_dict=None,
                                        rank_metric='cat_order',
                                        attr1=None, oper1='>=', val1='0',
                                        attr2=None, oper2='>=', val2='0',
                                        attr3=None, oper3='>=', val3='0',
-                                       bg_alpha=.12, fur_color='.4',
+                                       bg_alpha=.12, fur_color=None,
                                        show_part_time_lvl=True,
-                                       size=3, xsize=4, ysize=10,
+                                       size=3, xsize=4, ysize=12,
                                        chart_example=False,
-                                       suptitle_fontsize=14, title_fontsize=12,
-                                       label_size=12, tick_fontsize=11):
+                                       title_fontsize=14, label_pad=110,
+                                       label_size=13, tick_fontsize=12):
     '''visually display employee group distribution concentration within
     accurately sized job bands for a selected month.
 
@@ -1431,49 +1425,48 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
     the jobs available within each job category.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        job_levels
+        job_levels (integer)
             number of job levels in the data model
-        mnum
+        mnum (integer)
             month number - analyze data from this month
-        full_time_pcnt
+        full_time_pcnt (float)
             percentage of each job level which is full time
-        eg_colors
+        eg_colors (list)
             list of colors for eg plots
-        band_colors
+        band_colors (list)
             list of colors for background job band colors
-        job_strs
+        job_strs (list)
             list of job strings for job description labels
-        eg_dict
+        eg_dict (dictionary)
             eg to group string label
         ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (string, integer, float, date as string as appropriate)
             attr1 limiting value (combined with oper1) as string
-        bg_alpha
+        bg_alpha (float)
             color alpha for background job level color
-        fur_color
-            color to represent furloughed employees
-        show_part_time_lvl
+        fur_color (color code in rgba, hex, or string style)
+            custom color to signify furloughed job band area (otherwise, last
+            color from band_colors list will be used)
+        show_part_time_lvl (boolean)
             draw a line within each job band representing the boundry
             between full and part-time jobs
-        size
+        size (integer or float)
             size of density markers
-        chart_example
+        chart_example (boolean)
             remove case-specific text from plot
-        suptitle_fontsize
-            text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        label_size
+        label_size (integer or float)
             text size of x and y descriptive labels
-        tick_fontsize
+        tick_fontsize (integer or float)
             text size of x and y tick labels
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -1486,23 +1479,25 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
 
     d_filt = d_filt[[]].join(dsm).reindex(dsm.index)
     data = d_filt[['mnum', rank_metric, 'jnum', 'eg']].copy()
-
-    fur_lvl = job_levels + 1
+    # fur_lvl = job_levels + 1
 
     eg_set = pd.unique(data.eg)
     max_eg_plus_one = max(eg_set) + 1
 
     y_count = len(data)
 
+    clr_idx = (np.unique(dsm.jnum) - 1).astype(int)
     cum_job_counts = dsm.jnum.value_counts().sort_index().cumsum()
-    lowest_cat = max(cum_job_counts.index)
+    # lowest_cat = max(cum_job_counts.index)
 
     cnts = list(cum_job_counts)
     cnts.insert(0, 0)
 
     axis2_lbl_locs = []
     axis2_lbls = []
-    band_colors.append(fur_color)
+
+    if fur_color:
+        band_colors[-1] = fur_color
 
     with sns.axes_style('white'):
         fig, ax1 = plt.subplots()
@@ -1521,8 +1516,9 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
     for job_zone in cum_job_counts:
         ax1.axhline(job_zone, c='magenta', ls='-', alpha=1, lw=.8)
         ax1.axhspan(cnts[i], cnts[i + 1],
-                    facecolor=band_colors[i],
-                    alpha=bg_alpha,)
+                    facecolor=band_colors[clr_idx[i]],
+                    alpha=bg_alpha)
+
         if show_part_time_lvl:
             part_time_lvl = (round((cnts[i + 1] - cnts[i]) *
                              full_time_pcnt)) + cnts[i]
@@ -1533,24 +1529,10 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
 
     for job_num in cum_job_counts.index:
         axis2_lbl_locs.append(round((cnts[i] + cnts[i + 1]) / 2))
-        axis2_lbl_locs[i] += adjust[int(job_num) - 1]
         axis2_lbls.append(job_strs[int(job_num)])
         i += 1
 
-    counter = 0
-    for i in np.arange(1, len(axis2_lbl_locs)):
-        this_diff = axis2_lbl_locs[i] - axis2_lbl_locs[i - 1]
-        # space labels if overlapping...
-        if this_diff < 220:
-            counter += 1
-            if counter == 1:
-                axis2_lbl_locs[i - 1] = axis2_lbl_locs[i] - 220
-            else:
-                axis2_lbl_locs[i] = axis2_lbl_locs[i - 1] + 220
-
-    if lowest_cat == fur_lvl:
-        plt.axhspan(cnts[-2], cnts[-1], facecolor='#fbfbea', alpha=0.9)
-        axis2_lbls[-1] = 'FUR'
+    axis2_lbl_locs = add_pad(axis2_lbl_locs, pad=label_pad)
 
     with sns.axes_style("white"):
         ax2 = ax1.twinx()
@@ -1562,9 +1544,6 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
 
         ax2.set_yticklabels(yticks)
         plt.ylim(y_count, 0)
-
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
 
     xticks = plt.gca().get_xticks().tolist()
 
@@ -1580,23 +1559,19 @@ def stripplot_distribution_in_category(df, job_levels, mnum, full_time_pcnt,
     plt.tick_params(labelsize=tick_fontsize)
 
     plt.gcf().set_size_inches(7, 12)
-    plt.suptitle(df_label +
-                 ', distribution within job levels, month ' + str(mnum),
-                 fontsize=suptitle_fontsize)
-    plt.title(t_string, fontsize=title_fontsize, y=1.02)
-    ax1.set_ylabel(m_dict[rank_metric])
-    ax1.set_xlabel(m_dict['eg'])
+    title_pt1 = (df_label +
+                 ', distribution within job levels, month ' + str(mnum))
+    plt.title(title_pt1 + '\n\n' + t_string, fontsize=title_fontsize, y=1.01)
+    ax1.set_ylabel(attr_dict[rank_metric])
+    ax1.set_xlabel(attr_dict['eg'])
     fig.set_size_inches(xsize, ysize)
     plt.show()
 
 
 def job_level_progression(df, emp_list, through_date,
+                          settings_dict, color_dict,
+                          eg_colors, band_colors,
                           ds_dict=None, rank_metric='cat_order',
-                          job_levels=cf.num_of_job_levels,
-                          eg_colors=cf.eg_colors,
-                          band_colors=cf.job_colors,
-                          job_counts=cf.eg_counts,
-                          job_change_lists=cf.j_changes,
                           alpha=.12,
                           max_plots_for_legend=5,
                           xsize=12, ysize=10,
@@ -1622,6 +1597,12 @@ def job_level_progression(df, emp_list, through_date,
             list of empkeys to plot
         through_date
             string representation of y axis date limit, ex. '2025-12-31'
+        settings_dict (dictionary)
+            program settings dictionary generated by the build_program_files
+            script
+        color_dict (dictionary)
+            dictionary containing color list string titles to lists of color
+            values generated by the build_program_files script
         ds_dict (dictionary)
             output from load_datasets function
         job levels
@@ -1649,16 +1630,20 @@ def job_level_progression(df, emp_list, through_date,
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
+    job_levels = settings_dict['num_of_job_levels']
+    job_counts = settings_dict['eg_counts']
+    job_change_lists = settings_dict['j_changes']
+
     through_date = pd.to_datetime(through_date)
     fur_lvl = job_levels + 1
-    jobs_dict = cf.jobs_dict
+    jobs_dict = settings_dict['job_strs_dict']
 
-    if cf.enhanced_jobs:
+    if settings_dict['enhanced_jobs']:
         # use job dictionary from case-specific configuration file
         # for conversion
         eg_counts, j_changes = f.convert_to_enhanced(job_counts,
                                                      job_change_lists,
-                                                     cf.jd)
+                                                     settings_dict['jd'])
     else:
         j_changes = job_change_lists
         eg_counts = job_counts
@@ -1672,7 +1657,7 @@ def job_level_progression(df, emp_list, through_date,
 
     df_table = pd.DataFrame(table[0],
                             columns=np.arange(1, job_levels + 1),
-                            index=pd.date_range(cf.starting_date,
+                            index=pd.date_range(settings_dict['starting_date'],
                                                 periods=table[0].shape[0],
                                                 freq='M'))
     # for band areas
@@ -1681,7 +1666,7 @@ def job_level_progression(df, emp_list, through_date,
     df_monthly_non_ret = pd.DataFrame(ds[ds.fur == 0].groupby('mnum').size(),
                                       columns=['count'])
     df_monthly_non_ret.set_index(
-        pd.date_range(cf.starting_date,
+        pd.date_range(settings_dict['starting_date'],
                       periods=pd.unique(df_monthly_non_ret.index).size,
                       freq='M'), inplace=True)
 
@@ -1703,14 +1688,13 @@ def job_level_progression(df, emp_list, through_date,
     axis2_lbl_locs = []
     axis2_lbls = []
 
-    adjust = cf.adjust
-
     i = 0
     for job_num in last_month_counts.index:
         axis2_lbl_locs.append(round((cnts[i] + cnts[i + 1]) / 2))
-        axis2_lbl_locs[i] += adjust[i]
         axis2_lbls.append(jobs_dict[job_num])
         i += 1
+
+    axis2_lbl_locs = add_pad(axis2_lbl_locs, pad=110)
 
     egs = ds[ds.mnum == 0].eg
 
@@ -1743,8 +1727,9 @@ def job_level_progression(df, emp_list, through_date,
         if len(emp_list) <= max_plots_for_legend:
             ax1.legend()
 
-        if cf.delayed_implementation:
-            plt.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
+        if settings_dict['delayed_implementation']:
+            plt.axvline(settings_dict['imp_date'], c='g',
+                        ls='--', alpha=1, lw=1)
 
     with sns.axes_style("white"):
         ax2 = jobs_table.plot.area(stacked=True,
@@ -1785,8 +1770,8 @@ def job_level_progression(df, emp_list, through_date,
 
 
 def differential_scatter(df_list, dfb,
-                         measure, filter_measure,
-                         filter_val, eg_list, ds_dict=None,
+                         measure, eg_list,
+                         attr_dict, color_dict, eg_dict, ds_dict=None,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
                          attr3=None, oper3='>=', val3=0,
@@ -1798,6 +1783,7 @@ def differential_scatter(df_list, dfb,
                          legend_fontsize=14,
                          tick_size=11, label_size=12,
                          xsize=12, ysize=8, bright_bg=False,
+                         bright_bg_color='#faf6eb',
                          chart_style='whitegrid', chart_example=False):
     '''plot an attribute differential between datasets filtered with another
     attribute if desired.
@@ -1819,14 +1805,17 @@ def differential_scatter(df_list, dfb,
             or mixture of each
         dfb (string or variable)
             baseline dataset, accepts same input types as df_list above
-        measure
+        measure (string)
             attribute to analyze
-        filter_measure
-            further reduce or filter the measure by this attribute
-        filter_val
-            value to apply to the filter_measure
-            example: if filter_measure is 'mnum', filter_val would be
-            an interger representing the month number
+        eg_list (list)
+            list of employee group codes
+        attr_dict (dictionary)
+            dataset column name description dictionary
+        color_dict (dictionary)
+            dictionary containing color list string titles to lists of color
+            values generated by the build_program_files script
+        eg_dict (dictionary)
+            employee group code number to description dictionary
         ds_dict (dictionary)
             output from load_datasets function
         attr(n)
@@ -1894,22 +1883,24 @@ def differential_scatter(df_list, dfb,
 
     df_base, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
 
-    dfb_filt, tb_string = filter_ds(df_base,
-                                    attr1=attr1, oper1=oper1, val1=val1,
-                                    attr2=attr2, oper2=oper2, val2=val2,
-                                    attr3=attr3, oper3=oper3, val3=val3)
+    # dfb_filt, tb_string = filter_ds(df_base,
+    df, tb_string = filter_ds(df_base,
+                              attr1=attr1, oper1=oper1, val1=val1,
+                              attr2=attr2, oper2=oper2, val2=val2,
+                              attr3=attr3, oper3=oper3, val3=val3)
 
     cols = [measure, 'new_order']
 
-    df = dfb_filt[dfb_filt[filter_measure] == filter_val][
-        [measure, 'eg']].copy()
+    # df = dfb_filt[dfb_filt[filter_measure] == filter_val][
+    #     [measure, 'eg']].copy()
     df.rename(columns={measure: measure + '_s'}, inplace=True)
 
     order_dict = {}
 
     i = 1
     for ds in df_list:
-        ds = ds[ds[filter_measure] == filter_val][cols].copy()
+        ds = ds[cols].copy()
+        # ds = ds[ds[filter_measure] == filter_val][cols].copy()
         ds.rename(columns={measure: measure + '_' + str(i),
                            'new_order': 'order' + str(i)}, inplace=True)
         df = df.join(ds)
@@ -1963,28 +1954,29 @@ def differential_scatter(df_list, dfb,
                 if chart_example:
                     label = str(eg)
                 else:
-                    label = cf.eg_dict[eg]
+                    label = eg_dict[eg]
 
                 if show_scatter:
                     data.plot(x=xax, y=yax, kind='scatter',
                               linewidth=0.1,
-                              color=cf.eg_colors[eg - 1], s=dot_size,
+                              color=color_dict['eg_colors'][eg - 1],
+                              s=dot_size,
                               label=label,
                               ax=ax)
 
                 if show_mean:
                     data['ma'] = data[eg].rolling(mean_len).mean()
                     data.plot(x=xax, y='ma', lw=5,
-                              color=cf.mean_colors[eg - 1],
+                              color=color_dict['mean_colors'][eg - 1],
                               label=label,
                               alpha=.6, ax=ax)
                     plt.xlim(0, x_limit)
 
                 if show_lin_reg:
                     if show_scatter:
-                        lin_reg_colors = cf.lin_reg_colors
+                        lin_reg_colors = color_dict['lin_reg_colors']
                     else:
-                        lin_reg_colors = cf.lin_reg_colors2
+                        lin_reg_colors = color_dict['lin_reg_colors2']
                     sns.regplot(x=xax, y=yax, data=data,
                                 color=lin_reg_colors[eg - 1],
                                 label=label,
@@ -2007,18 +1999,16 @@ def differential_scatter(df_list, dfb,
 
             plt.gcf().set_size_inches(xsize, ysize)
 
-            # metric description for chart label(s)
-            m_dict = cf.m_dict
-
             if chart_example:
                 suptitle_str = ('Proposal' + ' differential: ' +
-                                m_dict[measure])
+                                attr_dict[measure])
             else:
                 if label_dict[prop_num] == 'Proposal':
                     p_label = 'df_list item ' + str(prop_num)
                 else:
                     p_label = label_dict[prop_num]
-                suptitle_str = (p_label + ' differential: ' + m_dict[measure])
+                suptitle_str = (p_label + ' differential: ' +
+                                attr_dict[measure])
             if tb_string:
                 plt.suptitle(suptitle_str, fontsize=suptitle_fontsize)
                 plt.title(tb_string, fontsize=title_fontsize, y=1.005)
@@ -2037,7 +2027,7 @@ def differential_scatter(df_list, dfb,
             ax.axhline(0, c='m', ls='-', alpha=1, lw=2)
             ax.invert_xaxis()
             if bright_bg:
-                ax.set_axis_bgcolor('#faf6eb')
+                ax.set_facecolor(bright_bg_color)
             plt.ylabel('differential', fontsize=label_size)
             plt.tick_params(axis='both', which='major', labelsize=tick_size)
             ax.xaxis.label.set_size(label_size)
@@ -2045,19 +2035,15 @@ def differential_scatter(df_list, dfb,
             plt.show()
 
 
-# groupby method:
-# only age 65 in group, use .sum
-# others, use .mean
-def job_grouping_over_time(df, eg_list, jobs, colors,
+def job_grouping_over_time(df, eg_list, jobs, job_colors, eg_dict,
                            plt_kind='bar', ds_dict=None, rets_only=True,
-                           ret_age=cf.ret_age,
                            attr1=None, oper1='>=', val1=0,
                            attr2=None, oper2='>=', val2=0,
                            attr3=None, oper3='>=', val3=0,
                            time_group='A', display_yrs=40, legend_loc=4,
                            suptitle_fontsize=14, title_fontsize=12,
                            legend_fontsize=13,
-                           tick_size=11, label_size=12,
+                           tick_size=11, label_size=13,
                            xsize=12, ysize=10, chart_example=False):
 
     '''Inverted bar chart display of job counts by group over time.  Various
@@ -2070,51 +2056,60 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
     monthly ("M") time group option selected.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        eg_list
+        eg_list (list)
             list of unique employee group numbers within the proposal
             Example: [1, 2]
-        jobs
+        jobs (list)
             list of job label strings (for plot legend)
-        colors
+        job_colors (list)
             list of colors to be used for plotting
-        plt_kind
+        eg_dict (dictionary)
+            employee group to string description dictionary
+        plt_kind (string)
             'bar' or 'area' (bar recommended)
-        ds_dict
+        ds_dict (dictionary)
             output from load_datasets function
-        rets_only
+        rets_only (boolean)
             calculate for employees at retirement age only
-        ret_age
-            retirement age in years
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (string, integer, float, date as string as appropriate)
             attr1 limiting value (combined with oper1) as string
-        time_group
+        time_group (string)
             group counts/percentages by year ('A'), quarter ('Q'),
             or month ('M')
-        display_years
+        display_years (integer)
             when using the bar chart type display, evenly scale the x axis
             to include the number of years selected for all group charts
-        legend_loc
+        legend_loc (integer)
             matplotlib legend location number code
-        suptitle_fontsize
+
+                +---+----+---+
+                | 2 | 9  | 1 |
+                +---+----+---+
+                | 6 | 10 | 7 |
+                +---+----+---+
+                | 3 | 8  | 4 |
+                +---+----+---+
+
+        suptitle_fontsize (integer or float)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of chart legend labels
-        tick_size
+        tick_size (integer or float)
             text size of x and y tick labels
-        label_size
+        label_size (integer or float)
             text size of x and y descriptive labels
-        xsize, ysize
+        xsize, ysize (integer or float)
             size of each chart in inches
-        chart_example
+        chart_example (boolean)
             produce a chart without case-specific labels (generic example)
 
     '''
@@ -2125,19 +2120,8 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
                                  attr2=attr2, oper2=oper2, val2=val2,
                                  attr3=attr3, oper3=oper3, val3=val3)
     if rets_only:
-        try:
-            d_filt = d_filt[d_filt.ret_mark == 1][
-                ['eg', 'date', 'jnum']].copy()
-        except:
-            if cf.ret_age_increase:
-                print('''Please set "add_ret_mark" option to True
-                      in config file''')
-                return
-            else:
-                d_filt = d_filt[d_filt.age == cf.ret_age][
-                    ['eg', 'date', 'jnum']].copy()
-
-    colors.append('.7')
+        d_filt = d_filt[d_filt.ret_mark == 1][
+            ['eg', 'date', 'jnum']].copy()
 
     for eg in eg_list:
 
@@ -2173,13 +2157,15 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
             clr = []
             for col in cols:
                 labels.append(jobs[col - 1])
-                clr.append(colors[col - 1])
+                clr.append(job_colors[col - 1])
 
             if plt_kind == 'area':
                 df.plot(kind='area', linewidth=0, color=clr, stacked=True)
 
             if plt_kind == 'bar':
-                df.plot(kind='bar', width=1, color=clr, stacked=True)
+                df.plot(kind='bar', width=1,
+                        edgecolor='k', linewidth=.5,
+                        color=clr, stacked=True)
 
             ax = plt.gca()
             if rets_only:
@@ -2197,9 +2183,9 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
                 suptitle_str = 'Proposal' + ' group ' + str(eg)
             else:
                 try:
-                    suptitle_str = df_label + ' group ' + cf.eg_dict[eg]
+                    suptitle_str = df_label + ' group ' + eg_dict[eg]
                 except:
-                    suptitle_str = 'Proposal' + ' group ' + cf.eg_dict[eg]
+                    suptitle_str = 'Proposal' + ' group ' + eg_dict[eg]
 
             if t_string:
                 plt.suptitle(suptitle_str, fontsize=suptitle_fontsize)
@@ -2213,7 +2199,9 @@ def job_grouping_over_time(df, eg_list, jobs, colors,
             plt.show()
 
 
-def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
+def parallel(df_list, dfb, eg_list, measure,
+             month_list, job_levels, eg_colors,
+             dict_settings, attr_dict,
              ds_dict=None,
              attr1=None, oper1='>=', val1=0,
              attr2=None, oper2='>=', val2=0,
@@ -2235,30 +2223,45 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
         dfb (string or variable)
             baseline dataset, accepts same input types as df_list above.
             The order of the list is reflected in the chart x axis lables
-        eg_list
+        eg_list (list)
             list of employee group integer codes to compare
             example: [1, 2]
-        measure
+        measure (string)
             dataset attribute to compare
-        month_list
+        month_list (list)
             list of month numbers for analysis.
             the function will plot comparative data from each month listed
-        job_levels
+        job_levels (integer)
             number of job levels in data model
-        left
+        eg_colors (list)
+            list of colors to represent the employee groups
+        dict_settings (dictionary)
+            program settings dictionary generated by the build_program_files
+            script
+        attr_dict (dictionary)
+            dataset column name description dictionary
+        ds_dict (dictionary)
+            output from load_datasets function
+        attr(n) (string)
+            filter attribute or dataset column as string
+        oper(n) (string)
+            operator (i.e. <, >, ==, etc.) for attr1 as string
+        val(n) (string, integer, float, date as string as appropriate)
+            attr1 limiting value (combined with oper1) as string
+        left (integer)
             integer representing the list comparison to plot on left side
             of the chart(s).
             zero (0) represents the standalone results and is the default.
             1, 2, or 3 etc. represent the first, second, third, etc. dataset
             results in df_list input order
-        stride_list
+        stride_list (list)
             optional list of dataframe strides for plotting every other
-            nth result
-        grid_color
+            nth result (must be same length and correspond to eg_list)
+        grid_color (string)
             string name for horizontal grid color
-        facecolor
+        facecolor (color value)
             chart background color
-        xsize, ysize
+        xsize, ysize (integer or float)
             size of individual subplots
     '''
     label_dict = {}
@@ -2281,10 +2284,11 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
                                     attr1=attr1, oper1=oper1, val1=val1,
                                     attr2=attr2, oper2=oper2, val2=val2,
                                     attr3=attr3, oper3=oper3, val3=val3)
-    group_dict = cf.eg_dict
-    color_dict = dict(enumerate(cf.eg_colors))
 
-    jobs = cf.job_strs
+    group_dict = dict_settings['eg_dict']
+    color_dict = dict(enumerate(eg_colors))
+
+    jobs = dict_settings['job_strs']
 
     num_egplots = len(eg_list)
     num_months = len(month_list)
@@ -2332,9 +2336,6 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
 
         df_joined.columns = col_list
 
-        # metric description for chart label(s)
-        m_dict = cf.m_dict
-
         with sns.axes_style('whitegrid', {'axes.facecolor': facecolor,
                                           'axes.axisbelow': True,
                                           'axes.edgecolor': '.2',
@@ -2355,7 +2356,7 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
                                      color=color_dict[eg - 1])
 
                 plt.title('Group ' + group_dict[eg].upper() + ' ' +
-                          m_dict[measure].upper() +
+                          attr_dict[measure].upper() +
                           ' ' + str(month) + ' mths',
                           fontsize=title_fontsize, y=1.02)
 
@@ -2389,7 +2390,7 @@ def parallel(df_list, dfb, eg_list, measure, month_list, job_levels,
 
 
 def rows_of_color(df, mnum, measure_list, eg_colors,
-                  jnum_colors, ds_dict=None,
+                  jnum_colors, dict_settings, ds_dict=None,
                   attr1=None, oper1='>=', val1=0,
                   attr2=None, oper2='>=', val2=0,
                   attr3=None, oper3='>=', val3=0,
@@ -2397,7 +2398,8 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
                   job_only=False, jnum=1, cell_border=True,
                   eg_border_color='.3', job_border_color='.8',
                   chart_style='whitegrid',
-                  fur_color='.5', empty_color='#ffffff',
+                  fur_color=None,
+                  empty_color='#ffffff',
                   suptitle_fontsize=14, title_fontsize=12, legend_fontsize=14,
                   xsize=14, ysize=12, chart_example=False):
     '''plot a heatmap with the color of each rectangle representing an
@@ -2418,59 +2420,60 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
     a 0.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        mnum
+        mnum (integer)
             month number of dataset to analyze
-        measure_list
+        measure_list (list)
             list form input, 'categorical' only such as employee group number
             or job number, such as ['jnum'], or ['eg']
             ['eg', 'fur'] is also valid when highlighting furloughees
-        eg_colors
+        eg_colors (list)
             colors to use for plotting the employee groups.
             the first color in the list is used for the plot 'background'
             and is not an employee group color
-        jnum_colors
+        jnum_colors (list)
             job level plotting colors, list form
         ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
-        cols
+        cols (integer)
             number of columns to construct for the heatmap plot
-        eg_list
+        eg_list (list)
             employee group integer code list (if used), example: [1, 2]
-        job_only
+        job_only (boolean)
             if True, plot only employees holding the job level identified
             with the jnum input
-        jnum
+        jnum (integer)
             job level distribution to plot if job_only input is True
-        cell_border
+        cell_border (boolean)
             if True, show a border around the heatmap cells
-        eg_border_color
+        eg_border_color (color value)
             color of cell border if measure_list includes 'eg' (employee group)
-        job_border_color
+        job_border_color (color value)
             color of cell border when plotting job information
-        chart_style
+        chart_style (string)
             underlying chart style, any valid seaborn chart style (string)
-        fur_color
-            cell color for furloughed employees
-        empty_color
+        fur_color (color code in rgba, hex, or string style)
+            custom color to signify furloughed employees (otherwise, last
+            color in jnum_colors input will be used)
+        empty_color (color value)
             cell color for cells with no data
-        suptitle_fontsize
+        suptitle_fontsize (integer or float)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of chart legend
-        xsize, ysize
+        xsize, ysize (integer or float)
             size of chart
-        chart_example
+        chart_example (boolean)
             if True, produce a chart without case-specific
             labels (generic example)
     '''
@@ -2499,9 +2502,10 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
     else:
         plot_colors = eg_colors[:]
 
-    plot_colors.append(fur_color)
     plot_colors.insert(0, empty_color)
     fur_integer = len(plot_colors) - 1
+    if fur_color:
+        plot_colors[-1] = fur_color
 
     eg = np.array(joined.eg)
     egs = pd.unique(eg)
@@ -2519,10 +2523,12 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
         if chart_example:
             suptitle = 'Proposal' + ' month ' + str(mnum) + \
-                ':  ' + cf.job_strs[jnum - 1] + '  job distribution'
+                ':  ' + dict_settings['job_strs'][jnum - 1] + \
+                '  job distribution'
         else:
             suptitle = df_label + ' month ' + str(mnum) + \
-                ':  ' + cf.job_strs[jnum - 1] + '  job distribution'
+                ':  ' + dict_settings['job_strs'][jnum - 1] + \
+                '  job distribution'
 
     else:
 
@@ -2594,7 +2600,7 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
         if job_only:
 
-            label_dict = cf.eg_dict_verbose
+            label_dict = dict_settings['eg_dict_verbose']
             if eg_list:
                 heat_unique = np.unique(np.array(eg_list)).astype(int)
             else:
@@ -2602,13 +2608,13 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
         if not job_only:
 
-            label_dict = cf.jobs_dict
+            label_dict = dict_settings['job_strs_dict']
             heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
                 .astype(int)
 
     if 'eg' in measure_list:
 
-        label_dict = cf.eg_dict_verbose.copy()
+        label_dict = dict_settings['eg_dict_verbose'].copy()
         label_dict[max(egs) + 1] = 'FUR'
         heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
             .astype(int)
@@ -2650,10 +2656,11 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
     plt.show()
 
 
-def quartile_bands_over_time(df, eg, measure, bins=20, ds_dict=None,
+def quartile_bands_over_time(df, eg, measure, quartile_colors,
+                             bins=20, ds_dict=None,
                              clip=True, year_clip=2035, kind='area',
                              quartile_ticks=False,
-                             custom_color=True, cm_name='Set1',
+                             cm_name='Set1',
                              quartile_alpha=.75, grid_alpha=.5,
                              custom_start=0, custom_finish=.75,
                              xsize=10, ysize=8, alt_bg_color=False,
@@ -2720,12 +2727,9 @@ def quartile_bands_over_time(df, eg, measure, bins=20, ds_dict=None,
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
-    if custom_color:
-        cm_subsection = np.linspace(custom_start, custom_finish, bins)
-        colormap = eval('cm.' + cm_name)
-        quartile_colors = [colormap(x) for x in cm_subsection]
-    else:
-        quartile_colors = cf.color1
+    cm_subsection = np.linspace(custom_start, custom_finish, bins)
+    colormap = eval('cm.' + cm_name)
+    quartile_colors = [colormap(x) for x in cm_subsection]
 
     if clip:
         eg_df = ds[(ds.eg == eg) & (ds.date.dt.year <= year_clip)]
@@ -2834,7 +2838,7 @@ def quartile_bands_over_time(df, eg, measure, bins=20, ds_dict=None,
             legend_pos_adj = .1
 
         if alt_bg_color:
-            ax.set_axis_bgcolor(bg_color)
+            ax.set_facecolor(bg_color)
 
         plt.title(df_label + ', group ' + str(eg) +
                   ' quartile change over time',
@@ -2864,12 +2868,14 @@ def quartile_bands_over_time(df, eg, measure, bins=20, ds_dict=None,
         plt.show()
 
 
-def job_transfer(dfc, dfb, eg, colors,
-                 job_levels, ds_dict=None,
+def job_transfer(dfc, dfb, eg, job_colors,
+                 job_levels, starting_date, job_strs, eg_dict,
+                 ds_dict=None,
                  measure='jnum', gb_period='M',
                  custom_color=True, cm_name='Paired',
                  start=0, stop=.95, job_alpha=1, chart_style='white',
-                 yticks_lim=5000, fur_color='.5',
+                 yticks_lim=5000,
+                 fur_color=None,
                  draw_face_color=True, draw_grid=True,
                  ytick_interval=100, legend_xadj=1.62,
                  legend_yadj=.78, annotate=False,
@@ -2881,56 +2887,67 @@ def job_transfer(dfc, dfb, eg, colors,
     transfer counts over time.  Result appears to be stacked area chart.
 
     inputs
-        dfc
+        dfc (dataframe)
             proposal (comparison) dataset to examine, may be a dataframe
             variable or a string key from the ds_dict dictionary object
-        dfb
+        dfb (dataframe)
             baseline dataset; proposal dataset is compared to this
             dataset, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        eg
+        eg (integer)
             integer code for employee group
-        colors
+        job_colors (list)
             list of colors for job levels
-        job_levels
+        job_levels (integer)
             number of job levels in data model
+        starting_date (date string)
+            starting date for the data model
+        job_strs (list)
+            list of job descriptions (labels)
+        eg_dict (dictionary)
+            dictionary of employee number codes to short string description
+
+            example: {0: 'sa', 1: '1', 2: '2'}
         ds_dict (dictionary)
             output from load_datasets function
-        measure
+        measure (string)
             currently only 'jnum' is applicable
-        gb_period
+        gb_period (string)
             group_by period. default is 'M' for monthly, other options
             are 'Q' for quarterly and 'A' for annual
-        custom_color
+        custom_color (boolean)
             create custom color map
-        cm_name
+        cm_name (string)
             color map name
-        start
-            custom color linspace start
-        stop
-            custom color linspace stop
-        job_alpha
-            chart alpha level for job transfer plotting
-        chart_style
+        start (float)
+            custom color linspace start (0.0 - 1.0)
+        stop (float)
+            custom color linspace stop (0.0 - 1.0)
+        job_alpha (float)
+            chart alpha level for job transfer plotting (0.0 - 1.0)
+        chart_style (string)
             seaborn plotting library style
-        yticks_lim
+        yticks_lim (integer)
             limit for y tick labeling
-        draw_face_color
+        fur_color (color code in rgba, hex, or string style)
+            custom color to signify furloughed employees (otherwise, last
+            color in job_colors input will be used)
+        draw_face_color (boolean)
             apply a transparent background to the chart, red below zero
             and green above zero
-        draw_grid
+        draw_grid (boolean)
             show major tick label grid lines
-        ytick_interval
+        ytick_interval (integer)
             ytick spacing
-        legend_xadj
+        legend_xadj (integer)
             horizontal addjustment for legend placement
-        legend_yadj
+        legend_yadj (integer)
             vertical adjustment for legend placement
-        annotate
+        annotate (boolean)
             add text to chart, 'job count increase' and 'job count decrease'
-        xsize
+        xsize (integer or float)
             horizontal size of chart
-        ysize
+        ysize (integer or float)
             vertical size of chart
     '''
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
@@ -2944,7 +2961,7 @@ def job_transfer(dfc, dfb, eg, colors,
     bg = pd.DataFrame(base_df.groupby(['date', measure]).size()
                       .unstack().fillna(0).resample(gb_period).mean())
 
-    for job_level in np.arange(1, cf.num_of_job_levels + 1):
+    for job_level in np.arange(1, job_levels + 1):
         if job_level not in bg:
             bg[job_level] = 0
         if job_level not in cg:
@@ -2961,20 +2978,21 @@ def job_transfer(dfc, dfb, eg, colors,
         num_of_colors = job_levels + 1
         cm_subsection = np.linspace(start, stop, num_of_colors)
         colormap = eval('cm.' + cm_name)
-        colors = [colormap(x) for x in cm_subsection]
-    colors.append(fur_color)
+        job_colors = [colormap(x) for x in cm_subsection]
+    if fur_color:
+        job_colors[-1] = fur_color
 
     with sns.axes_style(chart_style):
         ax = diff2.plot(kind='bar', width=1, linewidth=0,
-                        color=colors, stacked=True, alpha=job_alpha)
+                        color=job_colors, stacked=True, alpha=job_alpha)
         fig = plt.gcf()
 
         xtick_locs = ax.xaxis.get_majorticklocs()
 
         if gb_period == 'M':
-            i = 13 - pd.to_datetime(cf.starting_date).month
+            i = 13 - pd.to_datetime(starting_date).month
         elif gb_period == 'Q':
-            i = ((13 - pd.to_datetime(cf.starting_date).month) // 3) + 1
+            i = ((13 - pd.to_datetime(starting_date).month) // 3) + 1
         elif gb_period == 'A':
             i = 0
 
@@ -3023,9 +3041,9 @@ def job_transfer(dfc, dfb, eg, colors,
         legend_title = 'job'
         for i in diff2.columns:
             recs.append(mpatches.Rectangle((0, 0), 1, 1,
-                                           fc=colors[i - 1],
+                                           fc=job_colors[i - 1],
                                            alpha=job_alpha))
-            job_labels.append(cf.job_strs[i - 1])
+            job_labels.append(job_strs[i - 1])
 
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * legend_xadj, box.height])
@@ -3051,7 +3069,7 @@ def job_transfer(dfc, dfb, eg, colors,
         plt.xlabel('date', fontsize=16, labelpad=15)
 
         try:
-            title_string = 'GROUP ' + cf.eg_dict[eg] + \
+            title_string = 'GROUP ' + eg_dict[eg] + \
                 ' Jobs Exchange' + '\n' + \
                 dfc_label + \
                 ' compared to ' + dfb_label
@@ -3064,7 +3082,8 @@ def job_transfer(dfc, dfb, eg, colors,
         plt.show()
 
 
-def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
+def editor(settings_dict, color_dict,
+           base='standalone', compare='ds_edit',
            cond_list=None, reset=False, prop_order=True, mean_len=80,
            dot_size=20, lin_reg_order=12, ylimit=False, ylim=5,
            width=17.5, height=10, strip_height=3.5, bright_bg=True,
@@ -3076,7 +3095,7 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
     list may be incrementally adjusted and examined at each step.  The edited
     dataset is created the first time a calculation is run.  Prior to the
     creation of the edited dataset ('dill/ds_edit.pkl'), the function will use
-    the compare_ds_text input to select a previously calculated dataset for
+    the compare_ds input to select a previously calculated dataset for
     initial comparison.  The function then will revert to the new edited
     dataset for all subsequent calculations.
 
@@ -3088,40 +3107,46 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
     analysis, it must be manually copied and saved to another folder.
 
     inputs
-        base_ds_text
+        settings_dict (dictionary)
+            program settings dictionary generated by the build_program_files
+            script
+        color_dict (dictionary)
+            dictionary containing color list string titles to lists of color
+            values generated by the build_program_files script
+        base (string)
             baseline dataset string name
-        compare_ds_text
+        compare (string)
             comparison dataset string name
-        cond_list
+        cond_list (list)
             conditions to apply when calculating dataset
-        prop_order
+        prop_order (boolean)
             order the output differential chart x axis in proposal
             (or edited dataset) order, necessary to use the interactive
             tool.  If False, the x axis is arranged in native list
             order for each group
-        mean_len
+        mean_len (integer)
             length of rolling mean if 'mean' selected for display
-        eg_list
+        eg_list (list)
             list of egs(employee groups) to compare and plot
-        dot_size
+        dot_size (integer)
             chart dot size
-        lin_reg_order
+        lin_reg_order (integer)
             polynomial fit order
-        ylimit
+        ylimit (boolean)
             limit the y axis scale in scope if outliers exist
-        ylim
+        ylim (integer or float)
             limit for ylimit input
-        width
+        width (integer or float)
             width of chart
-        height
+        height (integer or float)
             height of chart
-        strip_height
+        strip_height (integer or float)
             height of stripplot (group density display)
-        bright_bg
+        bright_bg (boolean)
             fill chart background with alternate color
-        chart_style
+        chart_style (string)
             seaborn chart style
-        bg_clr
+        bg_clr (color value)
             color input for bright_bg option
 
     '''
@@ -3139,11 +3164,11 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
             title_label = 'edited'
 
         else:
-            # if not, use user input dataset (compare_ds_text) for calculations
-            if path.exists('dill/ds_' + compare_ds_text + '.pkl'):
-                compare_ds = pd.read_pickle('dill/ds_' + compare_ds_text +
+            # if not, use user input dataset (compare) for calculations
+            if path.exists('dill/ds_' + compare + '.pkl'):
+                compare_ds = pd.read_pickle('dill/ds_' + compare +
                                             '.pkl')
-                title_label = compare_ds_text
+                title_label = compare
             # if user dataset not found, default to first known dataset
             else:
                 proposal_list = \
@@ -3157,8 +3182,8 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
         if edit_file_exists:
             remove(edit_file)
         try:
-            compare_ds = pd.read_pickle('dill/ds_' + compare_ds_text + '.pkl')
-            title_label = compare_ds_text
+            compare_ds = pd.read_pickle('dill/ds_' + compare + '.pkl')
+            title_label = compare
         except:
             proposal_list = \
                 list(pd.read_pickle('dill/proposal_names.pkl').proposals)
@@ -3167,14 +3192,14 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
 
     # set baseline dataset
     try:
-        base_ds = pd.read_pickle('dill/_ds' + base_ds_text + '.pkl')
+        base_ds = pd.read_pickle('dill/_ds' + base + '.pkl')
     except:
         try:
             base_ds = pd.read_pickle('dill/standalone.pkl')
         except:
             # exit routine if baseline dataset not found
             print('invalid "base_ds" name input, neither ds_' +
-                  base_ds + '.pkl nor standalone.pkl not found\n')
+                  base + '.pkl nor standalone.pkl not found\n')
             return
 
     max_month = max(compare_ds.mnum)
@@ -3280,6 +3305,8 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
     else:
         df[yval] = df[measure + '_c'] - df[measure + '_b']
 
+    eg_dict = settings_dict['eg_dict']
+
     with sns.axes_style(chart_style):
 
         fig, ax = plt.subplots(figsize=(width, height))
@@ -3297,25 +3324,26 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
 
             if chk_scatter.value:
                 ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
-                               color=cf.eg_colors[eg - 1], s=dot_size,
-                               label=cf.eg_dict[eg],
+                               color=color_dict['eg_colors'][eg - 1],
+                               s=dot_size,
+                               label=eg_dict[eg],
                                ax=ax)
 
             if chk_mean.value:
                 data['ma'] = data[yval].rolling(mean_len).mean()
                 ax = data.plot(x=xval, y='ma', lw=5,
-                               color=cf.mean_colors[eg - 1],
-                               label=cf.eg_dict[eg],
+                               color=color_dict['mean_colors'][eg - 1],
+                               label=eg_dict[eg],
                                alpha=.6, ax=ax)
 
             if chk_fit.value:
                 if chk_scatter.value:
-                    lin_reg_colors = cf.lin_reg_colors
+                    lin_reg_colors = color_dict['lin_reg_colors']
                 else:
-                    lin_reg_colors = cf.lin_reg_colors2
+                    lin_reg_colors = color_dict['lin_reg_colors2']
                 ax = sns.regplot(x=xval, y=yval, data=data,
                                  color=lin_reg_colors[eg - 1],
-                                 label=cf.eg_dict[eg],
+                                 label=eg_dict[eg],
                                  scatter=False, truncate=True, ci=50,
                                  order=lin_reg_order,
                                  line_kws={'lw': 20,
@@ -3352,7 +3380,7 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
         ax.invert_xaxis()
         ax.legend(markerscale=1.5, fontsize=14)
         if bright_bg:
-            ax.set_axis_bgcolor(bg_clr)
+            ax.set_facecolor(bg_clr)
         if show_grid:
             ax.grid(lw=1, ls='-', c='grey', alpha=.25)
 
@@ -3446,7 +3474,7 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
                                 orient='h', order=np.arange(1,
                                                             max_eg_plus_one,
                                                             1),
-                                palette=cf.eg_colors, size=3,
+                                palette=color_dict['eg_colors'], size=3,
                                 linewidth=0, split=True)
 
             for item in ([ax2.xaxis.label, ax2.yaxis.label] +
@@ -3454,7 +3482,7 @@ def editor(base_ds_text='standalone', compare_ds_text='ds_edit',
                 item.set_fontsize(12)
 
             if bright_bg:
-                ax2.set_axis_bgcolor(bg_clr)
+                ax2.set_facecolor(bg_clr)
 
             plt.xticks(np.arange(0, len(data_reorder), 1000))
             if measure in ['spcnt', 'lspcnt', 'cpay']:
@@ -3571,11 +3599,16 @@ def reset_editor():
 
 def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
                                 span_colors, job_levels,
-                                ds_dict=None, fur_color='.5',
+                                settings_dict, attr_dict,
+                                ds_dict=None,
+                                fur_color=None,
                                 single_eg=False, num=1, exclude_fur=False,
                                 plot_scatter=True, s=20, a=.7, lw=0,
+                                job_bands_alpha=.3,
                                 xsize=10, ysize=10, title_fontsize=14,
-                                tick_fontsize=12,
+                                tick_fontsize=12, label_pad=110,
+                                chart_style='whitegrid',
+                                remove_ax2_border=True,
                                 chart_example=False):
     '''num input options:
                    {1: 'eg1_with_sg',
@@ -3590,23 +3623,29 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
 
     df, df_label = determine_dataset(df, ds_dict, return_label=True)
 
-    span_colors.append(fur_color)
+    if fur_color:
+        span_colors[-1] = fur_color
     max_count = df.groupby('mnum').size().max()
     mnum_count = pd.unique(df.mnum).size
     df = df[df.mnum == mnum].copy()
 
-    if measure == 'cat_order':
-        sns.set_style('white')
+    enhanced_jobs = settings_dict['enhanced_jobs']
+    eg_counts = settings_dict['eg_counts']
+    j_changes = settings_dict['j_changes']
+    jd = settings_dict['jd']
 
-        if cf.enhanced_jobs:
+    if measure == 'cat_order':
+        # sns.set_style(chart_style)
+
+        if enhanced_jobs:
             # use job dictionary from case-specific configuration file
             # for conversion
-            eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
-                                                         cf.j_changes,
-                                                         cf.jd)
+            eg_counts, j_changes = f.convert_to_enhanced(eg_counts,
+                                                         j_changes,
+                                                         jd)
         else:
-            eg_counts = cf.eg_counts
-            j_changes = cf.j_changes
+            eg_counts = eg_counts
+            j_changes = j_changes
 
         jcnts_arr = f.make_jcnts(eg_counts)
 
@@ -3615,8 +3654,9 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         job_ticks = np.cumsum(table[0][mnum])
         job_ticks = np.append(job_ticks, max_count)
         job_ticks = np.insert(job_ticks, 0, 0)
-    else:
-        sns.set_style('darkgrid')
+
+    # else:
+    #     sns.set_style(chart_style)
 
     if single_eg:
 
@@ -3627,12 +3667,12 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
                     5: 'sg_only'
                     }
 
-        cdict = {1: 'black',
-                 2: 'blue',
-                 3: '#FF6600',
-                 4: 'black',
-                 5: 'green'
-                 }
+        clr_dict = {1: 'black',
+                    2: 'blue',
+                    3: '#FF6600',
+                    4: 'black',
+                    5: 'green'
+                    }
 
         if num == 5:
             df = df[(df.eg == 1) & (df.sg == 1)]
@@ -3655,15 +3695,17 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
 
         print('\n"num" input codes:\n', grp_dict)
 
-        if plot_scatter:
-            ax1 = df.plot(x=xax, y=measure, kind='scatter', color=cdict[num],
-                          label=label, linewidth=lw, s=s)
-        else:
-            ax1 = df.set_index(xax, drop=True)[measure].plot(label=label,
-                                                             color=cdict[num])
-            print('''Ignore the vertical lines.
-                  Look right to left within each job level
-                  for each group\'s participation''')
+        clr = clr_dict[num]
+        with sns.axes_style(chart_style):
+            if plot_scatter:
+                ax1 = df.plot(x=xax, y=measure, kind='scatter', color=clr,
+                              label=label, linewidth=lw, s=s)
+            else:
+                ax1 = df.set_index(xax, drop=True)[measure].plot(label=label,
+                                                                 color=clr)
+                print('''Ignore the vertical lines.
+                      Look right to left within each job level
+                      for each group\'s participation''')
         plt.title(grp_dict[num] + ' job disbursement - ' +
                   df_label + ' month=' + str(mnum), y=1.02,
                   fontsize=title_fontsize)
@@ -3678,39 +3720,45 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         d3 = df[df.eg == 2]
         d4 = df[df.eg == 3]
 
-        if plot_scatter:
-            ax1 = d1.plot(x=xax, y=measure, kind='scatter',
-                          label='eg1_sg_only', color='#5cd65c',
-                          alpha=a, s=s, linewidth=lw)
-            d2.plot(x=xax, y=measure, kind='scatter',
-                    label='eg1_no_sg', color='black',
-                    alpha=a, s=s, linewidth=lw, ax=ax1)
-            d3.plot(x=xax, y=measure, kind='scatter',
-                    label='eg2', color='blue',
-                    alpha=a, s=s, linewidth=lw, ax=ax1)
-            d4.plot(x=xax, y=measure, kind='scatter',
-                    label='eg3', c='#FF6600',
-                    alpha=a, s=s, linewidth=lw, ax=ax1)
+        with sns.axes_style(chart_style):
+            if plot_scatter:
+                ax1 = d1.plot(x=xax, y=measure, kind='scatter',
+                              label='eg1_sg_only', color='#5cd65c',
+                              alpha=a, s=s, linewidth=lw)
+                d2.plot(x=xax, y=measure, kind='scatter',
+                        label='eg1_no_sg', color='black',
+                        alpha=a, s=s, linewidth=lw, ax=ax1)
+                d3.plot(x=xax, y=measure, kind='scatter',
+                        label='eg2', color='blue',
+                        alpha=a, s=s, linewidth=lw, ax=ax1)
+                d4.plot(x=xax, y=measure, kind='scatter',
+                        label='eg3', c='#FF6600',
+                        alpha=a, s=s, linewidth=lw, ax=ax1)
 
-        else:
-            ax1 = d1.set_index(xax,
-                               drop=True)[measure].plot(label='eg1_sg_only',
-                                                        color='green', alpha=a)
-            d2.set_index(xax,
-                         drop=True)[measure].plot(label='eg1_no_sg',
-                                                  color='black', alpha=a,
-                                                  ax=ax1)
-            d3.set_index(xax,
-                         drop=True)[measure].plot(label='eg2',
-                                                  color='blue', alpha=a,
-                                                  ax=ax1)
-            d4.set_index(xax,
-                         drop=True)[measure].plot(label='eg3',
-                                                  color='#FF6600', alpha=a,
-                                                  ax=ax1)
-            print('''Ignore the vertical lines.  \
-                  Look right to left within each job \
-                  level for each group\'s participation''')
+            else:
+                ax1 = \
+                    d1.set_index(xax,
+                                 drop=True)[measure].plot(label='eg1_sg_only',
+                                                          color='green',
+                                                          alpha=a)
+                d2.set_index(xax,
+                             drop=True)[measure].plot(label='eg1_no_sg',
+                                                      color='black',
+                                                      alpha=a,
+                                                      ax=ax1)
+                d3.set_index(xax,
+                             drop=True)[measure].plot(label='eg2',
+                                                      color='blue',
+                                                      alpha=a,
+                                                      ax=ax1)
+                d4.set_index(xax,
+                             drop=True)[measure].plot(label='eg3',
+                                                      color='#FF6600',
+                                                      alpha=a,
+                                                      ax=ax1)
+                print('''Ignore the vertical lines.  \
+                      Look right to left within each job \
+                      level for each group\'s participation''')
 
         if chart_example:
             plt.title('job disbursement - ' +
@@ -3719,7 +3767,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
             plt.title('job disbursement - ' +
                       df_label + ' month ' + str(mnum), y=1.02)
 
-    ax1.legend(loc='center left', bbox_to_anchor=(-0.45, 0.9),
+    ax1.legend(loc='center left', bbox_to_anchor=(-0.38, 0.9),
                frameon=True, fancybox=True, shadow=True, markerscale=2)
     plt.tick_params(labelsize=tick_fontsize)
 
@@ -3736,7 +3784,14 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
             ax1.set_yticks(np.arange(0, max_count, 1000))
             plt.ylim(max_count, 0)
         if measure in ['cat_order']:
-            ax2 = plt.gca().twinx()
+            with sns.axes_style('white'):
+                ax2 = ax1.twinx()
+            if remove_ax2_border:
+                for axis in ['top', 'bottom', 'left', 'right']:
+                    ax2.spines[axis].set_linewidth(0.0)
+            ax1_lims = ax1.get_ylim()
+            reversed_ax1_lims = (ax1_lims[1], ax1_lims[0])
+            ax2.set_ylim(reversed_ax1_lims)
 
             axis2_lbl_locs = []
             axis2_lbls = []
@@ -3745,28 +3800,20 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
                                              job_ticks[i]) / 2))
                 axis2_lbls.append(job_strs[i - 1])
 
-            counter = 0
-            for i in np.arange(1, len(axis2_lbl_locs)):
-                this_diff = axis2_lbl_locs[i] - axis2_lbl_locs[i - 1]
-                # space labels if overlapping...
-                if this_diff < 220:
-                    counter += 1
-                    if counter == 1:
-                        axis2_lbl_locs[i - 1] = axis2_lbl_locs[i] - 220
-                    else:
-                        axis2_lbl_locs[i] = axis2_lbl_locs[i - 1] + 220
+            axis2_lbl_locs = add_pad(axis2_lbl_locs, pad=label_pad)
 
             ax2.set_yticks(axis2_lbl_locs)
             ax2.set_yticklabels(axis2_lbls)
 
             for level in job_ticks:
-                ax1.axhline(y=level, c='.8', ls='-', alpha=.8, lw=.5, zorder=0)
+                ax1.axhline(y=level, c='.8', ls='-', alpha=.8, lw=.6, zorder=0)
             plt.gca().invert_yaxis()
 
             # plot job band background on chart
             for i in np.arange(1, job_ticks.size):
                 ax2.axhspan(job_ticks[i - 1], job_ticks[i],
-                            facecolor=span_colors[i - 1], alpha=.15)
+                            facecolor=span_colors[i - 1],
+                            alpha=job_bands_alpha)
             ax1.grid(ls='dashed', lw=.5)
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
@@ -3782,9 +3829,6 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         plt.ylim(job_levels + 1.5, 0.5)
 
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
-
     if xax in ['snum']:
         plt.xlim(max_count, 0)
     if xax in ['spcnt', 'lspcnt']:
@@ -3792,28 +3836,36 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         plt.xticks(np.arange(0, 1.1, .1))
         plt.xlim(1, 0)
     if xax == 'age':
-        plt.xlim(xmax=cf.ret_age)
+        if settings_dict['ret_age_increase']:
+            month_val = 1 / 12
+            months_incr = \
+                sum(np.array(settings_dict['ret_incr'])[:, -1].astype(int))
+            yr_add_decimal = months_incr * month_val
+            ret_age_limit = settings_dict['ret_age'] + yr_add_decimal
+        else:
+            ret_age_limit = settings_dict['ret_age']
+        plt.xlim(xmax=ret_age_limit)
     if xax in ['ylong']:
         plt.xticks(np.arange(0, 55, 5))
         plt.xlim(-0.5, max(df.ylong) + 1)
     plt.tick_params(labelsize=tick_fontsize)
 
     plt.gcf().set_size_inches(xsize, ysize)
-    ax1.set_ylabel(m_dict[measure])
-    ax1.set_xlabel(m_dict[xax])
+    ax1.set_ylabel(attr_dict[measure])
+    ax1.set_xlabel(attr_dict[xax])
     plt.show()
     sns.set_style('darkgrid')
 
 
 def diff_range(df_list, dfb, measure, eg_list,
-               ds_dict=None, eg_colors=cf.eg_colors,
+               eg_colors, attr_dict, ds_dict=None,
                attr1=None, oper1='>=', val1=0,
                attr2=None, oper2='>=', val2=0,
                attr3=None, oper3='>=', val3=0,
                year_clip=2042,
                show_range=False, show_mean=True, normalize_y=False,
                suptitle_fontsize=14, title_fontsize=12,
-               tick_size=11, label_size=12, legend_fontsize=13,
+               tick_size=11, label_size=13, legend_fontsize=13,
                legend_horizontal_position=1.35,
                ysize=6, xsize=8, plot_style='whitegrid'):
     '''Plot a range of differential attributes or a differential
@@ -3836,15 +3888,17 @@ def diff_range(df_list, dfb, measure, eg_list,
             list of integers for employee groups to be included in analysis.
             example: [1, 2, 3]
             A chart will be produced for each employee group number.
-        ds_dict (dictionary)
-            output from load_datasets function
         eg_colors
             list of colors to represent different proposal results
+        attr_dict (dictionary)
+            dataset column name description dictionary
+        ds_dict (dictionary)
+            output from load_datasets function
         attr(n)
             filter attribute or dataset column as string
         oper(n)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
         year_clip (integer)
             only plot data up to and including this year
@@ -3937,9 +3991,6 @@ def diff_range(df_list, dfb, measure, eg_list,
 
     cols.extend(col_list)
 
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
-
     for eg in eg_list:
         if show_range:
             with sns.axes_style(plot_style):
@@ -3973,7 +4024,7 @@ def diff_range(df_list, dfb, measure, eg_list,
             plt.yticks = np.arange(.5, -.55, .05)
 
         suptitle = 'Employee Group ' + str(eg) + ' ' +\
-            m_dict[measure] + ' differential'
+            attr_dict[measure] + ' differential'
         if tb_string:
             plt.suptitle(suptitle, fontsize=suptitle_fontsize)
             plt.title(tb_string, fontsize=title_fontsize)
@@ -3992,7 +4043,8 @@ def diff_range(df_list, dfb, measure, eg_list,
         plt.show()
 
 
-def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
+def job_count_charts(dfc, dfb, settings_dict, eg_colors,
+                     eg_list=None, ds_dict=None,
                      attr1=None, oper1='>=', val1=0,
                      attr2=None, oper2='>=', val2=0,
                      attr3=None, oper3='>=', val3=0,
@@ -4014,6 +4066,12 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
             baseline dataset; proposal dataset is compared to this
             dataset, may be a dataframe variable or a string key
             from the ds_dict dictionary object
+        settings_dict (dictionary)
+            program settings dictionary generated by the build_program_files
+            script
+        eg_colors (list)
+            list of color values for plotting the employee groups, length is
+            equal to the number of employee groups in the data model
         eg_list
             list of employee group codes to plot
             Example: [1, 2]
@@ -4023,7 +4081,7 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
             filter attribute or dataset column as string
         oper(n)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
         plot_egs_sep
             if True, plot each employee group job level counts separately
@@ -4139,16 +4197,17 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
                 eg_jobs = base_jobs[base_jobs.eg == eg]
 
                 # plot employee group base job count
-                count_plot(eg_jobs, jnum, dum, cf.eg_colors[eg - 1],
+                count_plot(eg_jobs, jnum, dum, eg_colors[eg - 1],
                            ax, base_lw, 1, ls=base_ls)
 
                 eg_jobs = prop_jobs[prop_jobs.eg == eg]
                 # plot employee group proposal job count
-                count_plot(eg_jobs, jnum, dum, cf.eg_colors[eg - 1],
+                count_plot(eg_jobs, jnum, dum, eg_colors[eg - 1],
                            ax, prop_lw, 1, ls=prop_ls)
 
-                plt.title(cf.eg_dict_verbose[eg] + '  ' +
-                          cf.jobs_dict[jnum], fontsize=title_fontsize)
+                plt.title(settings_dict['eg_dict_verbose'][eg] + '  ' +
+                          settings_dict['job_strs_dict'][jnum],
+                          fontsize=title_fontsize)
                 plot_idx += 1
 
         # plot all employee groups on same job level chart
@@ -4172,14 +4231,15 @@ def job_count_charts(dfc, dfb, eg_list=None, ds_dict=None,
             for eg in eg_list:
 
                 eg_jobs = base_jobs[base_jobs.eg == eg]
-                count_plot(eg_jobs, jnum, dum, cf.eg_colors[eg - 1],
+                count_plot(eg_jobs, jnum, dum, eg_colors[eg - 1],
                            ax, base_lw, 1, ls=base_ls)
 
                 eg_jobs = prop_jobs[prop_jobs.eg == eg]
-                count_plot(eg_jobs, jnum, dum, cf.eg_colors[eg - 1],
+                count_plot(eg_jobs, jnum, dum, eg_colors[eg - 1],
                            ax, prop_lw, 1, ls=prop_ls)
 
-            plt.title(cf.jobs_dict[jnum], fontsize=title_fontsize)
+            plt.title(settings_dict['jobs_strs dict'][jnum],
+                      fontsize=title_fontsize)
             plot_idx += 1
 
     fig = plt.gcf()
@@ -4264,7 +4324,7 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
                                attr1=None, oper1='>=', val1=0,
                                attr2=None, oper2='>=', val2=0,
                                attr3=None, oper3='>=', val3=0,
-                               fur_color='.5',
+                               fur_color=None,
                                style='bar', plot_differential=True,
                                custom_color=False, cm_name='Dark2', start=0.0,
                                stop=1.0, flip_x=True, flip_y=False,
@@ -4301,6 +4361,9 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
             variable assigned to the output of the load_datasets function.
             This keyword variable must be set if string dictionary keys are
             used as inputs for the dfc and/or dfb inputs.
+        fur_color (color code in rgba, hex, or string style)
+            custom color to signify furloughed employees (otherwise, last
+            color in color_list input will be used)
         style (string)
             option to select 'area' or 'bar' to determine the type
             of chart output. default is 'bar'.
@@ -4373,7 +4436,8 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
     egs = sorted(list(set(ds_sel_cols.eg)))
     legend_font_size = np.clip(int(ysize * 1.65), 12, 16)
     tick_fontsize = (np.clip(int(ysize * 1.55), 9, 14))
-    color_list.append(fur_color)
+    if fur_color:
+        color_list[-1] = fur_color
 
     for eg in egs:
 
@@ -4482,8 +4546,8 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
 
         # dict color mapping to job level is currently lost...
         if custom_color:
-            num_of_colors = cf.num_of_job_levels + 1
-            cm_subsection = np.linspace(start, stop, num_of_colors)
+            num_of_colors = job_levels + 1
+            cm_subsection = np.linspace(start, stop, num_of_colors + 1)
             colormap = eval('cm.' + cm_name)
             colors = [colormap(x) for x in cm_subsection]
 
@@ -4613,8 +4677,9 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
     plt.show()
 
 
-def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
-              basic_jobs=[1, 4], enhanced_jobs=[1, 2, 7, 8], use_and=False,
+def cond_test(df, opt_sel, enhanced_jobs, job_colors,
+              ds_dict=None, plot_all_jobs=False, max_mnum=110,
+              basic_jobs=[1, 4], enhan_jobs=[1, 2, 7, 8], use_and=False,
               print_count_months=None, print_all_counts=False,
               xsize=8, ysize=8):
     '''visualize selected job counts applicable to computed condition with
@@ -4628,7 +4693,7 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
 
 
     inputs
-        d
+        d (dataframe)
             dataset(dataframe) to examine
         opt_sel (list)
             integer input(s) representing the employee group code(s) to
@@ -4638,21 +4703,26 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
             [1, 'sg'] would mean employee group 1 **or** any special job rights
             group, but can be modified to mean only group 1 **and** special job
             rights employees with the 'use_and' input.
-        plot_all_jobs
+        enhanced_jobs (boolean)
+            if True, select 'enhan_jobs' input list for testing, otherwise
+            select basic_jobs input list
+        job_colors (list)
+            list of color values to use for job plots
+        plot_all_jobs (boolean)
             option to plot all of the job counts within dataset vs only those
-            contained within the basic_jobs or enhanced_jobs inputs
-        max_mnum
+            contained within the basic_jobs or enhan_jobs inputs
+        max_mnum (integer)
             integer input, only plot data through selected month
-        basic_jobs
-            job levels to plot if config enhanced_jobs is False
-        enhanced_jobs
-            job levels to plot if config enhanced_jobs is True
-        use_and
+        basic_jobs (list)
+            job levels to plot if config enhan_jobs is False (integers)
+        enhan_jobs (list)
+            job levels to plot if config enhan_jobs is True (integers)
+        use_and (boolean)
             when the opt_sel input has more than one element, require filtered
             dataframe for analysis to be part of all opt_sel input sets.
         print_count_months (list)
             list of month(s) for printing job counts
-        print_all_counts
+        print_all_counts (boolean)
             if True, print the entire job count dataframe.  Jupyter notebook
             parameters may need to be adjusted to view all data at once.
 
@@ -4710,10 +4780,10 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
     all_jcnts = df.groupby(['date', 'jnum']).size() \
         .unstack().fillna(0).astype(int)
 
-    if cf.enhanced_jobs:
-        tgt_cols = enhanced_jobs
+    if enhanced_jobs:
+        tgt_cols = enhan_jobs
         info_prefix = 'enhanced'
-        info_next_line = 'modify "enhanced_jobs" input to change jobs'
+        info_next_line = 'modify "enhan_jobs" input to change jobs'
     else:
         tgt_cols = basic_jobs
         info_prefix = 'basic'
@@ -4735,7 +4805,7 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
                 job_count = jnum_seg[jnum_seg == job].size
                 print(int(job), int(job_count))
     try:
-        job_colors = np.array(cf.job_colors)[np.array(tgt_cols) - 1]
+        job_colors = np.array(job_colors)[np.array(tgt_cols) - 1]
     except:
         print('\njob number error - (no matching job color), exiting...\n')
         return
@@ -4763,7 +4833,7 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
             all_jcnts['mnum'] = range(len(all_jcnts))
             jdf = all_jcnts[(all_jcnts.mnum >= 0) &
                             (all_jcnts.mnum <= max_mnum)]
-            jdf[outall].plot(color=cf.job_colors, title=title)
+            jdf[outall].plot(color=job_colors, title=title)
 
     except:
         print('\n...job number error - exiting...')
@@ -4783,7 +4853,7 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
         except:
             pass
     all_jcnts[out][:max_mnum].plot(kind='area',
-                                   color=cf.job_colors,
+                                   color=job_colors,
                                    stacked=True,
                                    linewidth=0.1,
                                    alpha=.6)
@@ -4806,7 +4876,7 @@ def cond_test(df, opt_sel, ds_dict=None, plot_all_jobs=False, max_mnum=110,
 
 def single_emp_compare(emp, measure, df_list, xax,
                        job_strs, eg_colors, eg_dict,
-                       job_levels, ds_dict=None,
+                       job_levels, attr_dict, ds_dict=None,
                        standalone_color='#ff00ff',
                        title_fontsize=14,
                        tick_size=12, label_size=13,
@@ -4834,6 +4904,8 @@ def single_emp_compare(emp, measure, df_list, xax,
             dictionary containing eg group integer to eg string descriptions
         job_levels
             number of jobs in the model
+        attr_dict (dictionary)
+            dataset column name description dictionary
         ds_dict (dictionary)
             output from load_datasets function
         standalone_color
@@ -4865,22 +4937,19 @@ def single_emp_compare(emp, measure, df_list, xax,
     eg_colors.append(standalone_color)
     eg_colors.append('green')
 
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
-
     if chart_example:
         for i in range(0, len(df_list)):
             label = 'proposal ' + str(i + 1)
             ax = df_list[i][df_list[i].empkey == emp].set_index(xax)[measure] \
                 .plot(label=label, lw=3,
                       color=eg_colors[i], alpha=.6)
-        plt.title('Employee  ' + '123456' + '  -  ' + m_dict[measure],
+        plt.title('Employee  ' + '123456' + '  -  ' + attr_dict[measure],
                   y=1.02, fontsize=title_fontsize)
     else:
         for i in range(0, len(df_list)):
             ax = df_list[i][df_list[i].empkey == emp].set_index(xax)[measure] \
                 .plot(label=label_dict[i], lw=3, color=eg_colors[i], alpha=.6)
-        plt.title('Employee  ' + str(emp) + '  -  ' + m_dict[measure],
+        plt.title('Employee  ' + str(emp) + '  -  ' + attr_dict[measure],
                   y=1.02, fontsize=title_fontsize)
 
     if measure in ['snum', 'cat_order', 'spcnt', 'lspcnt',
@@ -4905,28 +4974,28 @@ def single_emp_compare(emp, measure, df_list, xax,
 
     plt.tick_params(axis='y', labelsize=tick_size)
     plt.tick_params(axis='x', labelsize=tick_size)
-    plt.xlabel(m_dict[xax], fontsize=label_size)
-    plt.ylabel(m_dict[measure], fontsize=label_size)
+    plt.xlabel(attr_dict[xax], fontsize=label_size)
+    plt.ylabel(attr_dict[measure], fontsize=label_size)
     plt.legend(loc='best', markerscale=1.5, fontsize=legend_fontsize)
     plt.show()
 
 
 def job_time_change(df_list, dfb, eg_list,
+                    job_colors, job_strs_dict,
+                    job_levels, attr_dict,
                     xax, ds_dict=None,
                     attr1=None, oper1='>=', val1=0,
                     attr2=None, oper2='>=', val2=0,
                     attr3=None, oper3='>=', val3=0,
-                    colors=cf.job_colors,
-                    job_list=np.arange(cf.num_of_job_levels, 0, -1),
-                    jobs_dict=cf.jobs_dict,
                     marker='o', edgecolor='k', linewidth=.05, size=25,
                     alpha=.95, bg_color='#ffffff', xmax=1.02,
                     limit_yax=False, ylimit=40, zeroline_color='m',
                     zeroline_width=1.5, pos_neg_face=True,
+                    pos_neg_face_alpha=.03,
                     legend_job_strings=True,
                     legend_position=1.18, legend_marker_size=130,
                     suptitle_fontsize=16, title_fontsize=14,
-                    tick_size=12,
+                    tick_size=12, chart_style='whitegrid',
                     label_fontsize=13, xsize=12, ysize=10):
     '''Plots a scatter plot displaying monthly time in job
     differential, by proposal and employee group.
@@ -4941,63 +5010,67 @@ def job_time_change(df_list, dfb, eg_list,
         eg_list (list)
             list of integers for employee groups to be included in analysis
             example: [1, 2, 3]
-        xax
+        job_levels (integer)
+            number of job levels in the data model
+        job_colors (list)
+            list of color values for job level plotting
+        job_strs_dict (dictionary)
+            dictionary of job code (integer) to job description label
+        attr_dict (dictionary)
+            dataset column name description dictionary
+        xax (string)
             list percentage attrubute, i.e. spcnt or lspcnt
-        ds_dict
+        ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
-        colors
-            chart color for the job levels
-        job_list
-            list of integers representing job levels in model
-            (a descending list will plot best jobs last, or on
-            top of other jobs on chart)
-        jobs_dict
+        job_colors (list)
+            list of color values for the job level plotting
+        job_strs_dict (dictionary)
             job number to job label dictionary
-        marker
+        marker (string)
             scatter chart matplotlib marker type
-        edgecolor
+        edgecolor (color value)
             matplotlib marker edge color
-        linewidth
+        linewidth (integer or float)
             matplotlib marker edge line size
-        size
+        size (integer or float)
             size of markers
-        alpha
+        alpha (float)
             marker alpha (transparency) value
-        bg_color
+        bg_color (color value)
             background color of chart if not None
-        xmax
+        xmax (integer or float)
             high limit of chart x axis
-        limit_yax
+        limit_yax (integer or float)
             if True, restrict plot y scale to this value
             may be used to prevent outliers from exagerating chart scaling
-        ylimit
+        ylimit (integer or float)
             y axis limit if limit_yax is True
-        zeroline_color
+        zeroline_color (color value)
             color for zeroline on chart
-        zeroline_width
+        zeroline_width (integer or float)
             width of zeroline
-        pos_neg_face
+        pos_neg_face (boolean)
             if True, apply a light green tint to the chart area above the
             zero line, and a light red tint below the line
-        legend_job_strings
+        legend_job_strings (boolean)
             if True, use job description strings in legend vs. job numbers
-        legend_position
+        legend_position (float)
             controls the horizontal position of the legend
-        legend_marker_size
+        legend_marker_size (integer or float)
             adjusts the size of the legend markers
-        suptitle_fontsize
+        suptitle_fontsize (integer or float)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        tick_size
+        tick_size (integer or float)
             text size of chart tick labels
-        xsize, ysize
+        xsize, ysize (integer or float)
             x and y size of each plot
     '''
     label_dict = {}
@@ -5064,89 +5137,97 @@ def job_time_change(df_list, dfb, eg_list,
     if legend_job_strings:
         legend_position = legend_position + .05
 
+    # make a reversed list of the data model job levels (high to low)
+    job_list = np.arange(job_levels, 0, -1)
+
     for j in diff_keys:
         for eg in eg_list:
-            # increment plot number
-            plot_num += 1
-            ax = plt.subplot(eg_count * diff_count, 1, plot_num)
-            # filter for eg
-            eg_df = joined_dict[j][joined_dict[j].eg == eg]
-            for i in job_list:
-                try:
-                    eg_df.plot(kind='scatter',
-                               x=xax,
-                               y=i,
-                               color=colors[i - 1],
-                               edgecolor=edgecolor,
-                               marker=marker,
-                               linewidth=linewidth,
-                               s=size,
-                               alpha=alpha,
-                               label=str(i),
-                               ax=ax)
-                except:
-                    pass
+            with sns.axes_style(chart_style):
+                # increment plot number
+                plot_num += 1
+                ax = plt.subplot(eg_count * diff_count, 1, plot_num)
+                # filter for eg
+                eg_df = joined_dict[j][joined_dict[j].eg == eg]
+                for i in job_list:
+                    try:
+                        eg_df.plot(kind='scatter',
+                                   x=xax,
+                                   y=i,
+                                   color=job_colors[i - 1],
+                                   edgecolor=edgecolor,
+                                   marker=marker,
+                                   linewidth=linewidth,
+                                   s=size,
+                                   alpha=alpha,
+                                   label=str(i),
+                                   ax=ax)
+                    except:
+                        pass
 
-            handles, labels = ax.get_legend_handles_labels()
-            # sort both labels and handles by labels (converted to int)
-            # from lowest job number(best) to highest (worst) for
-            # for legend
-            handles, labels = zip(*sorted(zip(handles, labels),
-                                  key=lambda x: int(x[1])))
-            # use job string descriptions in legend vs. job numbers
-            if legend_job_strings:
-                label_strs = []
-                for label in labels:
-                    label_strs.append(jobs_dict[int(label)])
-                    labels = label_strs
-            # move legend off of chart face to right
-            legend_title = 'job'
-            # use sorted labels and handlers as legend input
-            # and position legend
-            lgnd = ax.legend(handles, labels,
-                             bbox_to_anchor=(legend_position, 1),
-                             title=legend_title, fontsize=12)
+                handles, labels = ax.get_legend_handles_labels()
+                # sort both labels and handles by labels (converted to int)
+                # from lowest job number(best) to highest (worst) for
+                # for legend
+                handles, labels = zip(*sorted(zip(handles, labels),
+                                      key=lambda x: int(x[1])))
+                # use job string descriptions in legend vs. job numbers
+                if legend_job_strings:
+                    label_strs = []
+                    for label in labels:
+                        label_strs.append(job_strs_dict[int(label)])
+                        labels = label_strs
+                # move legend off of chart face to right
+                legend_title = 'job'
+                # use sorted labels and handlers as legend input
+                # and position legend
+                lgnd = ax.legend(handles, labels,
+                                 bbox_to_anchor=(legend_position, 1),
+                                 title=legend_title, fontsize=12)
 
-            lgnd.get_title().set_fontsize('16')
+                lgnd.get_title().set_fontsize('16')
 
-            # set legend marker size
-            for mark in lgnd.legendHandles:
-                mark._sizes = [legend_marker_size]
+                # set legend marker size
+                for mark in lgnd.legendHandles:
+                    mark._sizes = [legend_marker_size]
 
-            if xax in ['spcnt', 'lspcnt']:
-                plt.xlim(xmin=0, xmax=1.02)
-                ax.xaxis.set_major_formatter(pct_format)
-                ax.set_xticks(np.arange(0, 1.05, .05))
-            if xax in ['cat_order']:
-                plt.xlim(xmin=0)
+                if xax in ['spcnt', 'lspcnt']:
+                    plt.xlim(xmin=0, xmax=1.02)
+                    ax.xaxis.set_major_formatter(pct_format)
+                    ax.set_xticks(np.arange(0, 1.05, .05))
+                if xax in ['cat_order']:
+                    plt.xlim(xmin=0)
 
-            plt.axhline(c=zeroline_color, lw=zeroline_width)
+                plt.axhline(c=zeroline_color, lw=zeroline_width)
 
-            plt.tick_params(labelsize=13, labelright=True)
-            plt.ylabel('months differential', fontsize=label_fontsize)
-            m_dict = cf.m_dict
-            plt.xlabel(m_dict[xax], fontsize=label_fontsize)
-            plt.title('Months in job differential, ' +
-                      label_dict[j] + ', eg ' + str(eg),
-                      fontsize=title_fontsize)
-            if limit_yax:
-                plt.ylim(-ylimit, ylimit)
-            if pos_neg_face:
-                ymin, ymax = ax.get_ylim()
-                plt.ylim(ymin, ymax)
-                plt.axhspan(0, ymax, facecolor='g', alpha=0.02, zorder=8)
-                plt.axhspan(0, ymin, facecolor='r', alpha=0.02, zorder=8)
-            if bg_color:
-                ax.set_axis_bgcolor(bg_color)
-            plt.tick_params(axis='y', labelsize=tick_size)
-            plt.tick_params(axis='x', labelsize=tick_size)
-            plt.grid(linestyle='dotted', lw=1.5)
-            ax.invert_xaxis()
+                plt.tick_params(labelsize=13, labelright=True)
+                plt.ylabel('months differential', fontsize=label_fontsize)
+
+                plt.xlabel(attr_dict[xax], fontsize=label_fontsize)
+                plt.title('Months in job differential, ' +
+                          label_dict[j] + ', eg ' + str(eg),
+                          fontsize=title_fontsize)
+                if limit_yax:
+                    plt.ylim(-ylimit, ylimit)
+                if pos_neg_face:
+                    ymin, ymax = ax.get_ylim()
+                    plt.ylim(ymin, ymax)
+                    plt.axhspan(0, ymax, facecolor='g',
+                                alpha=pos_neg_face_alpha, zorder=8)
+                    plt.axhspan(0, ymin, facecolor='r',
+                                alpha=pos_neg_face_alpha, zorder=8)
+                if bg_color:
+                    ax.set_facecolor(bg_color)
+                plt.tick_params(axis='y', labelsize=tick_size)
+                plt.tick_params(axis='x', labelsize=tick_size)
+                plt.grid(linestyle='dotted', lw=1.5)
+                ax.invert_xaxis()
+    plt.show()
 
 
 # EMPLOYEE_GROUP_ATTRIBUTE_AVERAGE_AND_MEDIAN
-def group_average_and_median(dfc, dfb, eg_list, colors,
-                             measure, job_levels, job_dict,
+def group_average_and_median(dfc, dfb, eg_list, eg_colors,
+                             measure, job_levels,
+                             settings_dict, attr_dict,
                              ds_dict=None,
                              attr1=None, oper1='>=', val1='0',
                              attr2=None, oper2='>=', val2='0',
@@ -5182,15 +5263,17 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
         eg_list
             list of integers representing the employee groups to analyze
             (i.e. [1, 2])
-        colors
-            list of colors for plotting, normally cf.eg_colors
+        eg_colors
+            list of colors for plotting the employee groups
         measure
             attribute (column) to compare, such as 'spcnt' or 'jobp'
         job_levels
-            number of job levels in the model, normally cf.num_of_job_levels
-        job_dict
-            dictionary of integer job codes to string description.
-            normally cf.jobs_dict
+            number of job levels in the data model
+        settings_dict (dictionary)
+            program settings dictionary generated by the build_program_files
+            script
+        attr_dict (dictionary)
+            dataset column name description dictionary
         ds_dict
             dataset dictionary (variable assigned to the output of
             load_datasets function)
@@ -5261,6 +5344,8 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
 
     title_string = ''
 
+    eg_dict = settings_dict['eg_dict']
+
     if measure == 'mpay':
         # eliminate variable employee last month partial pay
         dfc = dfc[dfc.ret_mark == 0].copy()
@@ -5274,17 +5359,17 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
         try:
             if plot_average:
                 dfc[dfc.eg == eg].groupby('date')[measure] \
-                    .mean().plot(color=colors[eg - 1], lw=3,
+                    .mean().plot(color=eg_colors[eg - 1], lw=3,
                                  ax=ax, label=dfc_label +
                                  ', ' +
-                                 'grp' + cf.eg_dict[eg] + ' avg')
+                                 'grp' + eg_dict[eg] + ' avg')
             if plot_median:
                 dfc[dfc.eg == eg].groupby('date')[measure] \
-                    .median().plot(color=colors[eg - 1],
+                    .median().plot(color=eg_colors[eg - 1],
                                    ax=ax, lw=1,
                                    label=dfc_label +
                                    ', ' +
-                                   'grp' + cf.eg_dict[eg] + ' median')
+                                   'grp' + eg_dict[eg] + ' median')
         except:
             print('invalid or missing data - dfc, group ' + str(eg))
 
@@ -5314,9 +5399,9 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
                     dfb[dfb.eg == eg].groupby('date')[measure]\
                         .mean().plot(label=dfb_label +
                                      ', ' +
-                                     'grp' + cf.eg_dict[eg] +
+                                     'grp' + eg_dict[eg] +
                                      ' avg',
-                                     color=colors[eg - 1],
+                                     color=eg_colors[eg - 1],
                                      ls='dashed',
                                      lw=2.5,
                                      alpha=.5,
@@ -5325,9 +5410,9 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
                     dfb[dfb.eg == eg].groupby('date')[measure]\
                         .median().plot(label=dfb_label +
                                        ', ' +
-                                       'grp' + cf.eg_dict[eg] +
+                                       'grp' + eg_dict[eg] +
                                        ' median',
-                                       color=colors[eg - 1],
+                                       color=eg_colors[eg - 1],
                                        ls='dotted',
                                        lw=2.5,
                                        alpha=.5,
@@ -5344,12 +5429,12 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
         if job_labels:
-
             ax.set_yticks(np.arange(0, job_levels + 2, 1))
             yticks = ax.get_yticks().tolist()
 
+            job_strs_dict = settings_dict['job_strs_dict']
             for i in np.arange(1, len(yticks)):
-                yticks[i] = job_dict[i]
+                yticks[i] = job_strs_dict[i]
             plt.axhspan(job_levels + 1, job_levels + 2,
                         facecolor='.8', alpha=0.9)
             ax.set_yticklabels(yticks)
@@ -5358,21 +5443,19 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
         else:
             plt.ylim(ymax=0)
 
-    if cf.delayed_implementation:
+    if settings_dict['delayed_implementation']:
         # plot vertical line at implementation date
-        plt.axvline(cf.imp_date, c='#33cc00', ls='dashed', alpha=1, lw=1,
+        plt.axvline(settings_dict['imp_date'], c='#33cc00',
+                    ls='dashed', alpha=1, lw=1,
                     label='implementation date', zorder=1)
-
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
 
     if compare_to_dfb:
         suptitle_string = (dfc_label +
-                           plot_string.upper() + m_dict[measure].upper() +
+                           plot_string.upper() + attr_dict[measure].upper() +
                            ' vs. ' + dfb_label)
     else:
         suptitle_string = (dfc_label +
-                           plot_string.upper() + m_dict[measure].upper())
+                           plot_string.upper() + attr_dict[measure].upper())
 
     plt.suptitle(suptitle_string, fontsize=16)
     plt.title(t_string + ' ' + title_string, y=1.02, fontsize=14)
@@ -5387,7 +5470,8 @@ def group_average_and_median(dfc, dfb, eg_list, colors,
 
 
 # EMPLOYEE DENSITY STRIPPLOT (with filtering)
-def stripplot_eg_density(df, mnum, eg_colors, ds_dict=None,
+def stripplot_eg_density(df, mnum, eg_colors, attr_dict,
+                         ds_dict=None,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
                          attr3=None, oper3='>=', val3=0,
@@ -5413,6 +5497,8 @@ def stripplot_eg_density(df, mnum, eg_colors, ds_dict=None,
             month number to study from dataset
         eg_colors (list)
             color codes for plotting each employee group
+        attr_dict (dictionary)
+            dataset column name description dictionary
         ds_dict (dictionary)
             output from load_datasets function
         attr(n)
@@ -5450,7 +5536,7 @@ def stripplot_eg_density(df, mnum, eg_colors, ds_dict=None,
                                order=np.arange(min_eg, max_eg + 1),
                                palette=eg_colors, size=3, linewidth=0,
                                split=True)
-            ax.set_axis_bgcolor(bg_color)
+            ax.set_facecolor(bg_color)
     except:
         print('\nEmpty dataset, nothing to plot. Check filters?\n')
         return
@@ -5463,18 +5549,17 @@ def stripplot_eg_density(df, mnum, eg_colors, ds_dict=None,
         plt.title(t_string, fontsize=title_fontsize, y=1.02)
     else:
         plt.title(df_label, fontsize=suptitle_fontsize)
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
-    plt.ylabel(m_dict['eg'])
+
+    plt.ylabel(attr_dict['eg'])
     plt.show()
 
 
 def job_count_bands(df_list, eg_list, job_colors,
-                    ds_dict=None,
+                    settings_dict, ds_dict=None,
                     attr1=None, oper1='>=', val1=0,
                     attr2=None, oper2='>=', val2=0,
                     attr3=None, oper3='>=', val3=0,
-                    fur_color='.5',
+                    fur_color=None,
                     max_date=None, plot_alpha=.75,
                     legend_alpha=.9,
                     legend_xadj=1.3, legend_yadj=1.0,
@@ -5501,6 +5586,9 @@ def job_count_bands(df_list, eg_list, job_colors,
             example: [1, 2, 3]
         job_colors (list)
             list of colors to represent job levels
+        settings_dict (dictionary)
+            program settings dictionary generated by the build_program_files
+            script
         ds_dict (dictionary)
             output from load_datasets function
         attr(n)
@@ -5509,8 +5597,9 @@ def job_count_bands(df_list, eg_list, job_colors,
             operator (i.e. <, >, ==, etc.) for attr1 as string
         val(n)
             attr1 limiting value (combined with oper1) as string
-        fur_color
-            color to use for furlough band
+        fur_color (color code in rgba, hex, or string style)
+            custom color to signify furloughed job level band (otherwise, last
+            color in job_colors input will be used)
         max_date (date string)
             only include data up to this date
             example input: '1997-12-31'
@@ -5550,7 +5639,8 @@ def job_count_bands(df_list, eg_list, job_colors,
                                return_title_string=False)
         i += 1
 
-    job_colors.append(fur_color)
+    if fur_color:
+        job_colors[-1] = fur_color
 
     for eg in eg_list:
         i = 0
@@ -5588,7 +5678,7 @@ def job_count_bands(df_list, eg_list, job_colors,
                 recs.append(mpatches.Rectangle((0, 0), 1, 1,
                                                fc=job_colors[k - 1],
                                                alpha=legend_alpha))
-                job_labels.append(cf.job_strs[k - 1])
+                job_labels.append(settings_dict['job_strs'][k - 1])
 
             box = ax.get_position()
             ax.set_position([box.x0, box.y0,
@@ -5598,6 +5688,7 @@ def job_count_bands(df_list, eg_list, job_colors,
                       title=legend_title, fontsize=legend_fontsize,
                       ncol=1)
             ax.xaxis.label.set_size(label_size)
+            ax.yaxis.label.set_size(label_size)
             plt.tick_params(axis='y', labelsize=tick_size)
             plt.tick_params(axis='x', labelsize=tick_size)
             plt.ylabel('job count', fontsize=10)
@@ -5825,7 +5916,7 @@ def mark_quartiles(df, quartiles=10):
     This function is used within the quartile_groupby function.
 
     inputs
-        df (pandas dataframe)
+        df (dataframe)
             Any pandas dataframe containing an "eg" (employee group) column
         quartiles (integer)
             The number of quartiles to create.
@@ -5855,16 +5946,21 @@ def mark_quartiles(df, quartiles=10):
     return aligned_df
 
 
-def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
-                     colors=cf.eg_colors, xax='date', ds_dict=None,
+def quartile_groupby(df, eg_list, measure, quartiles, eg_colors,
+                     band_colors, settings_dict, attr_dict,
+                     groupby_method='median',
+                     xax='date', ds_dict=None,
                      through_date=None, show_job_bands=True, show_grid=True,
                      plot_implementation_date=True,
-                     line_width=.75, bg_color='.98', job_bands_alpha=.15,
-                     line_alpha=.7, grid_alpha=.25, title_fontsize=12,
-                     tick_size=11, label_size=12,
-                     xsize=10, ysize=8):
-    '''Plot an average of a selected attribute measure for each employee group
-    quartile over time.
+                     custom_color=False, cm_name='Set1', start=0.0,
+                     stop=1.0, exclude=None, reverse=False,
+                     chart_style='whitegrid', remove_ax2_border=True,
+                     line_width=1, bg_color='.98', job_bands_alpha=.15,
+                     line_alpha=.7, grid_alpha=.25, title_fontsize=14,
+                     tick_size=12, label_size=13, label_pad=110,
+                     xsize=12, ysize=10):
+    '''Plot representative values of a selected attribute measure for each
+    employee group quartile over time.
 
     Multiple employee groups may be plotted at the same time.  Job bands may
     be plotted as a chart background to display job level progression when
@@ -5878,8 +5974,23 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
 
         [mean, median, first, last, min, max]
 
+    If the eg_list input list contains a single employee group code and
+    the custom_color input is set to "True", the color of the plotted
+    quartile result lines will be a spectrum of colors. The following inputs
+    are related to the custom color generation:
+
+        [cm_name, start, stop, exclude, reverse]
+
+    The above inputs will be used by the make_color_list function located
+    within this module to produce a list of colors with a length equal to
+    the quartiles input.  (Please see the docstring for the make_color_list
+    function for further explaination).  If the quartiles input is set to a
+    relatively high value (100-200), the impact on the career profiles of
+    the employee groups is easily discernible when using a qualitative
+    color map.
+
     inputs
-        df (pandas dataframe)
+        df (dataframe)
             Any long-form dataframe which contains "date" (and "mnum" if xax
             input is set to "mnum") and "eg" columns and at least one
             attribute column for analysis.  The normal input is a calculated
@@ -5893,13 +6004,21 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         quartiles (integer)
             The number of quartiles to create and plot for each employee
             group in the eg_list input.
+        eg_colors (list)
+            list of color values for plotting the employee groups
+        band_colors (list)
+            list of color values for plotting the background job level
+            color bands when the using a measure of 'cat_order' with the
+            'show_job_bands' variable set to True
+        settings_dict (dictionary)
+            program settings dictionary generated by the build_program_files
+            script
+        attr_dict (dictionary)
+            dataset column name description dictionary
         groupby_method (string)
             The method applied to the attribute data within each quartile.  The
             allowable methods are listed in the description above.  Default is
             'median'.
-        colors (list)
-            The colors to use for plotting each employee group.  Default is
-            the eg_colors list from the configuration file.
         xax (string)
             The first groupby level and x axis value for the analysis.  This
             value defaults to "date" which represents each month of the model.
@@ -5907,18 +6026,56 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         job_levels (integer)
             The number of job levels (excluding the furlough level) in the data
             model.
+        ds_dict (dictionary)
+            A dictionary containing string to dataframes, used if df input
+            is not a dataframe but a string key (examples: 'standalone', 'p1')
         through_date (date string)
             If set as a date string, such as '2020-12-31', only show results
             up to and including this date.
         show_job_bands
             If measure is set to "cat_order", plot properly scaled job level
             color bands on chart background
+        show_grid (boolean)
+            if True, plot a grid on the chart
         plot_implementation_date
             If True and the xax argument is set to "date", plot a dashed
             vertical line at the implementation date.
+        custom_color (boolean)
+            If set to True, will permit a custom color spectrum to be produced
+            for plotting a single employee group "cat_order" result
+        cm_name (string)
+            The colormap name to be used for the custom color option
+        start (float)
+            The starting point of the colormap to begin a custom color list
+            generation (0.0 to less than 1.0)
+        stop (float)
+            The ending point of the colormap to finish a custom color list
+            generation (greater than 0.0 to 1.0)
+        exclude (list)
+            A list of 2 floats between 0.0 and 1.0 describing a section of
+            the original colormap to exclude from a custom color list
+            generation.  (Example [.45, .55], the middle of the list excluded)
+        reverse (boolean)
+            If True, reverse the sequence of the custom color list
+        chart_style (string)
+            set the chart plot style for ax1 from the avialable seaborn
+            plotting themes:
+
+                ["darkgrid", "whitegrid", "dark", "white", and "ticks"]
+
+            The default is "whitegrid".
+        remove_ax2_border (boolean)
+            if "cat_order" is set as the measure input and the show_job_bands
+            input is set True, a second axis is generated to be the container
+            for the background job bands and the labels.  The chart style for
+            ax2 is "white" which avoids unwanted grid lines but includes a
+            black solid chart border by default.  This ax2 border may be
+            removed if this input is set to True.  (The border may be
+            displayed if the chart_style input (for ax1) is set to "white"
+            or "ticks").
         line_width (float)
             The width of the plotted lines.  Default is .75
-        bg_color (string)
+        bg_color (color value)
             The background color for the chart.  May be a color name, color
             abreviation, hex value, or decimal between 0 and 1
             (shades of black)
@@ -5941,43 +6098,65 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     '''
 # **************
     df = determine_dataset(df, ds_dict)
-    # make a dataframe with an added column ('quartile') indicating quartile
-    # membership number (integer) for each employee, each employee group
-    # calculated separately...
-    bin_df = mark_quartiles(df, quartiles)
 
     # limit the scope of the plot to a selected month in the future if the
     # through_date argument is assigned an integer
     if through_date:
         through_date = pd.to_datetime(through_date)
-        bin_df = bin_df[bin_df.date <= through_date]
+        df = df[df.date <= through_date]
     else:
         through_date = max(df.date)
+
+    # make a dataframe with an added column ('quartile') indicating quartile
+    # membership number (integer) for each employee, each employee group
+    # calculated separately...
+    bin_df = mark_quartiles(df, quartiles)
 
     # if mpay is selected, remove employee monthly pay data for retirement
     # months to exclude partial pay amounts
     if measure == 'mpay':
-        bin_df = bin_df[bin_df.ret_mark != 1]
+        bin_df = bin_df[bin_df.ret_mark == 0]
 
-    fig, ax1 = plt.subplots()
-    job_levels = cf.num_of_job_levels
+    if len(eg_list) > 1:
+        multiplot = True
+    else:
+        multiplot = False
+        clrs = make_color_list(num_of_colors=quartiles, start=start,
+                               stop=stop, exclude=exclude, reverse=reverse,
+                               cm_name_list=[cm_name],
+                               return_list=True)
+
+    if measure == 'cat_order' and (groupby_method not in
+                                   ['mean', 'median', 'first',
+                                    'last', 'min', 'max']):
+        print('\nError:\n\n' +
+              '  When measure is set to "cat_order", groupby_method input ' +
+              'must be in ["mean", "median", "first", "last", "min", "max"]' +
+              '\n\n' + '  Current groupby_method value is "' +
+              groupby_method + '".\n\n')
+        return
+
+    with sns.axes_style(chart_style):
+        fig, ax1 = plt.subplots()
+    job_levels = settings_dict['num_of_job_levels']
 
 # ************
+
     # create the job bands and labels on ax2
     if measure in ['cat_order'] and show_job_bands:
         bg_color = '#ffffff'
-        band_colors = cf.job_colors
-        job_counts = cf.eg_counts
-        job_change_lists = cf.j_changes
+        job_counts = settings_dict['eg_counts']
+        job_change_lists = settings_dict['j_changes']
         fur_lvl = job_levels + 1
-        jobs_dict = cf.jobs_dict
+        job_strs_dict = settings_dict['job_strs_dict']
+        starting_date = settings_dict['starting_date']
 
-        if cf.enhanced_jobs:
+        if settings_dict['enhanced_jobs']:
             # use job dictionary from case-specific configuration file
             # for conversion
             eg_counts, j_changes = f.convert_to_enhanced(job_counts,
                                                          job_change_lists,
-                                                         cf.jd)
+                                                         settings_dict['jd'])
         else:
             j_changes = job_change_lists
             eg_counts = job_counts
@@ -5989,9 +6168,8 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
                                       j_changes,
                                       standalone=False)
 
-        df_table = pd.DataFrame(table[0],
-                                columns=np.arange(1, job_levels + 1),
-                                index=pd.date_range(cf.starting_date,
+        df_table = pd.DataFrame(table[0], columns=np.arange(1, job_levels + 1),
+                                index=pd.date_range(starting_date,
                                                     periods=table[0].shape[0],
                                                     freq='M'))
         # for band areas
@@ -6002,7 +6180,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
                          columns=['count'])
 
         df_monthly_non_ret.set_index(
-            pd.date_range(cf.starting_date,
+            pd.date_range(starting_date,
                           periods=pd.unique(df_monthly_non_ret.index).size,
                           freq='M'), inplace=True)
 
@@ -6024,43 +6202,49 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         axis2_lbl_locs = []
         axis2_lbls = []
 
-        adjust = cf.adjust
+        with sns.axes_style('white'):
+            ax2 = ax1.twinx()
+            if remove_ax2_border:
+                for axis in ['top', 'bottom', 'left', 'right']:
+                    ax2.spines[axis].set_linewidth(0.0)
+        ax1_lims = ax1.get_ylim()
+        ax2.set_ylim(ax1_lims)
 
         i = 0
         for job_num in l_mth_counts.index:
             axis2_lbl_locs.append(round((cnts[i] + cnts[i + 1]) / 2))
-            axis2_lbl_locs[i] += adjust[i]
-            axis2_lbls.append(jobs_dict[job_num])
+            axis2_lbls.append(job_strs_dict[job_num])
             i += 1
 
-        with sns.axes_style("white"):
-            non_ret_count['count'].plot(c='grey', ls='--',
-                                        label='active count', ax=ax1)
+        axis2_lbl_locs = add_pad(axis2_lbl_locs, pad=label_pad)
 
-            ax2 = jobs_table.plot.area(stacked=True,
-                                       figsize=(12, 10),
-                                       sort_columns=True,
-                                       linewidth=2,
-                                       color=band_colors,
-                                       alpha=job_bands_alpha,
-                                       legend=False,
-                                       ax=ax1)
-
-            plt.ylim(0, max(df_monthly_non_ret['count']))
-
-            if lowest_cat == fur_lvl:
-                plt.axhspan(cnts[-2], cnts[-1], facecolor='#fbfbea', alpha=0.9)
-                axis2_lbls[-1] = 'FUR'
-
-        ax2 = ax1.twinx()
         ax2.set_yticks(axis2_lbl_locs)
-
         ax2.set_yticklabels(axis2_lbls)
-        ax2.invert_yaxis()
+
+        non_ret_count['count'].plot(c='grey', ls='--',
+                                    label='active count', ax=ax1)
+
+        ax2 = jobs_table.plot.area(stacked=True,
+                                   figsize=(12, 10),
+                                   sort_columns=True,
+                                   linewidth=2,
+                                   color=band_colors,
+                                   alpha=job_bands_alpha,
+                                   legend=False,
+                                   ax=ax1)
+
+        plt.ylim(0, max(df_monthly_non_ret['count']))
+
+        if lowest_cat == fur_lvl:
+            plt.axhspan(cnts[-2], cnts[-1], facecolor='#fbfbea', alpha=0.9)
+            axis2_lbls[-1] = 'FUR'
+
+        ax1.invert_yaxis()
 
 # .............................................................
     # this section is for the quantile line plots:
     y_limit = 0
+
     for eg in eg_list:
         frame = bin_df[bin_df.eg == eg]
         # group frame for eg by xax and quartile category and include
@@ -6071,29 +6255,21 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
         # unstack and plot
         gb = gb.unstack()
         y_limit = max(y_limit, np.nanmax(gb.values))
-
-        gb.plot(c=colors[eg - 1], lw=line_width,
-                ax=ax1, alpha=line_alpha)
+        if multiplot or not custom_color:
+            gb.plot(c=eg_colors[eg - 1], lw=line_width,
+                    ax=ax1, alpha=line_alpha)
+        else:
+            ax1.set_prop_cycle(cycler('color', clrs))
+            gb.plot(lw=line_width, ax=ax1, alpha=line_alpha)
 
     # set "dense" tick labels
     # if measure in ['cat_order', 'snum', 'lnum']:
     if measure in ['cat_order']:
         try:
             y_limit = (y_limit + 500) // 50 * 50
-            plt.ylim(0, y_limit)
+            plt.ylim(y_limit, 0)
             tick_stride = min(y_limit / 10 // 10 * 10, 500)
             ax1.set_yticks(np.arange(0, y_limit, tick_stride))
-        except:
-            pass
-
-    m_list = ['spcnt', 'lspcnt', 'lnum', 'snum', 'fbff', 'jobp', 'jnum',
-              'cat_order', 'orig_job', 'rank_in_job']
-
-    if (measure in m_list) and (groupby_method not in ['size', 'count']):
-        ax1.invert_yaxis()
-
-        try:
-            ax2.invert_yaxis()
         except:
             pass
 
@@ -6108,30 +6284,230 @@ def quartile_groupby(df, eg_list, measure, quartiles, groupby_method='median',
     ax1.legend_.remove()
 
     try:
-        ax2.tick_params(axis='both', which='both', labelsize=tick_size)
-        ax2.grid(b=False)
+        ax2.tick_params(axis='both', left='off',
+                        which='both', labelsize=tick_size)
     except:
         pass
 
-    ax1.set_axis_bgcolor(bg_color)
+    ax1.set_facecolor(bg_color)
     if show_grid:
         ax1.grid(b=True, c='grey', lw=.5, alpha=grid_alpha)
     else:
         ax1.grid(b=False)
 
-    # metric description for chart label(s)
-    m_dict = cf.m_dict
+    m_list = ['spcnt', 'lspcnt', 'lnum', 'snum', 'fbff',
+              'orig_job', 'rank_in_job']
+
+    if (measure in m_list) and (groupby_method not in ['size', 'count']):
+        plt.ylim(ymin=0)
+        ax1.invert_yaxis()
 
     ax1.tick_params(axis='both', which='both', labelsize=tick_size)
-    ax1.set_ylabel(m_dict[measure] + ' for each quantile',
+    ax1.set_ylabel(attr_dict[measure] + ' for each quantile',
                    fontsize=label_size)
     ax1.set_xlabel(xax, fontsize=label_size)
 
-    if (cf.delayed_implementation and
+    if (settings_dict['delayed_implementation'] and
             plot_implementation_date and xax == 'date'):
-        ax1.axvline(cf.imp_date, c='g', ls='--', alpha=1, lw=1)
+        ax1.axvline(settings_dict['imp_date'], c='g', ls='--', alpha=1, lw=1)
     plt.title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
-              ' quartile ' + m_dict[measure] + ' by ' + groupby_method,
+              ' quartile ' + attr_dict[measure] + ' by ' + groupby_method,
               fontsize=title_fontsize)
     fig.set_size_inches(xsize, ysize)
     plt.show()
+
+
+def make_color_list(num_of_colors=10, start=0.0, stop=1.0,
+                    exclude=None,
+                    reverse=False, cm_name_list=['Set1'],
+                    return_list=True,
+                    return_dict=False,
+                    print_all_names=False,
+                    palplot_cm_name=False, palplot_all=False):
+    '''Utility function to generate list(s) of colors (rgba format),
+    any length and any from any section of any matplotlib colormap.
+
+    The function can return a list of colors, a dictionary of colormaps
+    to color lists, plot result(s) as seaborn colormap(s), and print out
+    the names of all of the colormaps available.
+
+    The end goal of this function is to provide customized color lists
+    for plotting.
+
+    inputs
+        num_of_colors (integer)
+            number of colors to produce for the output color list(s),
+            used within the cm_subsection data calculation
+        start (float)
+            the starting point within the selected colormap to begin
+            the spectrum color selection (0.0 to 1.0), used within the
+            cm_subsection data calculation
+        stop (float)
+            the ending point within the selected colormap to end
+            the spectrum color selection (0.0 to 1.0), used within the
+            cm_subsection data calculation
+        exclude (list)
+            list of 2 floats representing a section of the colormap(s) to
+            remove before calculating the result list(s).
+        reverse (boolean)
+            reverse the color list order which reverses the color spectrum
+        cm_name (string)
+            any matplotlib colormap name
+        return_list (boolean)
+            if True, return a list of rgba color codes for the cm_name
+            colormap input only, or (if the return_dict input is set to
+            True) a dictionary of all colormap names to all of the
+            resultant corresponding calculated color lists using the
+            cm_subsection data
+        return_dict (boolean)
+            if True (and return_list is True), return a dictionary of
+            all colormap names to all of the resultant corresponding
+            calculated color lists
+        print_all_names (boolean)
+            if True (and return_list is False), print all the names of
+            available matplotlib colormaps
+        palplot_cm_name (boolean)
+            if True (and return_list is False), plot a seaborn palplot
+            of the color list produced with the cm_name colormap input
+            using the cm_subsection data
+        palplot_all (boolean)
+            if True (and return_list and palplot_cm_name are False),
+            plot a seaborn palplot for all of the color lists produced
+            from all available matplotlib colormaps using the
+            cm_subsection data
+    '''
+    # get a list of all of the matplotlib colormaps
+    maps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+    # swap start and stop values if reverse input is True
+    if reverse:
+        start, stop = stop, start
+        if exclude:
+            exclude = exclude[::-1]
+    # make the decimal array(s) to grab colormap sections
+    if exclude:
+        num_of_colors1 = num_of_colors // 2
+        num_of_colors2 = num_of_colors - num_of_colors1
+        ex_stop = exclude[0]
+        ex_start = exclude[1]
+        cmap_section1 = np.linspace(start, ex_stop, num_of_colors1)
+        cmap_section2 = np.linspace(ex_start, stop, num_of_colors2)
+        cm_subsection = np.concatenate((cmap_section1, cmap_section2))
+    else:
+        cm_subsection = np.linspace(start, stop, num_of_colors)
+
+    lists_of_colors = []
+    # make list of color lists (all colormaps) using cm_subsection data
+    for m in maps:
+        colormap = eval('cm.' + m)
+        color_list = [colormap(x) for x in cm_subsection]
+        lists_of_colors.append(color_list)
+    # make a dictionary of map to list of colors from map
+    color_dict = od(zip(maps, lists_of_colors))
+    # returning a color list has priority over plots and printing
+    if return_list:
+        if return_dict:
+            # return the entire color_dict (dictionary) and stop
+            return color_dict
+        else:
+            # return only the cm_name color list (list) and stop
+            color_lists = []
+            if len(cm_name_list) == 1:
+                return color_dict[cm_name_list[0]]
+            else:
+                for cmn in cm_name_list:
+                    if cmn in color_dict.keys():
+                        color_lists.append(color_dict[cmn])
+                return color_lists
+    else:
+        # plot all lists of colors as seaborn palplots
+        if palplot_all:
+            for key in color_dict.keys():
+                sns.palplot(color_dict[key])
+                if print_all_names:
+                    print(key)
+                plt.show()
+        # only plot cm_name as palplot
+        else:
+            if cm_name_list:
+                for cmn in cm_name_list:
+                    if cmn in color_dict.keys():
+                        if exclude:
+                            print('\n', 'palplot colormap:', cmn,
+                                  ' [', start,
+                                  ' >> ', ex_stop, '] [*exclude*] [',
+                                  ex_start,
+                                  ' >> ', stop, ']')
+                        else:
+                            print('\n', 'palplot colormap:', cmn,
+                                  ' [ ', start, ' >> ', stop, ' ]')
+                        sns.palplot(color_dict[cmn])
+                        plt.show()
+                    else:
+                        print('"' + str(cmn) + '"',
+                              'not found in color dictionary')
+            else:
+                print('set a cm_name_list argument for a palplot(s)')
+        # print all of the colormap names
+        if print_all_names and not palplot_all:
+            print('All colormaps:', '\n')
+            i = 0
+            for key in color_dict.keys():
+                print(i, key)
+                i += 1
+
+
+def add_pad(list_in, pad=100):
+    '''Separate all elements in a monotonic list by a minimum pad value.
+
+    Used by plotting functions to prevent overlapping tick labels.
+
+    inputs
+        list_in (list)
+            a monotonic list of numbers
+        pad (integer)
+            the minimum separation required between list elements
+
+    If the function is unable to produce a list with the pad between all
+    elements (excluding the last list spacing), the original list is returned.
+    The function will permit the final list padding (between the last two
+    elements) to be less than the pad value.
+    '''
+    a = list_in[:]
+    diff_list = []
+    i = 0
+    for tick in a[1:]:
+        diff_list.append(tick - a[i])
+        i += 1
+    max_idx = diff_list.index(max(diff_list))
+    sec1 = a[:max_idx]
+    len_sec1 = len(sec1)
+
+    if len_sec1 > 1:
+        for i in np.arange(1, len_sec1):
+            if sec1[i] - sec1[i - 1] < pad:
+                sec1[i] = sec1[i - 1] + pad
+
+    a[:len_sec1] = sec1
+
+    sec2 = a[max_idx:]
+    len_sec2 = len(sec2)
+
+    if len_sec2 > 0:
+        for i in np.arange(len_sec2 - 1, 1, -1):
+            if sec2[i] - sec2[i - 1] < pad:
+                sec2[i - 1] = sec2[i] - pad
+
+    a[-len_sec2:] = sec2
+
+    if f.monotonic(a):
+        return a
+    else:
+        for i in np.arange(1, len(a[:-1])):
+            if a[i] - a[i - 1] < pad:
+                a[i - 1] = a[i] - pad
+
+    if f.monotonic(a):
+        return a
+    else:
+        return list_in
+

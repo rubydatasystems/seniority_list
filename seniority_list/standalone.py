@@ -14,7 +14,6 @@ import pandas as pd
 import numpy as np
 
 import functions as f
-import config as cf
 
 from sys import argv
 
@@ -27,10 +26,14 @@ pre, suf = 'dill/', '.pkl'
 
 skeleton_path_string = (pre + input_skel + suf)
 
-ds = pd.read_pickle(skeleton_path_string)
+try:
+    ds = pd.read_pickle(skeleton_path_string)
+except:
+    print('Skeleton file not found.  Run build_program_files script?')
 
-num_of_job_levels = cf.num_of_job_levels
-fur_counts = cf.furlough_count
+sdict = pd.read_pickle('dill/dict_settings.pkl')
+
+num_of_job_levels = sdict['num_of_job_levels']
 num_of_months = pd.unique(ds.mnum).size
 egs = np.unique(ds.eg)
 start_month = 0
@@ -38,14 +41,14 @@ start_month = 0
 # make prex True or False (for input to assign_standalone_job_changes function)
 prex = 'prex' in conditions
 
-if cf.enhanced_jobs:
+if sdict['enhanced_jobs']:
     # use job dictionary from case-specific configuration file for conversion
-    eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
-                                                 cf.j_changes,
-                                                 cf.jd)
+    eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
+                                                 sdict['j_changes'],
+                                                 sdict['jd'])
 else:
-    eg_counts = cf.eg_counts
-    j_changes = cf.j_changes
+    eg_counts = sdict['eg_counts']
+    j_changes = sdict['j_changes']
 
 jcnts_arr = f.make_jcnts(eg_counts)
 
@@ -81,7 +84,7 @@ for eg in egs:
     short_len = len(df_short)
 
     # ORIG_JOB*
-    cmonths_this_ds = f.career_months_df_in(df_short)
+    cmonths_this_ds = f.career_months_df_in(df_short, sdict['starting_date'])
     this_ds_nonret_each_month = f.count_per_month(cmonths_this_ds)
     high_limits = this_ds_nonret_each_month.cumsum()
     low_limits = f.make_lower_slice_limits(high_limits)
@@ -102,6 +105,7 @@ for eg in egs:
     # the job assignment function below...
 
     results = f.assign_standalone_job_changes(df_align,
+                                              sdict['num_of_job_levels'],
                                               low_limits,
                                               high_limits,
                                               all_months,
@@ -112,8 +116,10 @@ for eg in egs:
                                               job_reduction_months,
                                               start_month,
                                               eg,
+                                              sdict['sg_rights'],
+                                              sdict['recalls'],
                                               apply_sg_cond=prex,
-                                              fur_return=cf.recall)
+                                              fur_return=sdict['recall'])
 
     jnums = results[0]
     count_col = results[1]
@@ -168,9 +174,9 @@ for eg in egs:
     df_long['jobp'] = df_long['jnum'] + jpcnt
 
     # PAY - merge with pay table - provides monthly pay
-    if cf.compute_pay_measures:
+    if sdict['compute_pay_measures']:
 
-        if cf.discount_longev_for_fur:
+        if sdict['discount_longev_for_fur']:
             # skel provides non-discounted scale data
             # flip ones and zeros...
             df_long['non_fur'] = 1 - fur
@@ -183,13 +189,13 @@ for eg in egs:
             df_long['mlong'] = cum_active_months
             df_long['ylong'] = df_long['mlong'] / 12
             df_long['scale'] = np.clip((cum_active_months / 12) + 1,
-                                       1, cf.top_of_scale).astype(int)
+                                       1, sdict['top_of_scale']).astype(int)
 
         df_pt_index = pd.DataFrame(
             index=(df_long['scale'] * 100) + df_long['jnum'] +
             (df_long['year'] * 100000))
 
-        if cf.enhanced_jobs:
+        if sdict['enhanced_jobs']:
             df_pt = pd.read_pickle(
                 'dill/pay_table_enhanced.pkl')
         else:
@@ -223,7 +229,7 @@ ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
 # CAT_ORDER
 # global job ranking
 
-if cf.compute_job_category_order:
+if sdict['compute_job_category_order']:
     table = f.job_gain_loss_table(num_of_months,
                                   num_of_job_levels,
                                   jcnts_arr,
@@ -231,5 +237,5 @@ if cf.compute_job_category_order:
     ds['cat_order'] = f.make_cat_order(ds, table[0])
 
 # save to file
-if cf.save_to_pickle:
+if sdict['save_to_pickle']:
     ds.to_pickle('dill/standalone.pkl')

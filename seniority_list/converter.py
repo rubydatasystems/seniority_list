@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''test doc
@@ -71,8 +72,8 @@ def convert(sg_list, ratio_list, count_list,
             start_month = sg_cond[3]
             end_month = sg_cond[4]
 
-            full_job = job_dict[job][0]
-            part_job = job_dict[job][1]
+            full_job = int(job_dict[job][0])
+            part_job = int(job_dict[job][1])
             full_pcnt = job_dict[job][2]
             part_pcnt = 1 - job_dict[job][2]
 
@@ -110,8 +111,8 @@ def convert(sg_list, ratio_list, count_list,
             start_month = r_cond[2]
             end_month = r_cond[3]
 
-            full_job = job_dict[job][0]
-            part_job = job_dict[job][1]
+            full_job = int(job_dict[job][0])
+            part_job = int(job_dict[job][1])
             full_pcnt = job_dict[job][2]
             part_pcnt = 1 - job_dict[job][2]
 
@@ -142,8 +143,8 @@ def convert(sg_list, ratio_list, count_list,
             start_month = job_list[3]
             end_month = job_list[4]
 
-            full_job = job_dict[job][0]
-            part_job = job_dict[job][1]
+            full_job = int(job_dict[job][0])
+            part_job = int(job_dict[job][1])
             full_pcnt = job_dict[job][2]
             part_pcnt = 1 - job_dict[job][2]
 
@@ -172,8 +173,8 @@ def convert(sg_list, ratio_list, count_list,
             ratio = quota_dict[job][0]
             count = quota_dict[job][1]
 
-            full_job = job_dict[job][0]
-            part_job = job_dict[job][1]
+            full_job = int(job_dict[job][0])
+            part_job = int(job_dict[job][1])
             full_pcnt = job_dict[job][2]
             part_pcnt = 1 - job_dict[job][2]
 

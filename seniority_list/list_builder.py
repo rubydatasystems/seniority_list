@@ -33,7 +33,6 @@ Example:
 import pandas as pd
 import numpy as np
 
-import config as cf
 import functions as f
 import warnings
 
@@ -71,21 +70,24 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
 
     master = master_[(master_.line == 1) | (master_.fur == 1)].copy()
 
+    sdict = pd.read_pickle('dill/dict_settings.pkl')
+
     # AGE and LONGEVITY
-    master['age'] = f.starting_age(master.retdate)
-    master['s_lmonths'] = f.longevity_at_startdate(list(master['ldate']),
+    master['age'] = f.starting_age(master.retdate, sdict['starting_date'])
+    master['s_lmonths'] = f.longevity_at_startdate(list(master['ldate'],),
+                                                   sdict['starting_date'],
                                                    return_months=True)
 
     jobs_list = []
 
-    if cf.enhanced_jobs:
+    if sdict['enhanced_jobs']:
         # use job dictionary from case-specific configuration
         # file for conversion
-        eg_counts, j_changes = f.convert_to_enhanced(cf.eg_counts,
-                                                     cf.j_changes,
-                                                     cf.jd)
+        eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
+                                                     sdict['j_changes'],
+                                                     sdict['jd'])
     else:
-        eg_counts = cf.eg_counts
+        eg_counts = sdict['eg_counts']
 
     # make a list of stovepipe jobs for each group (from config job counts)
     i = 1

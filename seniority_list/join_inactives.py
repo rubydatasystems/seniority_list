@@ -43,14 +43,16 @@ example jupyter notebook usage:
 
 import pandas as pd
 import numpy as np
-import config as cf
 
 import os
 from sys import argv
 
 script, master_name, proposed_order_df, output_name, fill_style = argv
 
-case = cf.case_study
+try:
+    case = pd.read_pickle('dill/case_dill.pkl').case.value
+except:
+    print('case variable not found')
 
 dill_pre, pkl_suf = 'dill/', '.pkl'
 
