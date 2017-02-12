@@ -47,7 +47,7 @@ import numpy as np
 import os
 from sys import argv
 
-script, master_name, proposed_order_df, output_name, fill_style = argv
+script, master_name, proposed_order_df, fill_style = argv
 
 try:
     case = pd.read_pickle('dill/case_dill.pkl').case.value
@@ -55,6 +55,7 @@ except:
     print('case variable not found')
 
 dill_pre, pkl_suf = 'dill/', '.pkl'
+out_name = 'final'
 
 # name of this case-specific folder within 'reports' folder
 file_path = 'reports/' + case + '/'
@@ -64,7 +65,7 @@ os.makedirs(file_path, exist_ok=True)
 master_path_string = (dill_pre + master_name + pkl_suf)
 order_path_string = (dill_pre + 'p_' + proposed_order_df + pkl_suf)
 
-excel_file_name = case + '_' + output_name + '.xlsx'
+excel_file_name = out_name + '.xlsx'
 write_xl_path = (file_path + excel_file_name)
 
 df_master = pd.read_pickle(master_path_string)
@@ -95,7 +96,7 @@ final = final.sort_values(['idx', 'eg_order'])
 final['snum'] = np.arange(len(final)).astype(int) + 1
 final.pop('idx')
 
-final.to_pickle(dill_pre + case + '_' + output_name + pkl_suf)
+final.to_pickle(dill_pre + out_name + pkl_suf)
 
 final.set_index('snum', drop=True, inplace=True)
 
@@ -104,5 +105,5 @@ writer = pd.ExcelWriter(write_xl_path,
                         datetime_format='yyyy-mm-dd',
                         date_format='yyyy-mm-dd')
 
-final.to_excel(writer, sheet_name='final')
+final.to_excel(writer, sheet_name=out_name)
 writer.save()

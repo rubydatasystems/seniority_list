@@ -3,7 +3,7 @@
 
 '''produces a dataframe with information for each employee that is not
 dependent on the ORDER of the list...
-some column(s) are dependent on config variables, such as
+some column(s) are dependent on the settings dictionary values, such as
 pay raise beyond the contract last year.'''
 
 import pandas as pd

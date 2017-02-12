@@ -42,7 +42,7 @@ start_month = 0
 prex = 'prex' in conditions
 
 if sdict['enhanced_jobs']:
-    # use job dictionary from case-specific configuration file for conversion
+    # use job dictionary(jd) from settings dictionary for conversion
     eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
                                                  sdict['j_changes'],
                                                  sdict['jd'])
