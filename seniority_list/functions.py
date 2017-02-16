@@ -505,7 +505,7 @@ def make_stovepipe_prex_shortform(job_list, sg_codes,
             (marked with 1, others marked 0)
             length of this eg population
         sg_rights
-            list of lists from config file including job numbers and
+            list of lists (from settings dictionary) including job numbers and
             job counts for condition.
             Columns 2 and 3 are extracted for use.
         fur_codes
@@ -686,7 +686,7 @@ def assign_jobs_full_flush_skip_furs(monthly_nonret_counts,
         fur_arr
             long_form furlough codes (same size as long_job_array)
         job_level_count
-            num_of_job_levels (ultimately from config file)
+            num_of_job_levels (ultimately from settings.xlsx)
 
     This is bump and flush (skipping furloughed employees)
     '''
@@ -818,7 +818,7 @@ def assign_jobs_nbnf_job_changes(df,
         start_month
             integer representing the month number to begin calculations,
             likely month of integration when there exists a delayed
-            integration (from config file)
+            integration (from settings dictionary)
         condition_list (list)
             list of special job assignment conditions to apply,
             example: ['prex', 'count', 'ratio']
@@ -849,7 +849,7 @@ def assign_jobs_nbnf_job_changes(df,
                 start_month, end_month]
         fur_return (boolean)
             model employee recall from furlough if True using recall
-            schedule from case-specific file (allows call to
+            schedule from settings dictionary (allows call to
             mark_for_recall function)
 
     Assigns jobs so that original standalone jobs are assigned
@@ -1116,7 +1116,7 @@ def put_map(jobs_array, job_cnts):
         jobs_array
             long_form jnums
         jobs_cnts
-            array of job counts from config file
+            array of job counts from settings dictionary
             example: with 3 egs, array of 3 lists of counts
 
     Example:
@@ -1475,7 +1475,7 @@ def make_jcnts(job_count_lists):
             If the program is using the enhanced jobs option, this input
             will be the output of the convert_jcnts_to_enhanced function.
             Otherwise, it will be the eg_counts variable from the
-            configuration file.
+            settings dictionary.
 
     Example return:
 
@@ -1840,12 +1840,12 @@ def precalculate_fur_without_recalls(monthly_job_totals,
 # GET_RECALL_MONTHS (refactor to provide for no recall list)
 def get_recall_months(list_of_recall_schedules):
     '''extract a sorted list of only the unique months containing a recall
-    as defined within the config file recall schedules
+    as defined within the settings dictionary recall schedules
 
     input
         list_of_recall_schedules
             list of recall schedule lists, normally equal to the recalls
-            variable from the configuration file
+            variable from the settings dictionary
     '''
     recall_months = []
     for recall_sched in list_of_recall_schedules:
@@ -1857,12 +1857,13 @@ def get_recall_months(list_of_recall_schedules):
 # GET_JOB_CHANGE_MONTHS
 def get_job_change_months(job_changes):
     '''extract a sorted list of only the unique months containing a change in
-    any job count as defined within the config file job change schedules
+    any job count as defined within the settings dictionary job change
+    schedules
 
     input
         job_changes
             list of job change schedule lists, normally equal to the j_changes
-            variable from the configuration file
+            variable from the settings dictionary
     '''
     month_list = []
     for change in job_changes:
@@ -1876,12 +1877,13 @@ def get_job_change_months(job_changes):
 # GET_REDUCTION_MONTHS
 def get_job_reduction_months(job_changes):
     '''extract a sorted list of only the unique months containing a reduction
-    in any job count as defined within the config file job change schedules
+    in any job count as defined within the settings dictionary job change
+    schedules
 
     input
         job_changes
             list of job change schedule lists, normally equal to the j_changes
-            variable from the configuration file
+            variable from the settings dictionary
     '''
     month_list = []
     for change in job_changes:
@@ -1975,7 +1977,7 @@ def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
             numpy array containing the employee group codes within
             ratio group 2
         quota_dict
-            case-specific dictionary imported by the config file.
+            case-specific dictionary imported by the quota_dict (dictionary).
             This dictionary has tuple keys (job, enhanced_jobs) and
             tuple values (weights: i.e. ratios, condition count cap,
             percentage to divide count cap if enhanced jobs used in model)
@@ -2143,7 +2145,7 @@ def mark_for_recall(orig_range, num_of_job_levels,
         orig_range
             original job range
         num_of_job_levels
-            number of job levels in model, normally from config file
+            number of job levels in model, normally from settings dictionary
         fur_range
             current month slice of fur data
         month
@@ -2162,7 +2164,7 @@ def mark_for_recall(orig_range, num_of_job_levels,
         eg_index (integer)
             selects the proper recall schedule for standalone dataset
             generation, normally from a loop increment.  The recall schedule
-            is defined in the case-specific configuration file.
+            is defined in the settings dictionary.
             set to zero for an integrated routine (integrated routine
             uses a global recall schedule)
         method
@@ -2256,7 +2258,7 @@ def mark_for_furlough(orig_range, fur_range, month,
             total number of jobs for each month
             array, job_gain_loss_table function output [1]
         num_of_job_levels
-            from config file, used to mark fur job level as
+            from settings dictionary, used to mark fur job level as
             num_of_job_levels + 1
     '''
     active_count = np.sum(fur_range == 0)
@@ -2290,7 +2292,7 @@ def mark_fur_range(assign_range, fur_range, job_levels):
             current month fur status (1 means furloughed,
             0 means not furloughed)
         job_levels
-            number of job levels in model (from config file)
+            number of job levels in model (from settings dictionary)
     '''
     np.put(fur_range, np.where(assign_range == 0)[0], 1)
     np.put(fur_range, np.where((assign_range > 0) &
@@ -2474,7 +2476,7 @@ def make_delayed_job_counts(imp_month, delayed_jnums,
 
     inputs
         imp_month (integer)
-            implementation month, defined by configuration file
+            implementation month, defined by settings dictionary
         delayed_jnums (numpy array)
             array of job numbers, normally data from the start of the model
             through the implementation month
@@ -2519,7 +2521,8 @@ def delayed_monthly_sep_job_tables(job_levels,
 
     inputs
         job_levels
-            the number of job levels in the model (from the config file)
+            the number of job levels in the model
+            (from the settings dictionary)
         eg_job_counts
             numpy array of the job count lists for the egs
         imp_job_counts
@@ -2596,7 +2599,7 @@ def job_gain_loss_table(months, job_levels, init_job_counts,
     The first array has a row for each month in the model, and a column for
     each job level (excluding furlough).  This array provides a count for each
     job for each month of the model accounting for changes provided by the
-    job change schedules defined by the configuration files.
+    job change schedules defined by the settings dictionary.
 
     The second array is a one-dimensional array containing the sum for all jobs
     for each month of the model.the
@@ -2612,7 +2615,7 @@ def job_gain_loss_table(months, job_levels, init_job_counts,
             job count lists for each employee group and an array of the
             combined counts.
         job_changes (list)
-            The list of job changes from the configuration files.
+            The list of job changes from the settings dictionary.
         standalone (boolean)
             if True, use the job count lists for the separate employee groups,
             otherwise use the combined job count
@@ -2719,8 +2722,8 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
             [80, 85, 443, 163, 96, 464, 54, 66],
             [0, 26, 319, 0, 37, 304, 0, 0]]
         j_changes
-            input from config file describing change of job quantity over
-            months of time (list)
+            input from the settings dictionary describing change of job
+            quantity over months of time (list)
 
             example:
 
@@ -2731,7 +2734,7 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
             [eg allotment of change for standalone calculations]]
         job_dict
             conversion dictionary for an enhanced model.
-            This is the jd variable from the case-specific file.
+            This is the "jd" key value from the settings dictionary.
             It uses the basic job levels as the keys, and lists as values
             which containin the new full- and part-time job level numbers
             and the percentage of basic job counts to be converted to
@@ -2863,7 +2866,7 @@ def assign_standalone_job_changes(df_align,
             from the get_job_reduction_months function
         start_month (integer)
             starting month for calculations, likely implementation month
-            from case-specific file
+            from settings dictionary
         eg (integer)
             input from an incremental loop which is used to select the proper
             employee group recall scedule
@@ -2882,11 +2885,10 @@ def assign_standalone_job_changes(df_align,
         apply_sg_cond (boolean)
             compute with pre-existing special job quotas for certain
             employees marked with a one in the sg column (special group)
-            according to a schedule defined in the case-specific
-            configuration file
+            according to a schedule defined in the settings dictionary
         fur_return (boolean)
-            compute with a recall schedule(s) defined in the case-specific
-            configuration file
+            compute with a recall schedule(s) defined in the settings
+            dictionary
 
     Assigns jobs so that original standalone jobs are assigned
     each month (if available) unless a better job is available
@@ -3078,43 +3080,77 @@ def assign_standalone_job_changes(df_align,
 
 
 def print_config_selections():
-    '''grab config file data settings and put it in a dataframe and then
-    print it for a quick summary of config inputs
+    '''grab settings dictionary data settings and put it in a dataframe and then
+    print it for a quick summary of scalar settings dictionary inputs
     '''
     sdict = pd.read_pickle('dill/dict_settings.pkl')
-    config_dict = {'case_study': sdict['case_study'],
-                   'compute_with_job_changes':
-                   sdict['compute_with_job_changes'],
-                   'discount_longev_for_fur': sdict['discount_longev_for_fur'],
-                   'lspcnt_calc_on_remaining_population':
-                   sdict['lspcnt_calc_on_remaining_population'],
-                   'integrated_counts_preimp':
-                   sdict['integrated_counts_preimp'],
-                   'enhanced_jobs': sdict['enhanced_jobs'],
+    try:
+        case_study = pd.read_pickle('dill/case_dill.pkl')
+    except:
+        case_study = 'error, no case_dill.pkl file found'
+
+    config_dict = {'case_study': case_study,
+                   'start': sdict['start'],
                    'starting_date': sdict['starting_date'],
+                   'enhanced_jobs': sdict['enhanced_jobs'],
+                   'enhanced_jobs_full_suffix':
+                   sdict['enhanced_jobs_full_suffix'],
+                   'enhanced_jobs_part_suffix':
+                   sdict['enhanced_jobs_part_suffix'],
                    'delayed_implementation': sdict['delayed_implementation'],
-                   'full_time_pcnt1': sdict['full_time_pcnt1'],
-                   'full_time_pcnt2': sdict['full_time_pcnt2'],
                    'implementation_date': sdict['implementation_date'],
-                   'no_bump': sdict['no_bump'],
-                   'ret_age': sdict['ret_age'],
+                   'imp_date': sdict['imp_date'],
+                   'imp_month': sdict['imp_month'],
                    'recall': sdict['recall'],
-                   'future_raise': sdict['future_raise'],
                    'annual_pcnt_raise': sdict['annual_pcnt_raise'],
-                   'top_of_scale': sdict['top_of_scale'],
                    'compute_job_category_order':
                    sdict['compute_job_category_order'],
                    'compute_pay_measures': sdict['compute_pay_measures'],
+                   'compute_with_job_changes':
+                   sdict['compute_with_job_changes'],
+                   'count_cond_duration': sdict['count_cond_duration'],
+                   'count_final_month': sdict['count_final_month'],
+                   'date_exception_end': sdict['date_exception_end'],
+                   'date_exception_start': sdict['date_exception_start'],
+                   'discount_longev_for_fur': sdict['discount_longev_for_fur'],
+                   'end_date': sdict['end_date'],
+                   'future_raise': sdict['future_raise'],
+                   'init_ret_age': sdict['init_ret_age'],
+                   'init_ret_age_months': sdict['init_ret_age_months'],
+                   'init_ret_age_years': sdict['init_ret_age_years'],
+                   'ret_age': sdict['ret_age'],
+                   'ret_age_increase': sdict['ret_age_increase'],
+                   'int_job_counts': sdict['int_job_counts'],
+                   'job_levels_basic': sdict['job_levels_basic'],
+                   'job_levels_enhanced': sdict['job_levels_enhanced'],
+                   'last_contract_year': sdict['last_contract_year'],
+                   'lspcnt_calc_on_remaining_population':
+                   sdict['lspcnt_calc_on_remaining_population'],
+                   'no_bump': sdict['no_bump'],
                    'num_of_job_levels': sdict['num_of_job_levels'],
                    'pay_table_exception_year':
-                   sdict['case.pay_table_exception_year'],
-                   'date_exception_start': sdict['case.date_exception_start'],
-                   'date_exception_end': sdict['case.date_exception_end'],
-                   'last_contract_year': sdict['case.last_contract_year'],
-                   'ret_age_increase': sdict['case.ret_age_increase'],
-                   'pay_table_year_sort': sdict['case.pay_table_year_sort'],
+                   sdict['pay_table_exception_year'],
                    'pay_table_longevity_sort':
-                   sdict['case.pay_table_longevity_sort']}
+                   sdict['pay_table_longevity_sort'],
+                   'pay_table_year_sort': sdict['pay_table_year_sort'],
+                   'quota_dist': sdict['quota_dist'],
+                   'ratio_cond_duration': sdict['ratio_cond_duration'],
+                   'ratio_final_month': sdict['ratio_final_month'],
+                   'save_to_pickle': sdict['save_to_pickle'],
+                   'count_dist': sdict['count_dist'],
+                   'ratio_dist': sdict['ratio_dist'],
+                   'sg_dist': sdict['sg_dist'],
+                   'stripplot_full_time_pcnt':
+                   sdict['stripplot_full_time_pcnt'],
+                   'top_of_scale': sdict['top_of_scale'],
+                   'add_doh_col': sdict['add_doh_col'],
+                   'add_eg_col': sdict['add_eg_col'],
+                   'add_ldate_col': sdict['add_ldate_col'],
+                   'add_line_col': sdict['add_line_col'],
+                   'add_lname_col': sdict['add_lname_col'],
+                   'add_ret_mark': sdict['add_ret_mark'],
+                   'add_retdate_col': sdict['add_retdate_col'],
+                   'add_sg_col': sdict['add_sg_col']}
 
     settings = pd.DataFrame(config_dict, index=['setting']).stack()
     df = pd.DataFrame(settings, columns=['setting'])
@@ -3150,7 +3186,7 @@ def clip_ret_ages(ret_age_dict, init_ret_age, dates_long_arr, ages_long_arr):
     inputs
         ret_age_dict (dictionary)
             dictionary of retirement increase date to new retirement age as
-            defined in case-specific configuration file
+            defined in settings dictionary
         init_ret_age
             initial retirement age prior to any increase
         dates_long_arr (numpy array)
@@ -3191,17 +3227,18 @@ def clear_dill_files():
 
 
 def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
-    '''read the pickled datasets applicable to the current
-    case_study variable set within the config.py file.
+    '''Create a dictionary of proposal names to corresponding datasets.
 
     The datasets are generated with the RUN_SCRIPTS notebook.  This routine
-    reads the names of the case study proposals from the source Excel workbook
-    (proposals.xlsx) and then looks for the matching datasets within the
-    dill folder.
+    reads the names of the case study proposals from a pickled dataframe
+    ('dill/proposal_names.pkl'), created by the build_program_files.py script.
+    It then looks for the matching stored datasets within the dill folder.
 
     The datasets are loaded into a dictionary, using the proposal names as
-    keys.  The proposal names are loaded from a pickled dataframe
-    ('dill/proposal_names.pkl'), created by the build_program_files.py script.
+    keys.
+
+    The dictionary allows easy reference to datasets from the Jupyter notebook
+    and from within functions.
 
     input
         other_datasets (list)

@@ -119,7 +119,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
             text size of chart title
         xsize, ysize (integer or float)
             size of chart display
-        '''
+    '''
 
     dsc, df_labelc = determine_dataset(dfc, ds_dict, return_label=True)
     dsb = determine_dataset(dfb, ds_dict, return_label=False)
@@ -1616,8 +1616,7 @@ def job_level_progression(df, emp_list, through_date,
         job_counts
             list of lists containing job counts for each employee group
         job_change_lists
-            list of job changes data (originally from case-specific
-            configuration file)
+            list of job changes data (originally from settings dictionary)
         alpha
             opacity level of background job bands stacked area chart
         max_plots_for_legend (integer)
@@ -1639,7 +1638,7 @@ def job_level_progression(df, emp_list, through_date,
     jobs_dict = settings_dict['job_strs_dict']
 
     if settings_dict['enhanced_jobs']:
-        # use job dictionary from case-specific configuration file
+        # use job dictionary(jd) from settings dictionary
         # for conversion
         eg_counts, j_changes = f.convert_to_enhanced(job_counts,
                                                      job_change_lists,
@@ -3638,7 +3637,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         # sns.set_style(chart_style)
 
         if enhanced_jobs:
-            # use job dictionary from case-specific configuration file
+            # use job dictionary(jd) from settings dictionary
             # for conversion
             eg_counts, j_changes = f.convert_to_enhanced(eg_counts,
                                                          j_changes,
@@ -6152,7 +6151,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, eg_colors,
         starting_date = settings_dict['starting_date']
 
         if settings_dict['enhanced_jobs']:
-            # use job dictionary from case-specific configuration file
+            # use job dictionary from case-specific settings dictionary
             # for conversion
             eg_counts, j_changes = f.convert_to_enhanced(job_counts,
                                                          job_change_lists,
