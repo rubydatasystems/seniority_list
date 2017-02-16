@@ -60,8 +60,7 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
             columns.  The s_lmonths coulumn will be calculated on the sorted
             ldate data.
 
-    Job-related attributes are referenced to job counts from the settings
-    dictionary.
+    Job-related attributes are referenced to job counts from the config file.
     '''
 
     master_ = pd.read_pickle('dill/master.pkl')
@@ -82,15 +81,15 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
     jobs_list = []
 
     if sdict['enhanced_jobs']:
-        # use job dictionary(jd) from settings dictionary
+        # use job dictionary from case-specific configuration
+        # file for conversion
         eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
                                                      sdict['j_changes'],
                                                      sdict['jd'])
     else:
         eg_counts = sdict['eg_counts']
 
-    # make a list of stovepipe jobs for each group (from settings dictionary
-    # job counts)
+    # make a list of stovepipe jobs for each group (from config job counts)
     i = 1
     for jobs in eg_counts:
         # the second input determines the length of the zero

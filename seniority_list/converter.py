@@ -11,14 +11,13 @@ def convert(sg_list, ratio_list, count_list,
             quota_dict, job_dict,
             sg_dist='part', ratio_dist='split',
             count_dist='split', quota_dist='split'):
-    '''Convert data relating to job assignment conditions from basic job
+    '''convert data relating to job assignment conditions from basic job
     level inputs to enhanced job level inputs
 
-    Inputs are the basic job level values for the various conditions, the
-    job dictionary, and the distribution methods used during conversion.
-
-    This function is called within the build_program_files script when the
-    "enhanced_job" key value within the settings dictionary is set to "True".
+    inputs are the basic job level inputs from the conditions section within
+    the case-specific configuration file.  this function is called within the
+    case-specific configuration files when the "enhanced_job" variable
+    within the general configuration file is set to "True".
 
     inputs
         sg_list (list)

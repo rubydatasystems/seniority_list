@@ -52,7 +52,7 @@ num_of_job_levels = sdict['num_of_job_levels']
 lspcnt_calc = sdict['lspcnt_calc_on_remaining_population']
 
 if sdict['enhanced_jobs']:
-    # convert using job dictionary from settings dictionary
+    # use job dictionary from case-specific configuration file for conversion
     eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
                                                  sdict['j_changes'],
                                                  sdict['jd'])
@@ -60,7 +60,8 @@ else:
     eg_counts = sdict['eg_counts']
     j_changes = sdict['j_changes']
 
-# compute job counts array
+# grab the job counts from the config file and insert into array (and
+# compute totals)
 jcnts_arr = f.make_jcnts(eg_counts)
 
 # ORDER the skeleton df according to INTEGRATED list order.
@@ -222,7 +223,7 @@ if sdict['delayed_implementation']:
     ds['orig_job'] = delayed_jnums
     ds['fur'] = delayed_fur
 
-    if sdict['int_job_counts']:
+    if sdict['integrated_counts_preimp']:
         # assign combined job counts prior to the implementation date.
         # (otherwise, separate employee group counts will be used when
         # data is transferred from col_array at end of script)
