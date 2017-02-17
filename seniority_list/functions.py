@@ -3481,7 +3481,7 @@ def make_cat_order(ds, table):
 
     The routine creates numpy array lookup tables from integrated job
     level count data for each month of the model.  The tables are the source
-    for count and additive information which is to calculate a rank number
+    for count and additive information which is used to calculate a rank number
     within job level and cumulative job count additives.
 
     Month number and job number arrays (from the input ds (dataset)) are used

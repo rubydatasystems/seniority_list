@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''built-in plotting functions
+'''plotting functions and supporting utility functions
 '''
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ pct_format = FuncFormatter(to_percent)
 
 
 def quartile_years_in_position(dfc, dfb, job_levels,
-                               num_bins, job_str_list, eg_dict, color_list,
+                               num_bins, job_str_list, p_dict, color_list,
                                style='bar', plot_differential=True,
                                ds_dict=None,
                                attr1=None, oper1='>=', val1=0,
@@ -71,7 +71,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
             the chart legend
             example:
                 jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
-        eg_dict (dictionary)
+        p_dict (dictionary)
             dictionary used to convert employee group numbers to text,
             used with chart title text display
         color_list (list)
@@ -401,7 +401,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
 
 
 def age_vs_spcnt(df, eg_list, mnum, color_list,
-                 eg_dict, ret_age, ds_dict=None,
+                 p_dict, ret_age, ds_dict=None,
                  attr1=None, oper1='>=', val1=0,
                  attr2=None, oper2='>=', val2=0,
                  attr3=None, oper3='>=', val3=0,
@@ -427,7 +427,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
             month number to study from dataset
         color_list (list)
             color codes for plotting each employee group
-        eg_dict (dict)
+        p_dict (dict)
             dictionary, numerical eg code to string description
         ds_dict (dict)
             variable assigned to the output of the load_datasets function,
@@ -473,7 +473,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
         else:
             ax.scatter(x, y, c=color_list[grp - 1],
                        s=20, linewidth=0.1, edgecolors='w',
-                       label=eg_dict[grp])
+                       label=p_dict[grp])
 
     plt.ylim(1, 0)
     plt.xlim(25, ret_age)
@@ -877,7 +877,7 @@ def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
     plt.show()
 
 
-def age_kde_dist(df, color_list, eg_dict, max_age,
+def age_kde_dist(df, color_list, p_dict, max_age,
                  ds_dict=None, mnum=0,
                  title_fontsize=14, min_age=25,
                  chart_example=False):
@@ -890,7 +890,7 @@ def age_kde_dist(df, color_list, eg_dict, max_age,
             from the ds_dict dictionary object
         color_list (list)
             list of colors for employee group plots
-        eg_dict (dictionary)
+        p_dict (dictionary)
             eg to string dict for plot labels
         max_age (float)
             maximum age to plot (x axis limit)
@@ -924,7 +924,7 @@ def age_kde_dist(df, color_list, eg_dict, max_age,
             else:
                 sns.kdeplot(frame[frame.eg == x].age,
                             shade=True, color=color,
-                            bw=.8, ax=ax, label=eg_dict[x])
+                            bw=.8, ax=ax, label=p_dict[x])
         except:
             continue
 
@@ -1407,7 +1407,7 @@ def eg_boxplot(df_list, eg_list,
 def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
                                        eg_colors, band_colors, job_strs,
                                        attr_dict,
-                                       eg_dict, ds_dict=None,
+                                       p_dict, ds_dict=None,
                                        rank_metric='cat_order',
                                        attr1=None, oper1='>=', val1='0',
                                        attr2=None, oper2='>=', val2='0',
@@ -1440,7 +1440,7 @@ def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
             list of colors for background job band colors
         job_strs (list)
             list of job strings for job description labels
-        eg_dict (dictionary)
+        p_dict (dictionary)
             eg to group string label
         ds_dict (dictionary)
             output from load_datasets function
@@ -1553,7 +1553,7 @@ def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
             tick_dummies.append(str(tck + 1))
     else:
         for tck in xticks:
-            tick_dummies.append(eg_dict[tck + 1])
+            tick_dummies.append(p_dict[tck + 1])
 
     plt.gca().set_xticklabels(tick_dummies)
     plt.tick_params(labelsize=tick_fontsize)
@@ -1770,7 +1770,7 @@ def job_level_progression(df, emp_list, through_date,
 
 def differential_scatter(df_list, dfb,
                          measure, eg_list,
-                         attr_dict, color_dict, eg_dict, ds_dict=None,
+                         attr_dict, color_dict, p_dict, ds_dict=None,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
                          attr3=None, oper3='>=', val3=0,
@@ -1813,7 +1813,7 @@ def differential_scatter(df_list, dfb,
         color_dict (dictionary)
             dictionary containing color list string titles to lists of color
             values generated by the build_program_files script
-        eg_dict (dictionary)
+        p_dict (dictionary)
             employee group code number to description dictionary
         ds_dict (dictionary)
             output from load_datasets function
@@ -1953,7 +1953,7 @@ def differential_scatter(df_list, dfb,
                 if chart_example:
                     label = str(eg)
                 else:
-                    label = eg_dict[eg]
+                    label = p_dict[eg]
 
                 if show_scatter:
                     data.plot(x=xax, y=yax, kind='scatter',
@@ -2034,7 +2034,7 @@ def differential_scatter(df_list, dfb,
             plt.show()
 
 
-def job_grouping_over_time(df, eg_list, jobs, job_colors, eg_dict,
+def job_grouping_over_time(df, eg_list, jobs, job_colors, p_dict,
                            plt_kind='bar', ds_dict=None, rets_only=True,
                            attr1=None, oper1='>=', val1=0,
                            attr2=None, oper2='>=', val2=0,
@@ -2065,7 +2065,7 @@ def job_grouping_over_time(df, eg_list, jobs, job_colors, eg_dict,
             list of job label strings (for plot legend)
         job_colors (list)
             list of colors to be used for plotting
-        eg_dict (dictionary)
+        p_dict (dictionary)
             employee group to string description dictionary
         plt_kind (string)
             'bar' or 'area' (bar recommended)
@@ -2182,9 +2182,9 @@ def job_grouping_over_time(df, eg_list, jobs, job_colors, eg_dict,
                 suptitle_str = 'Proposal' + ' group ' + str(eg)
             else:
                 try:
-                    suptitle_str = df_label + ' group ' + eg_dict[eg]
+                    suptitle_str = df_label + ' group ' + p_dict[eg]
                 except:
-                    suptitle_str = 'Proposal' + ' group ' + eg_dict[eg]
+                    suptitle_str = 'Proposal' + ' group ' + p_dict[eg]
 
             if t_string:
                 plt.suptitle(suptitle_str, fontsize=suptitle_fontsize)
@@ -2284,7 +2284,7 @@ def parallel(df_list, dfb, eg_list, measure,
                                     attr2=attr2, oper2=oper2, val2=val2,
                                     attr3=attr3, oper3=oper3, val3=val3)
 
-    group_dict = dict_settings['eg_dict']
+    group_dict = dict_settings['p_dict']
     color_dict = dict(enumerate(eg_colors))
 
     jobs = dict_settings['job_strs']
@@ -2599,7 +2599,7 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
         if job_only:
 
-            label_dict = dict_settings['eg_dict_verbose']
+            label_dict = dict_settings['p_dict_verbose']
             if eg_list:
                 heat_unique = np.unique(np.array(eg_list)).astype(int)
             else:
@@ -2613,7 +2613,7 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
     if 'eg' in measure_list:
 
-        label_dict = dict_settings['eg_dict_verbose'].copy()
+        label_dict = dict_settings['p_dict_verbose'].copy()
         label_dict[max(egs) + 1] = 'FUR'
         heat_unique = np.unique(heat_data[~np.isnan(heat_data)]) \
             .astype(int)
@@ -2868,7 +2868,7 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
 
 
 def job_transfer(dfc, dfb, eg, job_colors,
-                 job_levels, starting_date, job_strs, eg_dict,
+                 job_levels, starting_date, job_strs, p_dict,
                  ds_dict=None,
                  measure='jnum', gb_period='M',
                  custom_color=True, cm_name='Paired',
@@ -2903,7 +2903,7 @@ def job_transfer(dfc, dfb, eg, job_colors,
             starting date for the data model
         job_strs (list)
             list of job descriptions (labels)
-        eg_dict (dictionary)
+        p_dict (dictionary)
             dictionary of employee number codes to short string description
 
             example: {0: 'sa', 1: '1', 2: '2'}
@@ -3068,7 +3068,7 @@ def job_transfer(dfc, dfb, eg, job_colors,
         plt.xlabel('date', fontsize=16, labelpad=15)
 
         try:
-            title_string = 'GROUP ' + eg_dict[eg] + \
+            title_string = 'GROUP ' + p_dict[eg] + \
                 ' Jobs Exchange' + '\n' + \
                 dfc_label + \
                 ' compared to ' + dfb_label
@@ -3102,8 +3102,14 @@ def editor(settings_dict, color_dict,
     user-defined dataset if the reset input is set to True.  This input must
     be removed or set back to False to allow dataset editing to take place.
 
-    As it stands now, if the user desires to save an edited dataset for further
+    If the user desires to save an edited dataset for further
     analysis, it must be manually copied and saved to another folder.
+
+    created by editor tool (when run):
+
+        ds_edit.pkl
+        squeeze_vals.pkl
+        new_order.pkl
 
     inputs
         settings_dict (dictionary)
@@ -3118,6 +3124,9 @@ def editor(settings_dict, color_dict,
             comparison dataset string name
         cond_list (list)
             conditions to apply when calculating dataset
+        reset (boolean)
+            if True, delete the edited dataset and start over with a
+            user-defined dataset ("compare" input)
         prop_order (boolean)
             order the output differential chart x axis in proposal
             (or edited dataset) order, necessary to use the interactive
@@ -3304,7 +3313,7 @@ def editor(settings_dict, color_dict,
     else:
         df[yval] = df[measure + '_c'] - df[measure + '_b']
 
-    eg_dict = settings_dict['eg_dict']
+    p_dict = settings_dict['p_dict']
 
     with sns.axes_style(chart_style):
 
@@ -3325,14 +3334,14 @@ def editor(settings_dict, color_dict,
                 ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
                                color=color_dict['eg_colors'][eg - 1],
                                s=dot_size,
-                               label=eg_dict[eg],
+                               label=p_dict[eg],
                                ax=ax)
 
             if chk_mean.value:
                 data['ma'] = data[yval].rolling(mean_len).mean()
                 ax = data.plot(x=xval, y='ma', lw=5,
                                color=color_dict['mean_colors'][eg - 1],
-                               label=eg_dict[eg],
+                               label=p_dict[eg],
                                alpha=.6, ax=ax)
 
             if chk_fit.value:
@@ -3342,7 +3351,7 @@ def editor(settings_dict, color_dict,
                     lin_reg_colors = color_dict['lin_reg_colors2']
                 ax = sns.regplot(x=xval, y=yval, data=data,
                                  color=lin_reg_colors[eg - 1],
-                                 label=eg_dict[eg],
+                                 label=p_dict[eg],
                                  scatter=False, truncate=True, ci=50,
                                  order=lin_reg_order,
                                  line_kws={'lw': 20,
@@ -3404,7 +3413,7 @@ def editor(settings_dict, color_dict,
                 junior_init = .8
                 senior_init = .2
 
-        drop_eg_dict = {'1': 1, '2': 2, '3': 3}
+        drop_p_dict = {'1': 1, '2': 2, '3': 3}
         drop_dir_dict = {'u  >>': 'u', '<<  d': 'd'}
         incr_dir_dict = {'u  >>': -1, '<<  d': 1}
 
@@ -3445,7 +3454,7 @@ def editor(settings_dict, color_dict,
             incr_dir_correction = incr_dir_dict[drop_dir.value]
             increment = slide_factor.value * incr_dir_correction
 
-            squeeze_eg = drop_eg_dict[drop_eg.value]
+            squeeze_eg = drop_p_dict[drop_eg.value]
 
             if drop_squeeze.value == 'log':
                 squeezer = f.squeeze_logrithmic(data_reorder,
@@ -4204,7 +4213,7 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
                 count_plot(eg_jobs, jnum, dum, eg_colors[eg - 1],
                            ax, prop_lw, 1, ls=prop_ls)
 
-                plt.title(settings_dict['eg_dict_verbose'][eg] + '  ' +
+                plt.title(settings_dict['p_dict_verbose'][eg] + '  ' +
                           settings_dict['job_strs_dict'][jnum],
                           fontsize=title_fontsize)
                 plot_idx += 1
@@ -4319,7 +4328,7 @@ def emp_quick_glance(empkey, df, ds_dict=None,
 
 def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
                                job_str_list,
-                               eg_dict, color_list, ds_dict=None,
+                               p_dict, color_list, ds_dict=None,
                                attr1=None, oper1='>=', val1=0,
                                attr2=None, oper2='>=', val2=0,
                                attr3=None, oper3='>=', val3=0,
@@ -4351,7 +4360,7 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
             the chart legend
             example:
                 jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
-        eg_dict (dictionary)
+        p_dict (dictionary)
             dictionary used to convert employee group numbers to text,
             used with chart title text display
         color_list (list)
@@ -4587,7 +4596,7 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
             if flip_x:
                 ax.invert_xaxis()
 
-            plt.suptitle(dfc_label + ', GROUP ' + eg_dict[eg],
+            plt.suptitle(dfc_label + ', GROUP ' + p_dict[eg],
                          fontsize=suptitle_fontsize, y=1.02)
 
             plt.title(descript + 'years in position, ' +
@@ -4663,7 +4672,7 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
                         fontsize=legend_font_size)
 
                 plt.suptitle(dfc_label +
-                             ', GROUP ' + eg_dict[eg],
+                             ', GROUP ' + p_dict[eg],
                              fontsize=suptitle_fontsize, y=1.02)
 
                 plt.title(descript + 'years differential vs standalone, ' +
@@ -4874,7 +4883,7 @@ def cond_test(df, opt_sel, enhanced_jobs, job_colors,
 
 
 def single_emp_compare(emp, measure, df_list, xax,
-                       job_strs, eg_colors, eg_dict,
+                       job_strs, eg_colors, p_dict,
                        job_levels, attr_dict, ds_dict=None,
                        standalone_color='#ff00ff',
                        title_fontsize=14,
@@ -4899,7 +4908,7 @@ def single_emp_compare(emp, measure, df_list, xax,
             string job description list
         eg_colors
             list of colors to be assigned to line plots
-        eg_dict
+        p_dict
             dictionary containing eg group integer to eg string descriptions
         job_levels
             number of jobs in the model
@@ -5343,7 +5352,7 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
 
     title_string = ''
 
-    eg_dict = settings_dict['eg_dict']
+    p_dict = settings_dict['p_dict']
 
     if measure == 'mpay':
         # eliminate variable employee last month partial pay
@@ -5361,14 +5370,14 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
                     .mean().plot(color=eg_colors[eg - 1], lw=3,
                                  ax=ax, label=dfc_label +
                                  ', ' +
-                                 'grp' + eg_dict[eg] + ' avg')
+                                 'grp' + p_dict[eg] + ' avg')
             if plot_median:
                 dfc[dfc.eg == eg].groupby('date')[measure] \
                     .median().plot(color=eg_colors[eg - 1],
                                    ax=ax, lw=1,
                                    label=dfc_label +
                                    ', ' +
-                                   'grp' + eg_dict[eg] + ' median')
+                                   'grp' + p_dict[eg] + ' median')
         except:
             print('invalid or missing data - dfc, group ' + str(eg))
 
@@ -5398,7 +5407,7 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
                     dfb[dfb.eg == eg].groupby('date')[measure]\
                         .mean().plot(label=dfb_label +
                                      ', ' +
-                                     'grp' + eg_dict[eg] +
+                                     'grp' + p_dict[eg] +
                                      ' avg',
                                      color=eg_colors[eg - 1],
                                      ls='dashed',
@@ -5409,7 +5418,7 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
                     dfb[dfb.eg == eg].groupby('date')[measure]\
                         .median().plot(label=dfb_label +
                                        ', ' +
-                                       'grp' + eg_dict[eg] +
+                                       'grp' + p_dict[eg] +
                                        ' median',
                                        color=eg_colors[eg - 1],
                                        ls='dotted',
@@ -6327,7 +6336,7 @@ def make_color_list(num_of_colors=10, start=0.0, stop=1.0,
     any length and any from any section of any matplotlib colormap.
 
     The function can return a list of colors, a dictionary of colormaps
-    to color lists, plot result(s) as seaborn colormap(s), and print out
+    to color lists, plot result(s) as seaborn palplot(s), and print out
     the names of all of the colormaps available.
 
     The end goal of this function is to provide customized color lists

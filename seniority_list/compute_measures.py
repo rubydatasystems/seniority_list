@@ -6,9 +6,7 @@
 output is a single, integrated dataset based on an input integrated list
 order and any conditions
 
-The editor output order list (p_new_order.pkl) may be used as an input by
-including "edit" within the conditions list.  The resultant dataframe will
-be stored as "ds_edit.pkl"
+Dataframes produced with the editor tool will be stored as "ds_edit.pkl"
 '''
 
 import pandas as pd

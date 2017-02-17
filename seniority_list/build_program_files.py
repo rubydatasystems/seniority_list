@@ -1,38 +1,46 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''Create the necessary support files from the input Excel files
-for the program operation.  The Excel files are read from the folder
-named for the case within the excel folder.
+'''Create the necessary program support files from the input Excel files
+for the program operation.  The Excel files are read from the case-named
+folder within the excel folder.
 
-####################################################
+# -------------------------------------------------
+
 Excel files
 
 from proposals.xlsx:
     <worksheet name>.pkl for each proposal
+    proposal_names.pkl
 
 from master.xlsx:
     master.pkl,
-    fur.pkl,
-    sg.pkl,
-    last_month.pkl,
-    active_each_month.pkl
+    last_month.pkl
 
-#####################################################
+from pay_tables.xlsx:
 
-initialized with this script:
-    slider_vals.pkl*,
+    pay_table_basic.pkl
+    pay_table_enhanced.pkl
+    pay_table_data.pkl
 
-created by editor tool (when run):
-     ds_edit.pkl,
-     slider_vals.pkl*,
-     squeeze_vals.pkl,
-     new_order.pkl
+from settings.xlsx
 
-*persistent values stored when editor tool is used
+    dict_settings.pkl
+    dict_attr.pkl
+
+# -------------------------------------------------
+
+initialized with this script (independent of input files):
+
+    squeeze_vals.pkl
+    case_dill.pkl
+    squeeze_vals.pkl
+    dict_color.pkl
+    case-study-named folder in the **reports** folder
+        (if it doesn't already exist)
 
 example usage to run this script from the jupyter notebook:
-    %run build_program_files
+    %run build_program_files sample3
 '''
 import pandas as pd
 import numpy as np
@@ -479,12 +487,13 @@ df['lister2'] = f.make_tuples_from_columns(df, ['lister1', 'cap'],
 quota_dict = f.make_dict_from_columns(df, 'job', 'lister2')
 settings['quota_dict'] = quota_dict
 
-# ## eg_dict, eg_dict_verbose
+# ## p_dict, p_dict_verbose
 
-df = xl['eg_dictionary']
+df = xl['proposal_dictionary']
 df.short_descr = df.short_descr.astype(str)
-settings['eg_dict'] = f.make_dict_from_columns(df, 'eg', 'short_descr')
-settings['eg_dict_verbose'] = f.make_dict_from_columns(df, 'eg', 'long_descr')
+settings['p_dict'] = f.make_dict_from_columns(df, 'proposal', 'short_descr')
+settings['p_dict_verbose'] = f.make_dict_from_columns(df, 'proposal',
+                                                      'long_descr')
 
 if settings['enhanced_jobs']:
     sg_dist = settings['sg_dist']

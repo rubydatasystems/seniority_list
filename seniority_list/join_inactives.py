@@ -19,11 +19,6 @@ arguments (all strings with no quotes)
         dill folder, without the "p_" prefix and ".pkl" file extension.
         A file named "p_p1.pkl" would have a proposed_order_df input name
         of "p1"
-    output_name
-        name to assign to output, normally "final".  A prefix equal to the
-        case_study name and a ".pkl" file extension will be added.  If the
-        output_name input is "final", the output file will be named
-        "<case_study>_final.pkl"
     fill_style
         "ffill" or "bfill"
 
@@ -37,8 +32,10 @@ arguments (all strings with no quotes)
 
             "bfill" - inactives attached to just *junior* same-group cohort
 
+The output name is hardcoded as 'final'.
+
 example jupyter notebook usage:
-    %run join_inactives.py master p1 final bfill
+    %run join_inactives.py master p1 bfill
 '''
 
 import pandas as pd
