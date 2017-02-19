@@ -42,14 +42,16 @@ import pandas as pd
 import numpy as np
 
 import os
-from sys import argv
+from sys import argv, exit
 
 script, master_name, proposed_order_df, fill_style = argv
 
 try:
     case = pd.read_pickle('dill/case_dill.pkl').case.value
 except:
-    print('case variable not found')
+    print('case variable not found, tried to find it in "dill/case_dill.pkl"',
+          'without success\n')
+    exit()
 
 dill_pre, pkl_suf = 'dill/', '.pkl'
 out_name = 'final'
@@ -66,7 +68,13 @@ excel_file_name = out_name + '.xlsx'
 write_xl_path = (file_path + excel_file_name)
 
 df_master = pd.read_pickle(master_path_string)
-df_order = pd.read_pickle(order_path_string)
+
+try:
+    df_order = pd.read_pickle(order_path_string)
+except:
+    print('\nfailed trying to read "' + order_path_string + '" \n' +
+          '  check proposal name?\n')
+    exit()
 
 joined = df_master.join(df_order, how='outer')
 

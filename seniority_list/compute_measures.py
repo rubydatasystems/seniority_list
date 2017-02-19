@@ -14,7 +14,7 @@ import numpy as np
 
 import functions as f
 
-from sys import argv
+from sys import argv, exit
 from collections import OrderedDict as od
 
 
@@ -25,6 +25,7 @@ pre, suf = 'dill/', '.pkl'
 skeleton_path_string = (pre + 'skeleton' + suf)
 
 proposal_order_string = (pre + 'p_' + proposal_name + suf)
+
 stand_path_string = (pre + 'standalone' + suf)
 
 output_name = 'ds_' + proposal_name
@@ -35,7 +36,18 @@ except:
     print('Master list not found.  Run build_program_files script?')
 
 ds = pd.read_pickle(skeleton_path_string)
-df_order = pd.read_pickle(proposal_order_string)
+try:
+    df_order = pd.read_pickle(proposal_order_string)
+except:
+    prop_names = pd.read_pickle('dill/proposal_names.pkl').proposals.tolist()
+    stored_case = pd.read_pickle('dill/case_dill.pkl').case.value
+    print('\nerror : proposal name "' +
+          str(proposal_name) + '" not found...\n')
+    print('available proposal names are ', prop_names,
+          'for case study:',
+          stored_case)
+    print('\n  >>> exiting routine.\n')
+    exit()
 
 sdict = pd.read_pickle('dill/dict_settings.pkl')
 

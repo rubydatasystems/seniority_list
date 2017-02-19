@@ -57,6 +57,8 @@ from sys import argv
 
 script, case = argv
 
+os.makedirs('dill/', exist_ok=True)
+
 try:
     # check to see if file exists and get value if it does
     case_dill_value = pd.read_pickle('dill/case_dill.pkl').case.value
