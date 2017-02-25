@@ -3274,7 +3274,7 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
                 print('"hybrid" proposal is generated with the "build_list"' +
                       ' function within the list_builder.py module\n')
 
-    print('datasets loaded (dictionary keys):', list(ds_dict.keys()))
+    print('datasets loaded (dictionary keys):', list(ds_dict.keys()), '\n')
 
     return ds_dict
 

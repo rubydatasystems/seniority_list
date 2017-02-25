@@ -28,6 +28,9 @@ from settings.xlsx
     dict_settings.pkl
     dict_attr.pkl
 
+the .pkl files will be stored in the dill folder.  the dill folder is
+created if it does not exist.
+
 # -------------------------------------------------
 
 initialized with this script (independent of input files):

@@ -3,24 +3,26 @@
 
 '''plotting functions and supporting utility functions
 '''
+import pandas as pd
+import numpy as np
 import seaborn as sns
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib import colors
-from matplotlib.ticker import FuncFormatter
-import matplotlib.patches as mpatches
-from ipywidgets import interactive, Button, widgets
-from IPython.display import display, Javascript
 import math
 from os import system, path, remove
-from collections import OrderedDict as od
 
-import pandas as pd
-from pandas.tools.plotting import parallel_coordinates
-import numpy as np
-import functions as f
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib import colors as mplclrs
+from matplotlib.ticker import FuncFormatter
+import matplotlib.patches as mpatches
 
 from cycler import cycler
+from ipywidgets import interactive, Button, widgets
+from IPython.display import display, Javascript
+from collections import OrderedDict as od
+
+from pandas.tools.plotting import parallel_coordinates
+from openpyxl import load_workbook
+import functions as f
 
 
 # TO_PERCENT (matplotlib percentage axis)
@@ -1919,7 +1921,7 @@ def differential_scatter(df_list, dfb,
     for eg in eg_set:
         np.put(denoms, np.where(eg_arr == eg)[0], eg_denom_dict[eg])
 
-    df['sep_eg_pcnt'] = eg_sep_order / denoms
+    df['separate_eg_percentage'] = eg_sep_order / denoms
 
     if measure in ['spcnt', 'lspcnt', 'snum', 'lnum', 'cat_order',
                    'jobp', 'jnum']:
@@ -1941,7 +1943,7 @@ def differential_scatter(df_list, dfb,
             if prop_order:
                 xax = order_dict[prop_num]
             else:
-                xax = 'sep_eg_pcnt'
+                xax = 'separate_eg_percentage'
 
             fig, ax = plt.subplots()
 
@@ -2018,7 +2020,7 @@ def differential_scatter(df_list, dfb,
             if measure in ['spcnt', 'lspcnt']:
                 plt.gca().yaxis.set_major_formatter(pct_format)
 
-            if xax == 'sep_eg_pcnt':
+            if xax == 'separate_eg_percentage':
                 plt.gca().xaxis.set_major_formatter(pct_format)
                 plt.xticks(np.arange(0, 1.1, .1))
                 plt.xlim(xmax=1)
@@ -2563,9 +2565,9 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
     heat_data = heat_data.reshape(rows, cols)
 
-    cmap = colors.ListedColormap(plot_colors,
-                                 name='chart_cmap',
-                                 N=len(plot_colors))
+    cmap = mplclrs.ListedColormap(plot_colors,
+                                  name='chart_cmap',
+                                  N=len(plot_colors))
 
     with sns.axes_style(chart_style):
 
@@ -2869,19 +2871,18 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
 
 def job_transfer(dfc, dfb, eg, job_colors,
                  job_levels, starting_date, job_strs, p_dict,
-                 ds_dict=None,
-                 measure='jnum', gb_period='M',
+                 ds_dict=None, gb_period='M',
                  custom_color=True, cm_name='Paired',
                  start=0, stop=.95, job_alpha=1, chart_style='white',
                  yticks_lim=5000,
                  fur_color=None,
                  draw_face_color=True, draw_grid=True,
                  ytick_interval=100, legend_xadj=1.62,
-                 legend_yadj=.78, annotate=False,
+                 legend_yadj=.82, annotate=False,
                  title_fontsize=14,
                  legend_font_size=12,
                  legend_horizontal_position=1.12,
-                 xsize=10, ysize=8):
+                 xsize=10, ysize=9):
     '''plot a differential stacked bar chart displaying color-coded job
     transfer counts over time.  Result appears to be stacked area chart.
 
@@ -2909,8 +2910,6 @@ def job_transfer(dfc, dfb, eg, job_colors,
             example: {0: 'sa', 1: '1', 2: '2'}
         ds_dict (dictionary)
             output from load_datasets function
-        measure (string)
-            currently only 'jnum' is applicable
         gb_period (string)
             group_by period. default is 'M' for monthly, other options
             are 'Q' for quarterly and 'A' for annual
@@ -2952,24 +2951,27 @@ def job_transfer(dfc, dfb, eg, job_colors,
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
 
-    compare_df = dsc[dsc.eg == eg][['date', measure]].copy()
-    base_df = dsb[dsb.eg == eg][['date', measure]].copy()
+    compare_df = dsc[dsc.eg == eg].copy()
+    base_df = dsb[dsb.eg == eg].copy()
 
-    cg = pd.DataFrame(compare_df.groupby(['date', measure]).size()
-                      .unstack().fillna(0).resample(gb_period).mean())
-    bg = pd.DataFrame(base_df.groupby(['date', measure]).size()
-                      .unstack().fillna(0).resample(gb_period).mean())
+    cg = compare_df[['date', 'jnum']].groupby(['date', 'jnum'])['jnum'] \
+        .count().unstack().fillna(0)
+    bg = base_df[['date', 'jnum']].groupby(['date', 'jnum'])['jnum'] \
+        .count().unstack().fillna(0)
 
     for job_level in np.arange(1, job_levels + 1):
         if job_level not in bg:
-            bg[job_level] = 0
+            bg[job_level] = 0.0
         if job_level not in cg:
-            cg[job_level] = 0
+            cg[job_level] = 0.0
 
     bg.sort_index(axis=1, inplace=True)
     cg.sort_index(axis=1, inplace=True)
 
     diff2 = cg - bg
+    diff2 = diff2.resample(gb_period).mean()
+    diff2 = diff2.replace(0., np.nan)
+
     abs_diff2 = np.absolute(diff2.values).astype(int)
     v_crop = (np.amax(np.add.reduce(abs_diff2, axis=1)) / 2) + 75
 
@@ -3033,7 +3035,7 @@ def job_transfer(dfc, dfb, eg, job_colors,
                 except:
                     pass
             for i in yticks:
-                ax.axhline(i, ls='-', color='grey', lw=1, alpha=.2, zorder=7)
+                ax.axhline(i, ls='-', color='grey', lw=.75, alpha=.2, zorder=7)
 
         recs = []
         job_labels = []
@@ -3303,7 +3305,7 @@ def editor(settings_dict, color_dict,
     for eg in eg_set:
         np.put(denoms, np.where(eg_arr == eg)[0], eg_denom_dict[eg])
 
-    df['sep_eg_pcnt'] = eg_sep_order / denoms
+    df['separate_eg_percentage'] = eg_sep_order / denoms
 
     if measure in ['spcnt', 'lspcnt', 'snum', 'lnum', 'cat_order',
                    'jobp', 'jnum']:
@@ -3325,7 +3327,7 @@ def editor(settings_dict, color_dict,
             xval = 'proposal_order'
 
         else:
-            xval = 'sep_eg_pcnt'
+            xval = 'separate_eg_percentage'
 
         for eg in eg_set:
             data = df[df.eg == eg].copy()
@@ -3381,8 +3383,10 @@ def editor(settings_dict, color_dict,
         if measure in ['spcnt', 'lspcnt']:
             plt.gca().yaxis.set_major_formatter(pct_format)
 
-        if xval == 'sep_eg_pcnt':
+        if xval == 'separate_eg_percentage':
             plt.xlim(xmax=1)
+            ax.xaxis.set_major_formatter(pct_format)
+            ax.set_xticks(np.arange(0, 1.05, .05))
 
         ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
         ax.invert_xaxis()
@@ -3866,7 +3870,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
 
 
 def diff_range(df_list, dfb, measure, eg_list,
-               eg_colors, attr_dict, ds_dict=None,
+               attr_dict, ds_dict=None, cm_name='Set1',
                attr1=None, oper1='>=', val1=0,
                attr2=None, oper2='>=', val2=0,
                attr3=None, oper3='>=', val3=0,
@@ -3963,7 +3967,8 @@ def diff_range(df_list, dfb, measure, eg_list,
                                     attr2=attr2, oper2=oper2, val2=val2,
                                     attr3=attr3, oper3=oper3, val3=val3)
 
-    cmap = colors.ListedColormap(eg_colors)
+    color_list = make_color_list(num_of_colors=len(df_list),
+                                 cm_name_list=[cm_name])
     cols = ['date']
 
     sa_ds = dfb_filt[dfb_filt.date.dt.year <= year_clip][
@@ -4003,7 +4008,7 @@ def diff_range(df_list, dfb, measure, eg_list,
         if show_range:
             with sns.axes_style(plot_style):
                 ax1 = sa_ds[sa_ds.eg == eg][cols].set_index('date') \
-                    .plot(cmap=cmap, alpha=.22)
+                    .plot(color=color_list, alpha=.22)
                 plt.grid(lw=1, ls='--', c='grey', alpha=.25)
                 if show_mean:
                     ax1.legend_ = None
@@ -4012,10 +4017,10 @@ def diff_range(df_list, dfb, measure, eg_list,
             with sns.axes_style(plot_style):
                 if show_range:
                     sa_ds[sa_ds.eg == eg][cols].set_index('date') \
-                        .resample('Q').mean().plot(cmap=cmap, ax=ax1)
+                        .resample('Q').mean().plot(color=color_list, ax=ax1)
                 else:
                     sa_ds[sa_ds.eg == eg][cols].set_index('date') \
-                        .resample('Q').mean().plot(cmap=cmap)
+                        .resample('Q').mean().plot(color=color_list)
 
         ax = plt.gca()
 
@@ -6519,3 +6524,39 @@ def add_pad(list_in, pad=100):
     else:
         return list_in
 
+
+def add_editor_list_to_excel(case=None):
+    '''save editor tool list order to the excel input file, "proposals.xlsx".
+
+    The list order will be saved to a new worksheet, "edit".  Subsequent saved
+    lists will overwrite previous worksheets.  Change the worksheet name of
+    previously saved worksheets from "edit" to something else they are to be
+    preserved within the workbook.
+
+    The routine reads the case_dill.pkl file - this provides a write path.
+    Then the routine reads the editor-produced p_new_order.pkl file and writes
+    it to the new worksheet "edit" in the proposals.xlsx file.
+    '''
+    if not case:
+        try:
+            case = pd.read_pickle('dill/case_dill.pkl').case.value
+        except:
+            print('case variable not found,',
+                  'tried to find it in "dill/case_dill.pkl"',
+                  'without success\n')
+            import sys
+            sys.exit()
+
+    xl_str = 'excel/' + case + '/proposals.xlsx'
+    df = pd.read_pickle('dill/p_new_order.pkl')
+    df = df.reset_index()[['empkey']]
+    df.index = df.index + 1
+    df.index.name = 'order'
+
+    book = load_workbook(xl_str)
+    writer = pd.ExcelWriter(xl_str, engine='openpyxl')
+    writer.book = book
+
+    writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+    df.to_excel(writer, sheet_name='edit')
+    writer.save()
