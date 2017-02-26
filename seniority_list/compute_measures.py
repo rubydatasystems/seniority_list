@@ -9,6 +9,7 @@ order and any conditions
 Dataframes produced with the editor tool will be stored as "ds_edit.pkl"
 '''
 
+import os
 import pandas as pd
 import numpy as np
 
@@ -91,6 +92,12 @@ else:
     order_key = df_order.idx
     ds['new_order'] = order_key
     dataset_path_string = (pre + output_name + suf)
+
+if os.path.isdir('dill/'):
+    try:
+        os.remove(dataset_path_string)
+    except:
+        pass
 
 # sort the skeleton by month and proposed list order
 ds.sort_values(['mnum', 'new_order'], inplace=True)
@@ -279,8 +286,8 @@ jobs_and_counts = \
     f.assign_jobs_nbnf_job_changes(df_align,
                                    sdict['num_of_job_levels'],
                                    sdict['delayed_implementation'],
-                                   low_limits,
-                                   high_limits, all_months,
+                                   low_limits, high_limits,
+                                   all_months,
                                    table[0], table[1],
                                    job_change_months,
                                    reduction_months,

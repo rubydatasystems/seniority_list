@@ -69,9 +69,18 @@ except:
     case_dill_value = 'empty_placeholder'
 
 if case_dill_value == case:
-    # if stored value is same as case study name, pass and keep dill files.
-    # (The retained dill files will be overwritten as appropriate)
-    pass
+    # if stored value is same as case study name, remove the files which will
+    # be replaced.  Removal of old files then writing the new files to disk
+    # is faster than overwriting the old files.
+    if os.path.isdir('dill/'):
+
+        clear_files = ['squeeze_vals.pkl', 'last_month.pkl', 'dict_color.pkl',
+                       'dict_settings.pkl', 'dict_attr.pkl', 'master.pkl',
+                       'pay_table_enhanced.pkl', 'pay_table_basic.pkl']
+
+        filelist = [pkl for pkl in os.listdir('dill/') if pkl in clear_files]
+        for pkl in filelist:
+            os.remove('dill/' + pkl)
 else:
     # if the case name is different, delete all dill files (stored calculated
     # files).

@@ -10,12 +10,13 @@ employee group
 constructed with pre-existing job rights conditions
 '''
 
+import os
 import pandas as pd
 import numpy as np
 
 import functions as f
 
-from sys import argv
+from sys import argv, exit
 
 
 script, *conditions = argv
@@ -29,7 +30,16 @@ skeleton_path_string = (pre + input_skel + suf)
 try:
     ds = pd.read_pickle(skeleton_path_string)
 except:
-    print('Skeleton file not found.  Run build_program_files script?')
+    print('\nSkeleton file not found.  Run build_program_files script?\n\n' +
+          'Standalone build failed.\n\n' +
+          '  >>> exiting routine.\n')
+    exit()
+
+if os.path.isdir('dill/'):
+    try:
+        os.remove('dill/standalone.pkl')
+    except:
+        pass
 
 sdict = pd.read_pickle('dill/dict_settings.pkl')
 

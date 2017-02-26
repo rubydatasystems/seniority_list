@@ -950,7 +950,7 @@ def assign_jobs_nbnf_job_changes(df,
         job_change_months = np.concatenate((job_change_months,
                                             recall_months))
     # np.unique returns an ordered numpy array
-    job_change_months = np.unique(job_change_months)
+    job_change_months = set(np.unique(job_change_months))
 
     # for month in np.arange(num_of_months):
     for month in np.arange(start_month, num_of_months):
@@ -3160,15 +3160,20 @@ def print_config_selections():
     return df
 
 
-def max_of_nested_lists(nested_list):
-    '''find the maximum value within a list of lists
-    '''
-    max_list = []
-    for lst in nested_list:
-        x = max(lst)
-        max_list.append(x)
+def max_of_nested_lists(nested_list, return_min=False):
+    '''find the maximum value within a list of lists (or tuples or arrays)
 
-    return max(max_list)
+    return_min input will find minimum of nested containers
+    '''
+    result_list = []
+    if not return_min:
+        for lst in nested_list:
+            result_list.append(max(lst))
+        return max(result_list)
+    else:
+        for lst in nested_list:
+            result_list.append(min(lst))
+        return min(result_list)
 
 
 def eval_strings(args):
