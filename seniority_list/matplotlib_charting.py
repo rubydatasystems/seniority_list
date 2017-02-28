@@ -431,24 +431,26 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
             color codes for plotting each employee group
         p_dict (dict)
             dictionary, numerical eg code to string description
+        ret_age (integer or float)
+            chart xaxis limit for plotting
         ds_dict (dict)
             variable assigned to the output of the load_datasets function,
             reqired when string dictionary key is used as df input
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (string, integer, float, date as string as appropriate)
             attr1 limiting value (combined with oper1) as string
-        suptitle_fontsize
+        suptitle_fontsize (integer or font)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of chart legend
         xsize, ysize (integer or float)
             plot size in inches
-        chart_example
+        chart_example (boolean)
             if True, remove case-specific descriptions from chart
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -539,6 +541,8 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         job_str_list (list)
             list of string job descriptions corresponding to
             number of job levels
+        attr_dict (dictionary)
+            dataset column name description dictionary
         ds_dict (dictionary)
             output of the load_datasets function, dictionary.  This keyword
             argument must be set if a string key is used as the df input.
@@ -645,6 +649,8 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             colors for eg plots
         ret_age (float)
             retirement age (example: 65.0)
+        attr_dict (dictionary)
+            dataset column name description dictionary
         ds_dict (dictionary)
             output of the load_datasets function, dictionary.  This keyword
             argument must be set if a string key is used as the df input.
@@ -792,6 +798,8 @@ def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
             attribute to plot
         ret_age (float)
             retirement age (example: 65.0)
+        attr_dict (dictionary)
+            dataset column name description dictionary
         ds_dict (dictionary)
             output from load_datasets function
         mnum (integer)
@@ -968,6 +976,10 @@ def eg_diff_boxplot(df_list, dfb, eg_list, eg_colors, job_levels,
             corresponding plot colors for eg_list input
         job_levels (integer)
             number of job levels in the data model (excluding furlough)
+        job_diff_clip (integer)
+            if measure is jnum or jobp, limit y axis range to +/- this value
+        attr_dict (dictionary)
+            dataset column name description dictionary
         measure (string)
             differential data to compare
         comparison (string)
@@ -1004,8 +1016,6 @@ def eg_diff_boxplot(df_list, dfb, eg_list, eg_colors, job_levels,
             chart styling (string), any valid seaborn chart style
         notch (boolean)
             If True, show boxplots with a notch at median point vs. only a line
-        job_diff_clip (integer)
-            if measure is jnum or jobp, limit y axis range to +/- this value
         xsize, ysize (integer or float)
             plot size in inches
         chart_example (boolean)
@@ -1241,8 +1251,14 @@ def eg_boxplot(df_list, eg_list,
         example: [1, 2, 3]
     measure (string)
         attribute for analysis
+    eg_colors (list)
+        list of colors for plotting the employee groups
+    attr_dict (dictionary)
+        dataset column name description dictionary
     ds_dict (dictionary)
         output from load_datasets function
+    job_clip (float)
+        if measure is jnum or jobp, limit max y axis range to this value
     attr(n) (string)
         filter attribute or dataset column as string
     oper(n) (string)
@@ -1269,8 +1285,6 @@ def eg_boxplot(df_list, eg_list,
         opacity value for grid lines
     grid_linestyle (string)
         examples: 'solid', 'dotted', 'dashed'
-    job_clip (float)
-        if measure is jnum or jobp, limit max y axis range to this value
     suptitle_fontsize (integer or float)
         text size of chart super title
     title_fontsize (integer or float)
@@ -1442,6 +1456,8 @@ def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
             list of colors for background job band colors
         job_strs (list)
             list of job strings for job description labels
+        attr_dict (dictionary)
+            dataset column name description dictionary
         p_dict (dictionary)
             eg to group string label
         ds_dict (dictionary)
@@ -1592,12 +1608,12 @@ def job_level_progression(df, emp_list, through_date,
     a certain list percentage for many years due to job assignment factors.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        emp_list
+        emp_list (list)
             list of empkeys to plot
-        through_date
+        through_date (date string)
             string representation of y axis date limit, ex. '2025-12-31'
         settings_dict (dictionary)
             program settings dictionary generated by the build_program_files
@@ -1607,26 +1623,26 @@ def job_level_progression(df, emp_list, through_date,
             values generated by the build_program_files script
         ds_dict (dictionary)
             output from load_datasets function
-        job levels
+        job levels (integer)
             number of job levels in model
-        eg_colors
+        eg_colors (list)
             colors to be used for employee line plots corresponding
             to employee group membership
-        band_colors
+        band_colors (list)
             list of colors to be used for stacked area chart which represent
             job level bands
-        job_counts
+        job_counts (list)
             list of lists containing job counts for each employee group
-        job_change_lists
+        job_change_lists (list)
             list of job changes data (originally from settings dictionary)
-        alpha
+        alpha (float)
             opacity level of background job bands stacked area chart
         max_plots_for_legend (integer)
             if number of plots more than this number, reduce plot linewidth and
             remove legend
-        xsize, ysize
+        xsize, ysize (integer or float)
             plot size in inches
-        chart_example
+        chart_example (boolean)
             set true to remove casse-specific data from chart output
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -1819,51 +1835,53 @@ def differential_scatter(df_list, dfb,
             employee group code number to description dictionary
         ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (string, integer, float, date as string as appropriate)
             attr1 limiting value (combined with oper1) as string
-        eg_list
+        eg_list (list)
             a list of employee groups to analyze
-        prop_order
+        prop_order (boolean)
             if True, organize x axis by proposal list order,
             otherwise use native list percent
-        show_scatter
+        show_scatter (boolean)
             if True, draw the scatter chart markers
-        show_lin_reg
+        show_lin_reg (boolean)
             if True, draw linear regression lines
-        show_mean
+        show_mean (boolean)
             if True, draw average lines
-        mean_len
+        mean_len (integer)
             moving average length for average lines
-        dot_size
+        dot_size (integer or float)
             scatter marker size
-        lin_reg_order
+        lin_reg_order (integer)
             regression line is actually a polynomial regression
             lin_reg_order is the degree of the fitting polynomial
-        ylimit
+        ylimit (boolean)
             if True, set chart y axis limit to ylim (below)
-        ylim
+        ylim (integer or float)
             y axis limit positive and negative if ylimit is True
-        suptitle_fontsize
+        suptitle_fontsize (integer or float)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of chart legend labels
-        tick_size
+        tick_size (integer or float)
             text size of x and y tick labels
-        label_size
+        label_size (integer or float)
             text size of x and y descriptive labels
-        xsize, ysize
+        xsize, ysize (integer or float)
             size of chart
-        bright_bg
-            use a bright yellow tint chart background
-        chart_style
+        bright_bg (boolean)
+            use a custom color chart background
+        bright_bg_color (color value)
+            chart background color if bright_bg input is set to True
+        chart_style (string)
             style for chart, valid inputs are any seaborn chart style
-        chart_example
+        chart_example (boolean)
             set True to remove casse-specific data from chart output
     '''
 
@@ -2680,49 +2698,49 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
     and includes several chart color options.
 
     inputs
-        df
+        df (dataframe)
             dataset to examine, may be a dataframe variable or a string key
             from the ds_dict dictionary object
-        eg
+        eg (integer)
             employee group number
-        measure
+        measure (string)
             a list percentage input, either 'spcnt' or 'lspcnt'
-        bins
+        bins (integer)
             number of quartiles to calculate and display
         ds_dict (dictionary)
             output from load_datasets function
-        clip
+        clip (boolean)
             if True, limit the chart x axis to year_clip value
-        year_clip
-            integer, maximum year to display on chart (requires 'clip'
+        year_clip (integer)
+            maximum year to display on chart (requires 'clip'
             input to be True)
-        kind
+        kind (string)
             type of chart display, either 'area' or 'bar'
-        quartile_ticks
+        quartile_ticks (boolean)
             if True, display integers along y axis and in legend representing
             quartiles.  Otherwise, present percentages.
-        custom_color
+        custom_color (boolean)
             If True, use a matplotlib colormap for chart colors
-        cm_name
+        cm_name (string)
             colormap name (string), example: 'Set1'
-        quartile_alpha
+        quartile_alpha (float)
             alpha (opacity setting) value for quartile plot
-        grid_alpha
+        grid_alpha (float)
             opacity setting for background grid
-        custom_start
+        custom_start (float)
             custom colormap start level
             (a section of a standard colormap may be used to create
             a custom color mapping)
-        custom_finish
+        custom_finish (float)
             custom colormap finish level
-        xsize, ysize
+        xsize, ysize (integer or float)
             chart size inputs
-        alt_bg_color
+        alt_bg_color (boolean)
             if True, set the background chart color to the bg_color input value
-        bg_color
+        bg_color (color value)
             color for chart background if 'alt_bg_color' is True (string)
-        legend_xadj
-            (float) small float number (try .2 to start) for use when the
+        legend_xadj (float)
+            small float number (try .2 to start) for use when the
             legend overlaps the chart.  Moves the legend to the right.
 
     '''
@@ -3888,56 +3906,56 @@ def diff_range(df_list, dfb, measure, eg_list,
     of different groups being plotted on the same chart.
 
     inputs
-        df_list
+        df_list (list)
             list of datasets to compare, may be ds_dict (output of
             load_datasets function) string keys or dataframe variable(s)
             or mixture of each
-        dfb
+        dfb (dataframe, can be proposal string name)
             baseline dataset, accepts same input types as df_list above
-        measure
+        measure (string)
             differential data to compare
-        eg_list
+        eg_list (list)
             list of integers for employee groups to be included in analysis.
             example: [1, 2, 3]
             A chart will be produced for each employee group number.
-        eg_colors
+        eg_colors (list)
             list of colors to represent different proposal results
         attr_dict (dictionary)
             dataset column name description dictionary
         ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
         val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
         year_clip (integer)
             only plot data up to and including this year
-        show_range
+        show_range (boolean)
             show a transparent background on the chart representing
             the range of values for each measure for each proposal
-        show_mean
+        show_mean (boolean)
             plot a line representing the average of the measure values for
             the group under each proposal
-        normalize_y
+        normalize_y (boolean)
             if measure is 'spcnt' or 'lspcnt', equalize the range of the
             y scale on all charts (-.5 to .5)
-        suptitle_fontsize
+        suptitle_fontsize (integer or font)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or font)
             text size of chart title
-        tick_size
+        tick_size (integer or font)
             text size of chart tick labels
-        label_size
+        label_size (integer or font)
             text size of chart x and y axis labels
-        legend_fontsize
+        legend_fontsize (integer or font)
             text size of the legend labels
-        legend_horizontal_position
+        legend_horizontal_position (float)
             horizontal adjustment of the legend (higher numbers move right)
-        xsize, ysize
+        xsize, ysize (integer or font)
             size of chart, width and height
-        plot_style
+        plot_style (string)
             any valid seaborn plotting style (string)
     '''
     print('''NOTE:  Each chart represents a single employee group.
@@ -4072,10 +4090,10 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
     optionally display employee group results on separate charts or together
 
     inputs
-        dfc
+        dfc (dataframe)
             proposal (comparison) dataset to examine, may be a dataframe
             variable or a string key from the ds_dict dictionary object
-        dfb
+        dfb (dataframe)
             baseline dataset; proposal dataset is compared to this
             dataset, may be a dataframe variable or a string key
             from the ds_dict dictionary object
@@ -4085,43 +4103,43 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
         eg_colors (list)
             list of color values for plotting the employee groups, length is
             equal to the number of employee groups in the data model
-        eg_list
+        eg_list (list)
             list of employee group codes to plot
             Example: [1, 2]
-        ds_dict
+        ds_dict (dictionary)
             variable assigned to load_datasets function output
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
         val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
-        plot_egs_sep
+        plot_egs_sep (boolean)
             if True, plot each employee group job level counts separately
-        plot_total
+        plot_total (boolean)
             if True, include the combined job counts on chart(s)
         xax (string)
             x axis groupby attribute, options are 'date' or 'mnum', default is
             'date'
-        year_max
+        year_max (integer)
             maximum year to include on chart
             Example:  if input is 2030, chart would display data from
             beginning of data model through 2030 (integer)
-        base_ls
+        base_ls (string)
             line style for base job count line(s)
-        prop_ls
+        prop_ls (string)
             line style for comparison (proposal) job count line(s)
-        base_lw
+        base_lw (float)
             line width for base job count line(s)
-        prop_lw
+        prop_lw (float)
             line width for comparison (proposal) job count lines
-        suptitle_fontsize
+        suptitle_fontsize (integer or float)
             text size of chart super title
-        title_fontsize
+        title_fontsize (integer or float)
             chart title(s) font size
-        total_color
+        total_color (color value)
             color for combined job level count from all employee groups
-        xsize, ysize
+        xsize, ysize (integer or float)
             size of chart display
     '''
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
@@ -4272,6 +4290,10 @@ def build_subplotting_order(rows, cols):
     '''build a list of integers to permit passing through subplots by columns
     note:  only used when looping completes one vertical column before
     continuing to next column
+
+    inputs
+        rows, cols (integer)
+            number of rows and columns in multiple chart output
     '''
     subplot_order_list = []
     for col in np.arange(1, cols + 1):
@@ -4286,6 +4308,22 @@ def emp_quick_glance(empkey, df, ds_dict=None,
     '''view basic stats for selected employee and proposal
 
     A separate chart is produced for each measure.
+
+    inputs
+        empkey (integer)
+            employee number (in data model)
+        df (dataframe)
+            dataset to study, will accept string proposal name
+        ds_dict (dictionary)
+            variable assigned to load_datasets function output
+        title_fontsize (integer or float)
+            text size of chart title
+        tick_size (integer or font)
+            text size of chart tick labels
+        xsize, ysize (integer or float)
+            size of chart display
+        lw (integer or float)
+            line width of plot lines
     '''
 
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -4512,8 +4550,7 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
                                   labels=np.arange(num_bins) + 1)[1] \
                 .astype(int)
 
-            sa_result_arr = np.zeros(
-                (num_bins, len(sa_months_in_jobs.columns)))
+            sa_result_arr = np.zeros(num_bins, len(sa_months_in_jobs.columns))
 
             for i in np.arange(num_bins):
                 sa_bin_avg = \
@@ -4690,25 +4727,38 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
     plt.show()
 
 
-def cond_test(df, opt_sel, enhanced_jobs, job_colors,
-              ds_dict=None, plot_all_jobs=False, max_mnum=110,
-              basic_jobs=[1, 4], enhan_jobs=[1, 2, 7, 8], use_and=False,
+def cond_test(df, grp_sel, enhanced_jobs, job_colors, job_dict,
+              basic_jobs=None, ds_dict=None, plot_all_jobs=False,
+              min_mnum=None, max_mnum=None,
+              limit_to_jobs=None, use_and=False,
               print_count_months=None, print_all_counts=False,
-              xsize=8, ysize=8):
-    '''visualize selected job counts applicable to computed condition with
-    optional printing of certain data.
+              plot_job_bands_chart=True, only_target_bands=False,
+              legend_fontsize=14, title_fontsize=16, xsize=8, ysize=8):
+    '''visualize selected job counts over time applicable to computed
+    condition with optional printing of certain data.
 
-    Primary usage is testing, though the function can chart any job level(s)
-    to validate proper results of job assignment conditions or to evaluate
-    distribution of jobs with various proposals.  Career progression of
-    employees who enjoy special job rights may be understood particularily
-    well by utilizing the print_all_counts option.
+    Primary usage is validation of job assignment conditions by charting the
+    count(s) of job(s) assigned by the program to particular employee groups
+    over time.
 
+    The function may also be used to evaluate distribution of jobs with
+    various proposals.  Career progression of employees who enjoy special
+    job rights may be understood particularily well by utilizing the
+    print_all_counts option.
+
+    The output is 2 charts.  The first chart is a line chart displaying
+    selected job count information over time. The second is a stacked area
+    chart displaying all job counts for the selected group(s) over time.
+
+    There are additional optional print outputs.  The print_all_counts option
+    will print a dataframe containing job count totals for each month.  The
+    print_count_months input is a list of months to print the only the plotted
+    job counts, primarily for testing purposes.
 
     inputs
-        d (dataframe)
+        df (dataframe)
             dataset(dataframe) to examine
-        opt_sel (list)
+        grp_sel (list)
             integer input(s) representing the employee group code(s) to
             select for analysis.  This argument also will accept the
             string 'sg' to select a special job rights group(s).  Multiple
@@ -4717,44 +4767,63 @@ def cond_test(df, opt_sel, enhanced_jobs, job_colors,
             group, but can be modified to mean only group 1 **and** special job
             rights employees with the 'use_and' input.
         enhanced_jobs (boolean)
-            if True, select 'enhan_jobs' input list for testing, otherwise
-            select basic_jobs input list
+            if True, basic_jobs input job levels will be converted to
+            enhanced job levels with reference to the job_dictionary input,
+            otherwise basic_jobs input job levels will be used
         job_colors (list)
             list of color values to use for job plots
-        plot_all_jobs (boolean)
-            option to plot all of the job counts within dataset vs only those
-            contained within the basic_jobs or enhan_jobs inputs
-        max_mnum (integer)
-            integer input, only plot data through selected month
+        job_dict (dictionary)
+            dictionary containing basic to enhanced job level conversion data.
+            This is likely the settings dictionary "jd" value.
         basic_jobs (list)
-            job levels to plot if config enhan_jobs is False (integers)
-        enhan_jobs (list)
-            job levels to plot if config enhan_jobs is True (integers)
+            basic job levels to plot.  This list will be converted to the
+            corresponding enhanced job list if the enhanced_jobs input is
+            set to True.  Defaults to [1] if not assigned.
+        ds_dict (dictionary)
+            dataset dictionary which allows df input to be a string
+            description (proposal name)
+        plot_all_jobs (boolean)
+            option to plot all of the job counts within the input dataset vs
+            only those selected with the basic_jobs input (or as converted to
+            enhanced jobs if enhanced_jobs input is True).  The jobs plotted
+            may be filtered by the limit_to_jobs input.
+        min_mnum (integer)
+            integer input, only plot data including this month forward(mnum).
+            Defaults to zero.
+        max_mnum (integer)
+            integer input, only plot data through selected month (mnum).
+            Defaults to maximum mnum for input data
+        limit_to_jobs (list)
+            a list of jobs to plot, allowing focus on target jobs.  Should be
+            a subset of normal output, otherwise no filtering of normal output
+            occurs
         use_and (boolean)
-            when the opt_sel input has more than one element, require filtered
-            dataframe for analysis to be part of all opt_sel input sets.
+            when the grp_sel input has more than one element, require filtered
+            dataframe for analysis to be part of all grp_sel input sets.
         print_count_months (list)
             list of month(s) for printing job counts
         print_all_counts (boolean)
-            if True, print the entire job count dataframe.  Jupyter notebook
-            parameters may need to be adjusted to view all data at once.
-
-            Example:
-
-            pd.options.display.width = 185
-            pd.set_option('max_rows', 500)
-
-    In addition to the print options, the standard output is 2 charts. The
-    first chart is a line chart displaying selected job count information
-    over time. The second is a stacked area chart displaying all job counts
-    for the selected group(s) over time.
+            if True, print the entire job count dataframe.
+        plot_job_bands_chart (boolean)
+            if True, plot an area chart beneath the job count chart.  The area
+            chart will display all of the jobs available to the selected
+            employee group(s) over time with job band areas
+        only_target_bands (boolean)
+            if True, plot area chart of jobs from job count chart only,
+            vs the default of all job levels
+        legend_fontsize (integer or float)
+            text size of legend labels
+        title_fontsize (integer or float)
+            text size of chart title
+        xsize, ysize (integer or float)
+            size of chart display
     '''
 
     d, df_label = determine_dataset(df, ds_dict, return_label=True)
 
     # construct a string which will be evaluated below with the 'eval'
     # statement.  This string is a slicing filter for the input dataframe, and
-    # is dependent upon the 'opt_sel' and 'use_and' inputs.
+    # is dependent upon the 'grp_sel' and 'use_and' inputs.
     pre = 'd['
     eg_pre = '(d.eg == '
     eg_suf = ')'
@@ -4765,24 +4834,44 @@ def cond_test(df, opt_sel, enhanced_jobs, job_colors,
     else:
         oper = ' | '
 
+    if not basic_jobs:
+        basic_jobs = [1]
+
+    if enhanced_jobs:
+        job_list = []
+        for job in basic_jobs:
+            job_list.extend([int(job_dict[job][0]), int(job_dict[job][1])])
+    else:
+        job_list = basic_jobs
+
+    if limit_to_jobs:
+        plot_jobs = []
+        for job in limit_to_jobs:
+            if job in job_list:
+                plot_jobs.append(job)
+        if plot_jobs:
+            job_list = plot_jobs
+
+    job_list.sort()
+
     i = 1
-    if len(opt_sel) > 1:
+    if len(grp_sel) > 1:
         s = ''
-        while i < len(opt_sel):
-            if type(opt_sel[i - 1]) == int:
-                s = s + (eg_pre + str(opt_sel[i - 1]) + eg_suf + oper)
+        while i < len(grp_sel):
+            if type(grp_sel[i - 1]) == int:
+                s = s + (eg_pre + str(grp_sel[i - 1]) + eg_suf + oper)
                 i += 1
-            elif opt_sel[i - 1] == 'sg':
+            elif grp_sel[i - 1] == 'sg':
                 s = s + '(d.sg == 1)' + oper
                 i += 1
-        if type(opt_sel[i - 1]) == int:
-            s = s + (eg_pre + str(opt_sel[i - 1]) + eg_suf)
-        elif opt_sel[i - 1] == 'sg':
+        if type(grp_sel[i - 1]) == int:
+            s = s + (eg_pre + str(grp_sel[i - 1]) + eg_suf)
+        elif grp_sel[i - 1] == 'sg':
             s = '(d.sg == 1)'
     else:
-        if type(opt_sel[i - 1]) == int:
-            s = eg_pre + str(opt_sel[i - 1]) + eg_suf
-        elif opt_sel[i - 1] == 'sg':
+        if type(grp_sel[i - 1]) == int:
+            s = eg_pre + str(grp_sel[i - 1]) + eg_suf
+        elif grp_sel[i - 1] == 'sg':
             s = '(d.sg == 1)'
 
     segment = pre + s + suf
@@ -4792,17 +4881,24 @@ def cond_test(df, opt_sel, enhanced_jobs, job_colors,
     # This groupby and unstack operation produces a monthly count of all jobs
     all_jcnts = df.groupby(['date', 'jnum']).size() \
         .unstack().fillna(0).astype(int)
+    all_jcnts['mnum'] = range(len(all_jcnts))
+
+    if not min_mnum:
+        min_mnum = 0
+    if not max_mnum:
+        max_mnum = all_jcnts.mnum.max()
 
     if enhanced_jobs:
-        tgt_cols = enhan_jobs
         info_prefix = 'enhanced'
-        info_next_line = 'modify "enhan_jobs" input to change jobs'
     else:
-        tgt_cols = basic_jobs
         info_prefix = 'basic'
-        info_next_line = 'modify "basic_jobs" input to change jobs'
 
-    print(info_prefix + ' jobs for analysis: ', tgt_cols)
+    info_next_line = ('\nmodify "limit_to_jobs" input (as list) ' +
+                      'to select target job plots')
+
+    print('"enhanced_jobs" option is >>', bool(enhanced_jobs))
+    if not plot_all_jobs:
+        print(info_prefix + ' jobs for analysis >>', job_list)
     print(info_next_line)
 
     title = s
@@ -4814,11 +4910,13 @@ def cond_test(df, opt_sel, enhanced_jobs, job_colors,
             print('\nmonth ' + str(month), '(' + mdate + ') ' +
                   title + ' job count:')
             jnum_seg = np.array(df[df.mnum == month]['jnum'])
-            for job in tgt_cols:
+            for job in job_list:
                 job_count = jnum_seg[jnum_seg == job].size
                 print(int(job), int(job_count))
     try:
-        job_colors = np.array(job_colors)[np.array(tgt_cols) - 1]
+        j_colors = np.array(job_colors)[np.array(job_list) - 1]
+        if len(job_list) == 1:
+            j_colors = j_colors[0]
     except:
         print('\njob number error - (no matching job color), exiting...\n')
         return
@@ -4828,54 +4926,98 @@ def cond_test(df, opt_sel, enhanced_jobs, job_colors,
 
             cnd_jcnts = all_jcnts.copy()
 
-            cnd_jcnts['mnum'] = range(len(cnd_jcnts))
-            jdf = cnd_jcnts[(cnd_jcnts.mnum >= 0) &
+            # cnd_jcnts['mnum'] = range(len(cnd_jcnts))
+            jdf = cnd_jcnts[(cnd_jcnts.mnum >= min_mnum) &
                             (cnd_jcnts.mnum <= max_mnum)]
-            jdf[tgt_cols].plot(color=job_colors, title=title)
+            not_found = [job for job in job_list if job not in list(jdf)]
+            job_list = [job for job in job_list if job in list(jdf)]
+            if not_found:
+                print('these jobs are not found and are not plotted >>',
+                      not_found)
+            jdf[job_list].plot(color=j_colors)
 
         if plot_all_jobs:
 
-            outall = []
+            job_list = []
             for col in all_jcnts.columns:
                 try:
                     col + 0
-                    outall.append(int(col))
+                    job_list.append(int(col))
                 except:
                     pass
+            print('\n"plot_all_jobs" option selected')
+            print('all job numbers found >>', job_list)
 
-            all_jcnts['mnum'] = range(len(all_jcnts))
-            jdf = all_jcnts[(all_jcnts.mnum >= 0) &
+            if limit_to_jobs:
+                temp_jobs = []
+                for job in limit_to_jobs:
+                    if job in job_list:
+                        temp_jobs.append(job)
+                job_list = temp_jobs
+                print('\n"limit_to_jobs" option selected, ' +
+                      'output limited to jobs >>',
+                      job_list)
+                print(' (set "limit_to_jobs" to "None" to stop...)')
+
+            # all_jcnts['mnum'] = range(len(all_jcnts))
+            jdf = all_jcnts[(all_jcnts.mnum >= min_mnum) &
                             (all_jcnts.mnum <= max_mnum)]
-            jdf[outall].plot(color=job_colors, title=title)
+            jdf[job_list].plot(color=j_colors)
 
     except:
         print('\n...job number error - exiting...')
         print('> verify job(s) for analysis exist within selected sample? <\n')
         return
 
-    plt.ylim(ymin=0)
     fig = plt.gcf()
+    ax = plt.gca()
+    plt.ylim(ymin=0)
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1.01, 0.5),
+              fontsize=legend_fontsize)
     fig.set_size_inches(xsize, ysize)
+    plt.title(title, fontsize=title_fontsize)
     plt.show()
 
-    out = []
-    for col in all_jcnts.columns:
-        try:
-            col + 0
-            out.append(int(col))
-        except:
-            pass
-    all_jcnts[out][:max_mnum].plot(kind='area',
-                                   color=job_colors,
-                                   stacked=True,
-                                   linewidth=0.1,
-                                   alpha=.6)
-    plt.title(title)
-    ax = plt.gca()
-    ax.invert_yaxis()
-    fig = plt.gcf()
-    fig.set_size_inches(xsize, ysize)
-    plt.show()
+    if plot_job_bands_chart:
+        out = []
+        for col in all_jcnts.columns:
+            try:
+                col + 0
+                out.append(int(col))
+            except:
+                pass
+
+        out.sort()
+        job_list.sort()
+
+        if only_target_bands:
+            df_jcnts = all_jcnts[job_list]
+            job_colors = j_colors
+        else:
+            df_jcnts = all_jcnts[out]
+
+        df_jcnts[(all_jcnts.mnum >= min_mnum) &
+                 (all_jcnts.mnum <= max_mnum)].plot(kind='area',
+                                                    color=job_colors,
+                                                    stacked=True,
+                                                    linewidth=0.1,
+                                                    alpha=.6)
+        fig = plt.gcf()
+        ax = plt.gca()
+        ax.invert_yaxis()
+        fig.set_size_inches(xsize, ysize)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels, loc='center left',
+                  bbox_to_anchor=(1.01, 0.5),
+                  fontsize=legend_fontsize)
+        plt.title(title, fontsize=title_fontsize)
+        plt.grid(linestyle='dotted', lw=1.5)
+        plt.show()
 
     # option to print a dataframe containing all job counts for all months:
     if print_all_counts:
@@ -4900,40 +5042,40 @@ def single_emp_compare(emp, measure, df_list, xax,
     calculated measures.
 
     inputs
-        emp
+        emp (integer)
             empkey for selected employee
-        measure
+        measure (string)
             calculated measure to compare
             examples: 'jobp' or 'cpay'
-        df_list
+        df_list (list)
             list of calculated datasets to compare
-        xax
+        xax (string)
             dataset column to set as x axis
-        job_strs
+        job_strs (list)
             string job description list
-        eg_colors
+        eg_colors (list)
             list of colors to be assigned to line plots
-        p_dict
+        p_dict (dictionary)
             dictionary containing eg group integer to eg string descriptions
-        job_levels
+        job_levels (integer)
             number of jobs in the model
         attr_dict (dictionary)
             dataset column name description dictionary
         ds_dict (dictionary)
             output from load_datasets function
-        standalone_color
+        standalone_color (color value)
             color of standalone plot
             (This function assumes one proposal from each group, any additional
             proposal is assumed to be standalone)
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        tick_size
+        tick_size (integer or float)
             text size of chart tick labels
-        label_size
+        label_size (integer or float)
             text size of x and y axis chart labels
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of chart legend
-        chart_example
+        chart_example (boolean)
             option to select anonomized results for display purposes
     '''
 
@@ -5265,47 +5407,47 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
     integrated dataset and/or standalone data (or for two integrated datasets).
 
     inputs
-        dfc
+        dfc (string or dataframe variable)
             comparative dataset to examine, may be a dataframe variable
             or a string key from the ds_dict dictionary object
-        dfb
+        dfb (string or dataframe variable)
             baseline dataset to plot (likely use standalone
             dataset here for comparison, but may plot and compare any dataset),
             may be a dataframe variable or a string key from the ds_dict
             dictionary object
-        eg_list
+        eg_list (list)
             list of integers representing the employee groups to analyze
             (i.e. [1, 2])
-        eg_colors
+        eg_colors (list)
             list of colors for plotting the employee groups
-        measure
+        measure (string)
             attribute (column) to compare, such as 'spcnt' or 'jobp'
-        job_levels
+        job_levels (integer)
             number of job levels in the data model
         settings_dict (dictionary)
             program settings dictionary generated by the build_program_files
             script
         attr_dict (dictionary)
             dataset column name description dictionary
-        ds_dict
+        ds_dict (dictionary)
             dataset dictionary (variable assigned to the output of
             load_datasets function)
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
-        plot_meadian
+        plot_meadian (boolean)
             plot the median of the measure for each employee group
-        plot_average
+        plot_average (boolean)
             plot the average(mean) of the measure for each employee group
-        compare_to_dfb
+        compare_to_dfb (boolean)
             plot average dfb[measure] data as dashed line.
             (likely show standalone data with dfb, or reverse and show
             standalone as primary and integrated as dfb)
             (dfb refers to baseline dataframe or dataset)
-        use_filtered_results
+        use_filtered_results (boolean)
             if True, use the same employees from the filtered proposal list.
             For example, if the dfc list is filtered by age only, the
             dfb list could be filtered by the same age and return the
@@ -5315,18 +5457,16 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
             This option ensures that the same group of employees from both the
             dfc (filtered first) list and the dfb list are compared.
             (dfc refers to comparisonproposal, dfb refers to baseline)
-        job_labels
+        job_labels (boolean)
             if measure input is one of these: 'jnum', 'nbnf', 'jobp', 'fbff',
             use job text description labels vs. number labels on the y axis
             of the chart (boolean)
-        max_date
+        max_date (date string)
             maximum chart date.  If set to 'None', the maximum chart date will
             be the maximum date within the list data.
-        chart_style
+        chart_style (string)
             option to specify alternate seaborn chart style
     '''
-    # helper function to provide proper input for eval statements
-
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
 
@@ -5506,7 +5646,7 @@ def stripplot_eg_density(df, mnum, eg_colors, attr_dict,
             variable (if a sliced dataframe subset is desired, for example)
             Example:  input can be 'proposal1' (if that proposal exists, of
             course, or could be df[df.age > 50])
-        mnum (int)
+        mnum (integer)
             month number to study from dataset
         eg_colors (list)
             color codes for plotting each employee group
@@ -5514,17 +5654,19 @@ def stripplot_eg_density(df, mnum, eg_colors, attr_dict,
             dataset column name description dictionary
         ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
-        bg_color
+        bg_color (color value)
             chart background color
-        title_fontsize
+        title_fontsize (integer or float)
             chart title text size
-        xsize, ysize
+        suptitle_fontsize (integer or float)
+            chart text size of suptitle
+        xsize, ysize (integer or float)
             size of chart width and height
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -5604,11 +5746,11 @@ def job_count_bands(df_list, eg_list, job_colors,
             script
         ds_dict (dictionary)
             output from load_datasets function
-        attr(n)
+        attr(n) (string)
             filter attribute or dataset column as string
-        oper(n)
+        oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr1 as string
-        val(n)
+        val(n) (integer, float, date as string, string (as appropriate))
             attr1 limiting value (combined with oper1) as string
         fur_color (color code in rgba, hex, or string style)
             custom color to signify furloughed job level band (otherwise, last
@@ -5622,13 +5764,13 @@ def job_count_bands(df_list, eg_list, job_colors,
             alpha value (opacity) for legend markers
         legend_xadj, legend_yadj (floats)
             adjustment input for legend horizontal and vertical placement
-        legend_fontsize
+        legend_fontsize (integer or float)
             text size of legend labels
-        title_fontsize
+        title_fontsize (integer or float)
             text size of chart title
-        tick_size
+        tick_size (integer or float)
             text size of x and y tick labels
-        label_size
+        label_size (integer or float)
             text size of x and y descriptive labels
         chart_style (string)
             chart styling (string), any valid seaborn chart style
@@ -5789,8 +5931,8 @@ def filter_ds(ds,
             an attribute (column) to filter.  Example: 'ldate'
         oper(n) (string)
             an operator to apply to the attr(n) input.  Example:  '<='
-        val(n) (string, float, integer)
-            limiting value to apply to the the attr(n) with the oper(n)
+        val(n) (integer, float, date as string, string (as appropriate))
+            attr(n) limiting value (combined with oper1) as string
         return_title_string (boolean)
             If True, returns a string which dexcribes the filter(s) applied to
             the dataframe (ds)
@@ -5875,16 +6017,20 @@ def slice_ds_by_filtered_index(df, ds_dict=None, mnum=0, attr='age',
     using output of one execution as input for another execution.
 
     inputs
-        df
+        df (dataframe, can be proposal string name)
             the dataframe (dataset) to be filtered
-        mnum
+        ds_dict (dictionary)
+            A dictionary containing string to dataframes, used if ds_def input
+            is not a dataframe
+        mnum (integer)
             month number of the data to filter
-        attr
+        attr (string)
             attribute (column) to use during filter
-        oper
+        oper (string)
             operator to use, such as '<=' or '!='
-        attr_val
-            attribute value, combined with the operator for filtering.
+        attr_val (integer, float, date as string, string (as appropriate))
+            attr1 limiting value (combined with oper) as string
+
             Example filter:
                 jnum >= 7 (in mnum month)
     '''
@@ -6536,6 +6682,11 @@ def add_editor_list_to_excel(case=None):
     The routine reads the case_dill.pkl file - this provides a write path.
     Then the routine reads the editor-produced p_new_order.pkl file and writes
     it to the new worksheet "edit" in the proposals.xlsx file.
+
+    input
+        case (string)
+            the case name.  Will default to stored case name in
+            "dill/case_dill.pkl" if no input given
     '''
     if not case:
         try:

@@ -937,7 +937,6 @@ def assign_jobs_nbnf_job_changes(df,
         count_cond = np.array(count_cond)
         count_jobs = np.transpose(count_cond)[1]
 
-        # count_cond_start_month = count_cond[0][3]
         count_month_range = np.arange(np.min(count_cond[:, 3]),
                                       np.max(count_cond[:, 4]))
         job_change_months = np.concatenate((job_change_months,
@@ -949,10 +948,10 @@ def assign_jobs_nbnf_job_changes(df,
         recall_months = get_recall_months(recalls)
         job_change_months = np.concatenate((job_change_months,
                                             recall_months))
-    # np.unique returns an ordered numpy array
-    job_change_months = set(np.unique(job_change_months))
+    # convert job_change_months array to a set for faster membership test
+    job_change_months = set(job_change_months)
 
-    # for month in np.arange(num_of_months):
+    # loop through model integrated months:
     for month in np.arange(start_month, num_of_months):
 
         L = lower[month]
@@ -970,10 +969,6 @@ def assign_jobs_nbnf_job_changes(df,
         index_range = index_data[L:U]
         index_range_next = index_data[L_next:U_next]
 
-        # use numpy arrays for job assignment process for each month
-        # use pandas for data alignment 'job position forwarding'
-        # to future months
-
         this_job_col = 0
         job = 1
 
@@ -986,6 +981,7 @@ def assign_jobs_nbnf_job_changes(df,
                             fur_range, month, recalls,
                             total_monthly_job_count, standalone=False)
 
+        # use numpy arrays for job assignment process for each month
         while job <= num_of_job_levels:
 
             this_job_count = job_counts_each_month[month, this_job_col]
@@ -1895,211 +1891,6 @@ def get_job_reduction_months(job_changes):
     return month_list
 
 
-# ASSIGN JOBS BY RATIO CONDITION
-def assign_cond_ratio(job, this_job_count, eg_num,
-                      c_dict, orig_rng, assign_rng,
-                      eg_rng, fur_rng):
-    ''' Apply a job ratio condition
-
-    Main job assignment function calls this function in appropriate month
-    and with appropriate job data
-
-    As written, this function applies a ratio for job assignment between
-    one group and one or more other groups. The function code may be modified
-    to permit other employee group ratio combinations.
-
-    inputs
-        job
-            job level number
-        this_job_count
-            number of jobs available
-        eg_num
-            employee group number
-        c_dict
-            ratio condition dictionary, output of set_ratio_cond_dict function
-        orig_rng
-            original job range
-            Month slice of the orig_job column array (normally pertaining a
-            specific month).
-        assign_rng
-            job assignment range
-            Month slice of the assign_range column array
-        eg_rng
-            employee group range
-            Month slice of the eg_range column array
-        fur_rng
-            furlough range
-            Month slice of the fur_range column array
-
-    '''
-    eg_job_count = int(round(c_dict[job] * this_job_count))
-
-    not_eg_job_count = int(this_job_count - eg_job_count)
-    np.put(assign_rng,
-           np.where((assign_rng == 0) &
-                    (eg_rng == eg_num) &
-                    (fur_rng == 0))[0][:eg_job_count],
-           job)
-    # assign not_eg1 nbnf jobs
-    np.put(assign_rng,
-           np.where((assign_rng == 0) &
-                    (eg_rng != eg_num) &
-                    (fur_rng == 0) &
-                    (orig_rng <= job))[0][:not_eg_job_count],
-           job)
-
-    used_jobs = np.where((assign_rng == job) & (eg_rng > 1))[0].size
-    # then assign any remaining non_eg1 jobs by seniority
-    np.put(assign_rng,
-           np.where((assign_rng == 0) &
-                    (eg_rng != eg_num) &
-                    (fur_rng == 0))[0][:not_eg_job_count - used_jobs],
-           job)
-
-
-# ASSIGN JOBS BY RATIO for FIRST n JOBS
-def assign_cond_ratio_capped(job, this_job_count, eg_codes_arr1, eg_codes_arr2,
-                             quota_dict, orig_range, assign_range,
-                             eg_range, fur_range, exclude_eg_range):
-    '''distribute job assignments to employee groups by ratio for the first
-    n jobs specified. Any jobs remaining are not distributed with
-    this function.
-
-    inputs
-        job
-            job number
-        this_job_count
-            count of job
-        eg_codes_arr1
-            numpy array containing the employee group codes within
-            ratio group 1
-        eg_codes_arr2
-            numpy array containing the employee group codes within
-            ratio group 2
-        quota_dict
-            case-specific dictionary imported by the quota_dict (dictionary).
-            This dictionary has tuple keys (job, enhanced_jobs) and
-            tuple values (weights: i.e. ratios, condition count cap,
-            percentage to divide count cap if enhanced jobs used in model)
-        orig_range
-            current month slice of original job array
-        assign_range
-            current month slice of job assignment array
-        eg_range
-            current month slice of employee group codes array
-        fur_range
-            current month slice of furlough data
-        exclude_eg_range
-            current month slice of excluded group array
-
-    exclude_eg_range input is an array marking an employee group(s) which does
-    not participate in the conditional job distribution.  (this group(s) is
-    protected with no bump no flush)
-    '''
-    eg_1_count = 0
-    eg_2_count = 0
-
-    # find the indexes of each ratio group
-    eg_1_indexes = np.in1d(eg_range, eg_codes_arr1)
-    eg_2_indexes = np.in1d(eg_range, eg_codes_arr2)
-
-    # find the indexes for both groups (these groups are subject to condition)
-    affected_indexes = np.in1d(eg_range, np.append(eg_codes_arr1,
-                                                   eg_codes_arr2))
-
-    # find the first n indexes of unassigned employees
-    # assign_range_indexes = np.where(assign_range == 0)[0][:this_job_count]
-
-    # # first assign nbnf jobs to excluded employees
-    # exclude_nbnf = np.where(
-    #     exclude_eg_range[assign_range_indexes] == job)[0]
-
-    # # assign jobs to exclude_eg_range
-    # np.put(assign_range, assign_range_indexes[exclude_nbnf], job)
-
-    exclude_nbnf = np.where(exclude_eg_range == job)[0]
-
-    # assign jobs to exclude_eg_range
-    np.put(assign_range, exclude_nbnf, job)
-
-    # count the number of jobs assigned to excluded employees
-    exclude_count = np.where(assign_range == job)[0].size
-
-    # initial nbnf assignment to ratio condition affected groups
-    np.put(assign_range,
-           np.where((assign_range == 0) &
-                    (orig_range == job) &
-                    (fur_range == 0) &
-                    (affected_indexes))[0][:this_job_count - exclude_count],
-           job)
-    # count the job assignments per eg
-    eg_1_count = np.where((assign_range == job) & (eg_1_indexes))[0].size
-    eg_2_count = np.where((assign_range == job) & (eg_2_indexes))[0].size
-
-    weights, limit = quota_dict[job]
-    max_quota = min(this_job_count, round(limit))
-
-    available = max_quota - exclude_count
-    # make list for function below
-    eg_counts = [eg_1_count, eg_2_count]
-    # run function to determine disposition of vacancies (nbnf assignment
-    # already run above)
-
-    assignment_list = distribute_vacancies_by_weights(
-        available, eg_counts, weights)
-
-    # if jobs held are less than available count (total alloted by condition)
-    if np.sum(assignment_list) > 0:
-
-        eg_1_quota = assignment_list[0]
-        eg_2_quota = assignment_list[1]
-        # assign vacancies to proper groups to move toward or maintain proper
-        # weightings
-        if eg_1_quota > 0:
-            np.put(assign_range,
-                   np.where((assign_range == 0) &
-                            (eg_1_indexes) &
-                            (fur_range == 0))[0][:eg_1_quota],
-                   job)
-
-        if eg_2_quota > 0:
-            np.put(assign_range,
-                   np.where((assign_range == 0) &
-                            (eg_2_indexes) &
-                            (fur_range == 0))[0][:eg_2_quota],
-                   job)
-
-    else:
-
-        # ADD CODE FOR CONDITION WHEN TOTAL COUNT OF JOBS IS LESS THAN
-        # ALLOTMENT AND ONE EG IS BELOW QUOTA AND THE OTHER IS ABOVE...
-        # if count of jobs held by both egs is higher than condition
-        # check to see if one group has not yet met quota
-        # if true, give vacant positions to underrepresented eg until quota met
-        eg_quotas = distribute(limit, weights)
-
-        open_jobs = this_job_count - exclude_count - eg_1_count - eg_2_count
-
-        eg_1_shortfall = max(0, eg_quotas[0] - eg_1_count)
-        eg_2_shortfall = max(0, eg_quotas[1] - eg_2_count)
-
-        if eg_2_shortfall > 0:
-            eg_2_to_add = np.min((eg_2_shortfall, open_jobs)).astype(int)
-            np.put(assign_range,
-                   np.where((assign_range == 0) &
-                            (eg_2_indexes) &
-                            (fur_range == 0))[0][:eg_2_to_add],
-                   job)
-
-        if eg_1_shortfall > 0:
-            eg_1_to_add = np.min((eg_1_shortfall, open_jobs)).astype(int)
-            np.put(assign_range,
-                   np.where((assign_range == 0) &
-                            (eg_1_indexes) &
-                            (fur_range == 0))[0][:eg_1_to_add],
-                   job)
-
-
 # SET_RATIO_COND_DICT
 def set_ratio_cond_dict(eg_num, job_list, orig_rng, eg_range):
     '''Determine the job distribution ratios to carry forward during
@@ -2126,6 +1917,210 @@ def set_ratio_cond_dict(eg_num, job_list, orig_rng, eg_range):
         ratio_cond_dict[job] = eg_ratio
 
     return ratio_cond_dict
+
+
+# ASSIGN JOBS BY RATIO CONDITION
+def assign_cond_ratio(job, this_job_count, eg_num,
+                      ratio_dict, orig_rng, assign_rng,
+                      eg_rng, fur_rng):
+    ''' Apply a job ratio condition
+
+    Main job assignment function calls this function in appropriate month
+    and with appropriate job data
+
+    As written, this function applies a ratio for job assignment between
+    one group and one or more other groups. The function code may be modified
+    to permit other employee group ratio combinations.
+
+    inputs
+        job
+            job level number
+        this_job_count
+            number of jobs available
+        eg_num
+            employee group number
+        ratio_dict
+            ratio condition dictionary, output of set_ratio_cond_dict function
+        orig_rng
+            original job range
+            Month slice of the orig_job column array (normally pertaining a
+            specific month).
+        assign_rng
+            job assignment range
+            Month slice of the assign_range column array
+        eg_rng
+            employee group range
+            Month slice of the eg_range column array
+        fur_rng
+            furlough range
+            Month slice of the fur_range column array
+
+    '''
+    eg_job_count = int(round(ratio_dict[job] * this_job_count))
+
+    not_eg_job_count = int(this_job_count - eg_job_count)
+    np.put(assign_rng,
+           np.where((assign_rng == 0) &
+                    (eg_rng == eg_num) &
+                    (fur_rng == 0))[0][:eg_job_count],
+           job)
+    # assign not_eg1 nbnf jobs
+    np.put(assign_rng,
+           np.where((assign_rng == 0) &
+                    (eg_rng != eg_num) &
+                    (fur_rng == 0) &
+                    (orig_rng <= job))[0][:not_eg_job_count],
+           job)
+
+    used_jobs = np.where((assign_rng == job) & (eg_rng > 1))[0].size
+    # then assign any remaining non_eg1 jobs by seniority
+    np.put(assign_rng,
+           np.where((assign_rng == 0) &
+                    (eg_rng != eg_num) &
+                    (fur_rng == 0))[0][:not_eg_job_count - used_jobs],
+           job)
+
+
+# ASSIGN JOBS BY RATIO for FIRST n JOBS
+def assign_cond_ratio_capped(job, this_job_count, group1_arr, group2_arr,
+                             quota_dict, orig_range, assign_range,
+                             eg_range, fur_range, exclude_eg_range):
+    '''distribute job assignments to employee groups by ratio for the first
+    n jobs specified. Any jobs remaining are not distributed with
+    this function.
+
+    inputs
+        job
+            job number
+        this_job_count
+            count of job
+        group1_arr
+            numpy array containing the employee group codes within
+            ratio group 1
+        group2_arr
+            numpy array containing the employee group codes within
+            ratio group 2
+        quota_dict
+            case-specific dictionary imported by the quota_dict (dictionary).
+            This dictionary has tuple keys (job, enhanced_jobs) and
+            tuple values (weights: i.e. ratios, condition count cap,
+            percentage to divide count cap if enhanced jobs used in model)
+        orig_range
+            current month slice of original job array
+        assign_range
+            current month slice of job assignment array
+        eg_range
+            current month slice of employee group codes array
+        fur_range
+            current month slice of furlough data
+        exclude_eg_range
+            current month slice of excluded group array
+
+    exclude_eg_range input is an array marking an employee group(s) which does
+    not participate in the conditional job distribution.  (this group(s) is
+    protected with no bump no flush)
+    '''
+    grp_1_count = 0
+    grp_2_count = 0
+
+    # find the indexes of each ratio group
+    mask_group1 = np.in1d(eg_range, group1_arr)
+    mask_group2 = np.in1d(eg_range, group2_arr)
+
+    # find the indexes for both groups (these groups are subject to condition)
+    mask_both = np.in1d(eg_range, np.append(group1_arr, group2_arr))
+
+    # find the first n indexes of unassigned employees
+    # assign_range_indexes = np.where(assign_range == 0)[0][:this_job_count]
+
+    # # first assign nbnf jobs to excluded employees
+    # exclude_nbnf = np.where(
+    #     exclude_eg_range[assign_range_indexes] == job)[0]
+
+    # # assign jobs to exclude_eg_range
+    # np.put(assign_range, assign_range_indexes[exclude_nbnf], job)
+
+    exclude_nbnf = np.where(exclude_eg_range == job)[0]
+
+    # assign jobs to exclude_eg_range
+    np.put(assign_range, exclude_nbnf, job)
+
+    # count the number of jobs assigned to excluded employees
+    exclude_count = np.where(assign_range == job)[0].size
+
+    # initial nbnf assignment to ratio condition affected groups
+    np.put(assign_range,
+           np.where((assign_range == 0) &
+                    (orig_range == job) &
+                    (fur_range == 0) &
+                    (mask_both))[0][:this_job_count - exclude_count],
+           job)
+    # count the job assignments per eg
+    grp_1_count = np.where((assign_range == job) & (mask_group1))[0].size
+    grp_2_count = np.where((assign_range == job) & (mask_group2))[0].size
+
+    weights, limit = quota_dict[job]
+    max_quota = min(this_job_count, round(limit))
+
+    available = max_quota - exclude_count
+    # make list for function below
+    eg_counts = [grp_1_count, grp_2_count]
+    # run function to determine disposition of vacancies (nbnf assignment
+    # already run above)
+
+    assignment_list = distribute_vacancies_by_weights(
+        available, eg_counts, weights)
+
+    # if jobs held are less than available count (total alloted by condition)
+    if np.sum(assignment_list) > 0:
+
+        grp_1_quota = assignment_list[0]
+        grp_2_quota = assignment_list[1]
+        # assign vacancies to proper groups to move toward or maintain proper
+        # weightings
+        if grp_1_quota > 0:
+            np.put(assign_range,
+                   np.where((assign_range == 0) &
+                            (mask_group1) &
+                            (fur_range == 0))[0][:grp_1_quota],
+                   job)
+
+        if grp_2_quota > 0:
+            np.put(assign_range,
+                   np.where((assign_range == 0) &
+                            (mask_group2) &
+                            (fur_range == 0))[0][:grp_2_quota],
+                   job)
+
+    else:
+
+        # ADD CODE FOR CONDITION WHEN TOTAL COUNT OF JOBS IS LESS THAN
+        # ALLOTMENT AND ONE EG IS BELOW QUOTA AND THE OTHER IS ABOVE...
+        # if count of jobs held by both egs is higher than condition
+        # check to see if one group has not yet met quota
+        # if true, give vacant positions to underrepresented eg until quota met
+        eg_quotas = distribute(limit, weights)
+
+        open_jobs = this_job_count - exclude_count - grp_1_count - grp_2_count
+
+        eg_1_shortfall = max(0, eg_quotas[0] - grp_1_count)
+        eg_2_shortfall = max(0, eg_quotas[1] - grp_2_count)
+
+        if eg_2_shortfall > 0:
+            eg_2_to_add = np.min((eg_2_shortfall, open_jobs)).astype(int)
+            np.put(assign_range,
+                   np.where((assign_range == 0) &
+                            (mask_group2) &
+                            (fur_range == 0))[0][:eg_2_to_add],
+                   job)
+
+        if eg_1_shortfall > 0:
+            eg_1_to_add = np.min((eg_1_shortfall, open_jobs)).astype(int)
+            np.put(assign_range,
+                   np.where((assign_range == 0) &
+                            (mask_group1) &
+                            (fur_range == 0))[0][:eg_1_to_add],
+                   job)
 
 
 # RECALL
