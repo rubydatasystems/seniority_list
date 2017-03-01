@@ -301,8 +301,11 @@ def contract_pay_year_and_raise(date_list, future_raise,
 
     Usage example:
 
-    year_scale = find_scale(series_years,
-    future_raise = True, annual_raise = .02)
+        ::
+
+            year_scale = find_scale(series_years,
+                                    future_raise = True,
+                                    annual_raise = .02)
 
     NOTE: **(this function can accept a pay exception time period...)**
 
@@ -1118,10 +1121,17 @@ def put_map(jobs_array, job_cnts):
     Example:
 
         function call:
-        map_jobs = put_map(no_bump_jnums, job_level_counts)
+
+            ::
+
+                map_jobs = put_map(no_bump_jnums, job_level_counts)
 
         assigned to df:
-        df['nbnf_job_count'] = map_jobs.astype(int)
+
+            ::
+
+                df['nbnf_job_count'] = map_jobs.astype(int)
+
 
     length of set(jobs_array) must equal length of job_cnts.
     '''
@@ -1475,29 +1485,22 @@ def make_jcnts(job_count_lists):
 
     Example return:
 
-    (
+        ::
 
-    array(
+            (array([
+            [ 237,  158,  587, 1373,  352,  739,  495,  330,  784,
+             1457,    0,  471,  785,    0,    0,    0],
 
-    [[ 237,  158,  587, 1373,  352,  739,  495,  330,  784, 1457, 0,
-    471,  785,    0,    0,    0],
+            [  97,   64,  106,  575,   64,  310,  196,  130,  120,
+             603,    71,   72,  325,   38,   86,   46],
 
-    [  97,   64,  106,  575,   64,  310,  196,  130,  120,  603,   71,
-    72,  325,   38,   86,   46],
+            [  0,     0,   33,  414,   20,  223,    0,    0,   46,
+             395,     0,   28,  213,    0,    0,    0]]),
 
-    [   0,    0,   33,  414,   20,  223,    0,    0,   46,  395,    0,
-    28,  213,    0,    0,    0]]
+            array(
+            [ 334,  222,  726, 2362,  436, 1272,  691,  460,  950,
+             2455,   71,  571, 1323,   38,   86,   46]))
 
-    ),
-
-    array(
-
-    [ 334,  222,  726, 2362,  436, 1272,  691,  460,  950, 2455, 71,
-    571, 1323,   38,   86,   46]
-
-    )
-
-    )
     '''
     eg_job_counts = []
 
@@ -2369,7 +2372,11 @@ def align_next(long_index_arr, short_index_arr, arr):
 def distribute(available, weights):
     '''proportionally distribute 'available' according to 'weights'
 
-    usage example: distribute(334, [2.48, 1])
+    usage example:
+
+        ::
+
+            distribute(334, [2.48, 1])
 
     returns distribution rounded as integers
 
@@ -2411,7 +2418,11 @@ def distribute_vacancies_by_weights(available, eg_counts, weights):
             count of jobs already assigned to each affected employee group
         weights (list (ints or floats))
             relative weighting between the employee groups
-            examples: [2.5, 3, 1.1]
+            examples:
+
+                ::
+
+                    [2.5, 3, 1.1]
 
         The length of the eg_counts list and the weights list must be the
         same.
@@ -2531,27 +2542,32 @@ def delayed_monthly_sep_job_tables(job_levels,
 
             example:
 
-            [[1.00, 0.00, 0.00],  # c4
+                ::
 
-            [.50, 0.25, 0.25],   # c3
+                    [[1.00, 0.00, 0.00],  # c4
 
-            [.88, 0.09, 0.03],   # c2
+                    [.50, 0.25, 0.25],   # c3
 
-            [1.00, 0.00, 0.00],  # f4
+                    [.88, 0.09, 0.03],   # c2
 
-            [.50, 0.25, 0.25],   # f3
+                    [1.00, 0.00, 0.00],  # f4
 
-            [.88, 0.09, 0.03],   # f2
+                    [.50, 0.25, 0.25],   # f3
 
-            [0.00, 1.00, 0.00],  # c1
+                    [.88, 0.09, 0.03],   # f2
 
-            [0.00, 1.00, 0.00]]  # f1
+                    [0.00, 1.00, 0.00],  # c1
+
+                    [0.00, 1.00, 0.00]]  # f1
 
             using the above, if there were 4 additional jobs for job
             level 2 in a given month, eg 1 would get 2 and eg 2 and 3,
             1 each.
 
-            ([.50, 0.25, 0.25])
+                ::
+
+                    [.50, 0.25, 0.25]
+
     '''
     sum_of_initial_jobs = sum(eg_job_counts)
     job_change_totals = imp_job_counts - sum_of_initial_jobs
@@ -2713,16 +2729,21 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
             example:
 
-            [[197, 470, 1056, 412, 628, 1121, 0, 0],
-            [80, 85, 443, 163, 96, 464, 54, 66],
-            [0, 26, 319, 0, 37, 304, 0, 0]]
+                ::
+
+                    [[197, 470, 1056, 412, 628, 1121, 0, 0],
+                    [80, 85, 443, 163, 96, 464, 54, 66],
+                    [0, 26, 319, 0, 37, 304, 0, 0]]
+
         j_changes
             input from the settings dictionary describing change of job
             quantity over months of time (list)
 
             example:
 
-            [1, [35, 64], 87, [80, 7, 0]]
+                ::
+
+                    [1, [35, 64], 87, [80, 7, 0]]
 
             [[job level, [start and end month],
             total job count change,
@@ -2737,14 +2758,17 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
             example:
 
-            {1: [1, 2, 0.6],
-            2: [3, 5, 0.625],
-            3: [4, 6, 0.65],
-            4: [7, 8, 0.6],
-            5: [9, 12, 0.625],
-            6: [10, 13, 0.65],
-            7: [11, 14, 0.65],
-            8: [15, 16, 0.65]}
+                ::
+
+                    {1: [1, 2, 0.6],
+                    2: [3, 5, 0.625],
+                    3: [4, 6, 0.65],
+                    4: [7, 8, 0.6],
+                    5: [9, 12, 0.625],
+                    6: [10, 13, 0.65],
+                    7: [11, 14, 0.65],
+                    8: [15, 16, 0.65]}
+
     '''
     # job changes section
     # ..................................................
@@ -3567,28 +3591,117 @@ def make_dict_from_columns(df, key_col, value_col):
     return dict(zip(keys, values))
 
 
-def make_intlists_from_columns(df, columns):
-    '''
-    '''
-    df_cols = df[columns]
-    try:
-        arrays = list(df_cols.values.astype(int))
-    except:
-        arrays = list(df_cols.values)
-    column_list = []
-    for e in arrays:
-        e = list(e)
-        column_list.append(e)
-    return column_list
+def make_lists_from_columns(df, columns,
+                            remove_zero_values=False,
+                            try_integers=False,
+                            as_tuples=False):
+    '''combine columns row-wise into separate lists, return a list of lists
+
+    example:
+
+               +----+----+----+----+
+               | A  | B  | C  | D  |
+               +----+----+----+----+
+               | 1  | 6  | 0  | 2  |
+               +----+----+----+----+
+               | 8  | 4  | 5  | 3  |
+               +----+----+----+----+
+
+        ::
+
+            make_lists_from_columns(df, ["A", "B", "C"])
+
+            [[1, 6, 0], [8, 4, 5]]
 
 
-def make_lists_from_columns(df, columns):
-    '''
+            make_lists_from_columns(df, ["A", "B", "C"],
+                                    remove_zero_values=True,
+                                    as_tuples=True)
+
+            [(1, 6), (8, 4, 5)]
+
+    inputs
+        df (dataframe)
+            pandas dataframe containing columns to combine
+        columns (list)
+            list of column names
+        try_integers (boolean)
+            if True, if all column values are numerical, the output will
+            be converted to integers
+        as_tuples (boolean)
+            if True, output will be a list of tuples instead of a list of lists
     '''
     df_cols = df[columns]
+
     arrays = list(df_cols.values)
+
+    if try_integers:
+        try:
+            arrays = list(df_cols.values.astype(int))
+        except:
+            pass
+
     column_list = []
     for e in arrays:
         e = list(e)
         column_list.append(e)
+
+    if remove_zero_values:
+        for i in np.arange(len(column_list)):
+            column_list[i] = [grp for grp in column_list[i]
+                              if grp not in [[0], 0]]
+
+    if as_tuples:
+        column_list = [tuple(x) for x in column_list]
     return column_list
+
+
+def make_group_lists(df, column_name):
+    '''this function is used with Excel input to convert string objects and
+    integers into Python lists containing integers.  This function is used
+    with the count_ratio_dict dictionary construction.
+
+    The function works with one column at a time.
+
+    Output is a list of lists which may be reinserted into a column of the
+    dataframe.
+
+        example:
+
+               +----+----+----+-------+
+               | A  | B  | C  |   D   |
+               +----+----+----+-------+
+               | 1  | 6  | 0  | "2,3" |
+               +----+----+----+-------+
+               | 8  | 4  | 5  |  "5"  |
+               +----+----+----+-------+
+
+            ::
+
+                make_group_lists(df, ["D"])
+
+                [[2, 3], [5]]
+
+    This function allows the user to type the string 2,3 into an Excel
+    worksheet cell and have it interpreted by seniority_list as [2, 3]
+
+    inputs
+        df (dataframe)
+            dataframe containing Excel employee group codes
+        column_name
+            dataframe column name to convert
+    '''
+    col = df[column_name]
+    col_list = []
+    for item in col:
+        this_list = []
+        try:
+            for el in item.strip("'").split(","):
+                this_list.append(int(el))
+        except:
+            if type(item) == list:
+                this_list = item
+            else:
+                this_list.append(int(item))
+        col_list.append(this_list)
+    return col_list

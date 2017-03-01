@@ -463,11 +463,11 @@ settings['j_changes'] = f.make_lists_from_columns(df, ['job', 'lister1',
 # ## recalls
 df = xl['recall']
 filter_cols = [col for col in list(df) if col.startswith('eg')]
-df['lister'] = f.make_intlists_from_columns(df, filter_cols)
-settings['recalls'] = f.make_intlists_from_columns(df, ['total_monthly',
-                                                        'lister',
-                                                        'start_month',
-                                                        'end_month'])
+df['lister'] = f.make_lists_from_columns(df, filter_cols)
+settings['recalls'] = f.make_lists_from_columns(df, ['total_monthly',
+                                                     'lister',
+                                                     'start_month',
+                                                     'end_month'])
 
 # ## sg_rights
 
@@ -480,18 +480,18 @@ settings['sg_rights'] = f.make_lists_from_columns(df, filter_cols)
 df = xl['ratio_cond']
 df['start_month'] = settings['imp_month']
 df['end_month'] = settings['ratio_final_month']
-settings['ratio_cond'] = f.make_intlists_from_columns(df, ['eg', 'basic_job',
-                                                           'start_month',
-                                                           'end_month'])
+settings['ratio_cond'] = f.make_lists_from_columns(df, ['eg', 'basic_job',
+                                                        'start_month',
+                                                        'end_month'])
 
 # ## count_cond
 df = xl['count_ratio_cond']
 df['start_month'] = settings['imp_month']
 df['end_month'] = settings['count_final_month']
-settings['count_cond'] = f.make_intlists_from_columns(df, ['eg', 'basic_job',
-                                                           'count',
-                                                           'start_month',
-                                                           'end_month'])
+settings['count_cond'] = f.make_lists_from_columns(df, ['eg', 'basic_job',
+                                                        'count',
+                                                        'start_month',
+                                                        'end_month'])
 
 # ## quota_dict
 df = xl['quota_dict']
@@ -500,6 +500,25 @@ df['lister2'] = f.make_tuples_from_columns(df, ['lister1', 'cap'],
                                            return_as_list=False)
 quota_dict = f.make_dict_from_columns(df, 'job', 'lister2')
 settings['quota_dict'] = quota_dict
+
+# ## count_ratio_dict
+df = xl['count_ratio_dict']
+group_cols = [col for col in list(df) if col.startswith('group')]
+weight_cols = [col for col in list(df) if col.startswith('weight')]
+for col in group_cols:
+    df[col] = f.make_group_lists(df, col)
+df['grp_tup'] = f.make_lists_from_columns(df, group_cols,
+                                          remove_zero_values=True,
+                                          as_tuples=True)
+df['wgt_tup'] = f.make_lists_from_columns(df,
+                                          weight_cols,
+                                          remove_zero_values=True,
+                                          as_tuples=True)
+df = df[['basic_job', 'grp_tup', 'wgt_tup',
+         'cap', 'month_start', 'month_end']].copy()
+comb = f.make_lists_from_columns(df, [col for col in df if col != 'basic_job'])
+df = pd.DataFrame({'job': df.basic_job, 'data': comb})
+settings['count_ratio_dict'] = f.make_dict_from_columns(df, 'job', 'data')
 
 # ## p_dict, p_dict_verbose
 
@@ -510,32 +529,35 @@ settings['p_dict_verbose'] = f.make_dict_from_columns(df, 'proposal',
                                                       'long_descr')
 
 if settings['enhanced_jobs']:
-    sg_dist = settings['sg_dist']
-    ratio_dist = settings['ratio_dist']
-    count_dist = settings['count_dist']
-    quota_dist = settings['quota_dist']
-
+    jd = settings['jd']
     sg_rights = settings['sg_rights']
     ratio_cond = settings['ratio_cond']
     count_cond = settings['count_cond']
     quota_dict = settings['quota_dict']
-    jd = settings['jd']
+    count_dict = settings['count_ratio_dict']
+
+    dist_sg = settings['sg_dist']
+    dist_ratio = settings['ratio_dist']
+    dist_count = settings['count_dist']
+    dist_quota = settings['quota_dist']
 
     sg_rights, ratio_cond, \
-        count_cond, quota_dict = cnv(sg_rights,
-                                     ratio_cond,
-                                     count_cond,
-                                     quota_dict,
-                                     jd,
-                                     sg_dist=sg_dist,
-                                     ratio_dist=ratio_dist,
-                                     count_dist=count_dist,
-                                     quota_dist=quota_dist)
+        count_cond, quota_dict, count_dict = cnv(job_dict=jd,
+                                                 sg_list=sg_rights,
+                                                 ratio_list=ratio_cond,
+                                                 count_list=count_cond,
+                                                 quota_dict=quota_dict,
+                                                 count_ratio_dict=count_dict,
+                                                 dist_sg=dist_sg,
+                                                 dist_ratio=dist_ratio,
+                                                 dist_count=dist_count,
+                                                 dist_quota=dist_quota)
 
     settings['sg_rights'] = sg_rights
     settings['ratio_cond'] = ratio_cond
     settings['count_cond'] = count_cond
     settings['quota_dict'] = quota_dict
+    settings['count_ratio_dict'] = count_dict
 
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
