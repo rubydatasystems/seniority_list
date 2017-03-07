@@ -3705,3 +3705,52 @@ def make_group_lists(df, column_name):
                 this_list.append(int(item))
         col_list.append(this_list)
     return col_list
+
+
+def make_eg_pcnt_column(df):
+    '''add a column to the input df reflecting the starting percentage of
+    each employee within his/her original employee group at month zero.
+
+    returns a short-form series, indexed the same as the input df
+
+    assign to long-form dataframe:
+
+        ::
+
+            long_df['eg_start_pcnt'] = make_eg_pcnt_column(long_df)
+
+    input
+        df (dataframe)
+            pandas dataframe containing an employee group code column ('eg')
+            and a month number column ('mnum').  The dataframe must be
+            indexed with employee number code integers ('empkey')
+    '''
+    # grab the first month of the input dataframe, only 'eg' column
+    m0df = df[df.mnum == 0][['eg']].copy()
+    # make a running total for each employee group and assign to column
+    m0df['eg_count'] = m0df.groupby('eg').cumcount() + 1
+    # make another column with the total count for each respective group
+    m0df['eg_total'] = m0df.groupby('eg')['eg'].transform('count')
+    # calculate the group percentage and assign to column
+    m0df['eg_pcnt'] = m0df.eg_count / m0df.eg_total
+    # data align results to long_form input dataframe
+    df['eg_start_pcnt'] = m0df.eg_pcnt
+
+    return df.eg_start_pcnt
+
+
+def make_starting_val_column(df, attr):
+    '''add a new column to the input dataframe which will reflect the
+    starting value (month zero) of a selected attribute for each employee
+    for every month
+
+    input
+        df (dataframe)
+            pandas dataframe containing the attr input column and a month
+            number coulumn.  The dataframe must be indexed with employee
+            number code integers ('empkey')
+    '''
+    m0df = df[df.mnum == 0][[attr]].copy()
+    m0df['starting_value'] = m0df[attr]
+
+    return m0df.starting_value
