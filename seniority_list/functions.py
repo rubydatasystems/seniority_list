@@ -10,6 +10,7 @@ long_form is length cumulative sum non-retired each month
 size and age)
 '''
 import os
+import shutil
 import pandas as pd
 import numpy as np
 import scipy.stats as st
@@ -3754,3 +3755,78 @@ def make_starting_val_column(df, attr):
     m0df['starting_value'] = m0df[attr]
 
     return m0df.starting_value
+
+
+def save_and_load_dill_folder(load_case=None):
+    '''Save the current "dill" folder to the "saved_dill_folders" folder.
+    Load a saved dill folder as the "dill" folder if it exists.
+
+    This functions allows previously calculated pickle files (including the
+    datasets) to be loaded into the dill folder for quick review.
+
+    The "saved_dill_folders" folder is created if it does not already exist.
+    The load_case input is a case study name.  If none is given, the function
+    will only save the current dill folder and do nothing else.  If a
+    load_case input is given, but is incorrect or no matching folder exists,
+    the current dill folder is saved only.
+
+    If an award has conditions which differ from proposed conditions, the
+    settings dictionary must be modified prior to calculating the dataset.
+    This function allows previously calculated datasets to be quickly
+    retrieved and eliminates tedious adjustment of the settings spreadsheet
+    if switching between case studies (assuming the award has been presented
+    and no more input adjustment will be made).
+
+    input
+        load_case (string)
+            The name of a case study.  If None, the only action performed will
+            be to save the current "dill" folder to the "saved_dill_folders"
+            folder.
+
+            If the load_case variable is a valid case study name and a saved
+            dill folder for that case study exists, the saved dill folder will
+            become the current dill folder (contents of the saved dill folder
+            will be copied into the current dill folder).  This action will
+            occur after the contents of the current dill folder are copied into
+            the "saved_dill_folders" folder.
+    '''
+    os.makedirs('saved_dill_folders/', exist_ok=True)
+    try:
+        case_df = pd.read_pickle('dill/case_dill.pkl')
+        current_case_name = case_df.case.value
+    except:
+        case_df = None
+        current_case_name = 'copy'
+        print('"dill/case_dill.pkl" not found, ' +
+              'copying dill folder as "copy_dill_folder"\n')
+
+    dill = 'dill/'
+    dst = 'saved_dill_folders/' + current_case_name + '_dill_folder'
+
+    if os.path.exists(dst):
+        shutil.rmtree(dst)
+        shutil.copytree(dill, dst)
+        print('"' + current_case_name + '" dill folder copied to:\n\n    ' +
+              dst + '\n')
+
+    if load_case:
+        try:
+            load_dill = 'saved_dill_folders/' + load_case + '_dill_folder'
+            if os.path.exists(load_dill):
+                if os.path.exists(dill):
+                    shutil.rmtree(dill)
+            shutil.copytree(load_dill, dill)
+            case_dill = pd.DataFrame({'case': load_case}, index=['value'])
+            case_dill.to_pickle('dill/case_dill.pkl')
+            prop_df = pd.read_pickle('dill/proposal_names.pkl')
+            proposal_names = list(prop_df.proposals)
+            print('The dill folder contains the files pertaining to the "' +
+                  load_case + '" case study.')
+            print('The "' + load_case +
+                  '" case study proposal names are:\n\n    ' +
+                  str(proposal_names) + '\n')
+        except:
+            print('\nError >>>  problem finding load_case dill folder in ' +
+                  'the "saved_dill_folders" folder.')
+            print('\nThe dill folder contents remain unchanged.\n')
+

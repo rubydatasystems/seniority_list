@@ -5,7 +5,6 @@
 '''
 
 import numpy as np
-from sys import exit
 
 
 def convert(job_dict=None,
@@ -73,7 +72,7 @@ def convert(job_dict=None,
     if job_dict is None:
         print('Please set job_dict variable - the job dictionary is ' +
               'required to convert from basic to enhanced jobs')
-        exit()
+        return
 
     # these are the output variables
     enhan_sg_cond = []
