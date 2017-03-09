@@ -3709,16 +3709,18 @@ def make_group_lists(df, column_name):
 
 
 def make_eg_pcnt_column(df):
-    '''add a column to the input df reflecting the starting percentage of
-    each employee within his/her original employee group at month zero.
+    '''make an array derived from the input df reflecting the
+    starting (month zero) percentage of each employee within his/her
+    original employee group.  The array values have been data-aligned with
+    the df input index.
 
-    returns a short-form series, indexed the same as the input df
+    returns an array of values, same length as input df
 
     assign to long-form dataframe:
 
         ::
 
-            long_df['eg_start_pcnt'] = make_eg_pcnt_column(long_df)
+            df['eg_start_pcnt'] = make_eg_pcnt_column(df)
 
     input
         df (dataframe)
@@ -3737,47 +3739,84 @@ def make_eg_pcnt_column(df):
     # data align results to long_form input dataframe
     df['eg_start_pcnt'] = m0df.eg_pcnt
 
-    return df.eg_start_pcnt
+    return df.eg_start_pcnt.values
 
 
 def make_starting_val_column(df, attr):
-    '''add a new column to the input dataframe which will reflect the
-    starting value (month zero) of a selected attribute for each employee
-    for every month
+    '''make an array of values derived from the input dataframe which will
+    reflect the starting value (month zero) of a selected attribute.  Each
+    employee will be assigned the zero-month attribute value specific to
+    that employee, duplicated in each month of the data model.
+
+    This column allows future attribute analysis with a constant starting
+    point for all employees.  For example, retirement job position may be
+    compared to initial list percentage.
+
+    assign to long-form dataframe:
+
+        ::
+
+            df['start_attr'] = make_starting_val_column(df, attr)
 
     input
         df (dataframe)
             pandas dataframe containing the attr input column and a month
             number coulumn.  The dataframe must be indexed with employee
             number code integers ('empkey')
+        attr (column name in df)
+            selected zero-month attribute (column) from which to assign
+            values to the remaining data model months
     '''
-    m0df = df[df.mnum == 0][[attr]].copy()
-    m0df['starting_value'] = m0df[attr]
+    all_mths_df = df[['mnum', attr]].copy()
+    m0df = all_mths_df[all_mths_df.mnum == 0]
+    all_mths_df['starting_value'] = m0df[attr]
 
-    return m0df.starting_value
+    return all_mths_df.starting_value.values
 
 
-def save_and_load_dill_folder(load_case=None):
+def save_and_load_dill_folder(save_as=None,
+                              load_case=None,
+                              print_saved=False):
     '''Save the current "dill" folder to the "saved_dill_folders" folder.
     Load a saved dill folder as the "dill" folder if it exists.
 
-    This functions allows previously calculated pickle files (including the
+    This function allows previously calculated pickle files (including the
     datasets) to be loaded into the dill folder for quick review.
 
     The "saved_dill_folders" folder is created if it does not already exist.
-    The load_case input is a case study name.  If none is given, the function
-    will only save the current dill folder and do nothing else.  If a
-    load_case input is given, but is incorrect or no matching folder exists,
-    the current dill folder is saved only.
+    The load_case input is a case study name.  If the load_case input is set to
+    None, the function will only save the current dill folder and do nothing
+    else.  If a load_case input is given, but is incorrect or no matching
+    folder exists, the function will only save the current dill folder and do
+    nothing else.
+
+    The user may print a list of available saved dill folders (for loading)
+    by setting the print_saved input to True.  No other action will take place
+    with this option.
 
     If an award has conditions which differ from proposed conditions, the
-    settings dictionary must be modified prior to calculating the dataset.
+    settings dictionary must be modified prior to calculating the award
+    dataset.
+
     This function allows previously calculated datasets to be quickly
-    retrieved and eliminates tedious adjustment of the settings spreadsheet
-    if switching between case studies (assuming the award has been presented
-    and no more input adjustment will be made).
+    retrieved and eliminates continual adjustment of the settings spreadsheet
+    if the user switches between case studies (assuming the award has been
+    determined and no more input adjustment will be made).
 
     input
+        save_as (string)
+            A user-specified folder prefix.  If None, the current "dill" folder
+            will be saved using the current case study name as a prefix.  If
+            set to a string value, the current dill folder will be saved with
+            the "save_as" string value prefix.
+
+            Example with the save_as variable set to "test1".  The existing
+            dill folder would be saved as:
+
+                ::
+
+                    saved_dill_folders/test1_dill_folder
+
         load_case (string)
             The name of a case study.  If None, the only action performed will
             be to save the current "dill" folder to the "saved_dill_folders"
@@ -3789,44 +3828,77 @@ def save_and_load_dill_folder(load_case=None):
             will be copied into the current dill folder).  This action will
             occur after the contents of the current dill folder are copied into
             the "saved_dill_folders" folder.
+
+        print_saved (boolean)
+            option to print the saved folder prefixes only.  This provides a
+            quick check of the folders available to be loaded.  No other action
+            will take place with this option set to True.
     '''
     os.makedirs('saved_dill_folders/', exist_ok=True)
+
+    if print_saved:
+        # get all saved folder prefixes and print
+        this_dir = 'saved_dill_folders/'
+        print('The saved dill folders available to load are:\n')
+        print('   ' + str([name.replace('_dill_folder', '') for name
+              in os.listdir(this_dir) if
+              os.path.isdir(os.path.join(this_dir, name))]))
+        print('\nNothing changed, set print_saved input to "False" if ' +
+              'you wish to save and/or load a folder\n')
+        return
+
     try:
+        # get current case study name
         case_df = pd.read_pickle('dill/case_dill.pkl')
         current_case_name = case_df.case.value
     except:
-        case_df = None
         current_case_name = 'copy'
-        print('"dill/case_dill.pkl" not found, ' +
-              'copying dill folder as "copy_dill_folder"\n')
+
+    if save_as is None:
+        # use case study name as prefix
+        save_name = current_case_name
+        if current_case_name == 'copy':
+            print('"dill/case_dill.pkl" not found, ' +
+                  'copying dill folder as "copy_dill_folder"\n')
+    else:
+        # set user-defined prefix
+        save_name = save_as
 
     dill = 'dill/'
-    dst = 'saved_dill_folders/' + current_case_name + '_dill_folder'
+    dst = 'saved_dill_folders/' + save_name + '_dill_folder'
 
+    # delete destination folder if it already exists
     if os.path.exists(dst):
         shutil.rmtree(dst)
-        shutil.copytree(dill, dst)
-        print('"' + current_case_name + '" dill folder copied to:\n\n    ' +
-              dst + '\n')
+    # copy dill folder to destination folder
+    shutil.copytree(dill, dst)
+    print('"' + current_case_name + '" dill folder copied to:\n\n    ' +
+          dst + '\n')
 
     if load_case:
         try:
             load_dill = 'saved_dill_folders/' + load_case + '_dill_folder'
+            # if both a saved load_case folder and a dill folder exist,
+            # delete the dill folder in preparation for the paste
             if os.path.exists(load_dill):
                 if os.path.exists(dill):
                     shutil.rmtree(dill)
+            # copy load_case folder to dill folder (will fail if load_case
+            # folder does not exist)
             shutil.copytree(load_dill, dill)
+            # update case_dill.pkl file
             case_dill = pd.DataFrame({'case': load_case}, index=['value'])
             case_dill.to_pickle('dill/case_dill.pkl')
+            # read the proposal names (dataset names) and print for user
             prop_df = pd.read_pickle('dill/proposal_names.pkl')
             proposal_names = list(prop_df.proposals)
-            print('The dill folder contains the files pertaining to the "' +
-                  load_case + '" case study.')
+            print('The dill folder contains the files previously saved as "' +
+                  load_case + '".')
             print('The "' + load_case +
-                  '" case study proposal names are:\n\n    ' +
+                  '" proposal names are:\n\n    ' +
                   str(proposal_names) + '\n')
         except:
-            print('\nError >>>  problem finding load_case dill folder in ' +
+            print('\nError >>>  problem finding a saved dill folder with a ' +
+                  load_case + ' prefix in ' +
                   'the "saved_dill_folders" folder.')
             print('\nThe dill folder contents remain unchanged.\n')
-
