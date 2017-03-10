@@ -42,28 +42,29 @@ if os.path.isdir('dill/'):
         pass
 
 sdict = pd.read_pickle('dill/dict_settings.pkl')
+tdict = pd.read_pickle('dill/dict_job_tables.pkl')
 
 num_of_job_levels = sdict['num_of_job_levels']
-num_of_months = pd.unique(ds.mnum).size
+# num_of_months = pd.unique(ds.mnum).size
 egs = np.unique(ds.eg)
 start_month = 0
 
 # make prex True or False (for input to assign_standalone_job_changes function)
 prex = 'prex' in conditions
 
-if sdict['enhanced_jobs']:
-    # use job dictionary(jd) from settings dictionary for conversion
-    eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
-                                                 sdict['j_changes'],
-                                                 sdict['jd'])
-else:
-    eg_counts = sdict['eg_counts']
-    j_changes = sdict['j_changes']
+# if sdict['enhanced_jobs']:
+#     # use job dictionary(jd) from settings dictionary for conversion
+#     eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
+#                                                  sdict['j_changes'],
+#                                                  sdict['jd'])
+# else:
+#     eg_counts = sdict['eg_counts']
+#     j_changes = sdict['j_changes']
 
-jcnts_arr = f.make_jcnts(eg_counts)
-
-tdict = pd.read_pickle('dill/dict_job_tables.pkl')
 table = tdict['s_table']
+# jcnts_arr = f.make_jcnts(eg_counts)
+jcnts_arr = tdict['jcnts_arr']
+j_changes = tdict['j_changes']
 
 job_change_months = f.get_job_change_months(j_changes)
 job_reduction_months = f.get_job_reduction_months(j_changes)

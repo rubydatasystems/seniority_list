@@ -51,6 +51,7 @@ except:
     exit()
 
 sdict = pd.read_pickle('dill/dict_settings.pkl')
+tdict = pd.read_pickle('dill/dict_job_tables.pkl')
 
 start_date = pd.to_datetime(sdict['starting_date'])
 
@@ -61,18 +62,6 @@ df_master = df_master[
 population = len(df_master)
 num_of_job_levels = sdict['num_of_job_levels']
 lspcnt_calc = sdict['lspcnt_calc_on_remaining_population']
-
-if sdict['enhanced_jobs']:
-    # convert using job dictionary from settings dictionary
-    eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
-                                                 sdict['j_changes'],
-                                                 sdict['jd'])
-else:
-    eg_counts = sdict['eg_counts']
-    j_changes = sdict['j_changes']
-
-# compute job counts array
-jcnts_arr = f.make_jcnts(eg_counts)
 
 # ORDER the skeleton df according to INTEGRATED list order.
 # df_skel can initially be in any integrated order, each employee group must
@@ -109,6 +98,8 @@ fur_sequence = np.array(df_master.fur)
 
 # create list of employee group codes from the master data
 egs = sorted(pd.unique(eg_sequence))
+# retrieve job counts array
+jcnts_arr = tdict['jcnts_arr']
 
 if 'prex' in conditions:
 
@@ -268,8 +259,8 @@ else:
 # grab long_form indexed stovepipe jobs (int)
 orig = np.array(ds['orig_job'])
 
-tdict = pd.read_pickle('dill/dict_job_tables.pkl')
 table = tdict['table']
+j_changes = tdict['j_changes']
 
 job_change_months = f.get_job_change_months(j_changes)
 reduction_months = f.get_job_reduction_months(j_changes)

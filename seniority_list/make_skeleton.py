@@ -268,6 +268,7 @@ else:
     eg_counts = sdict['eg_counts']
     j_changes = sdict['j_changes']
 
+# compute job counts array
 jcnts_arr = f.make_jcnts(eg_counts)
 
 s_table = f.job_gain_loss_table(num_of_months,
@@ -282,7 +283,10 @@ table = f.job_gain_loss_table(num_of_months,
                               j_changes,
                               standalone=False)
 
-table_dict = {'s_table': s_table, 'table': table}
+table_dict = {'s_table': s_table,
+              'table': table,
+              'j_changes': j_changes,
+              'jcnts_arr': jcnts_arr}
 
 with open('dill/dict_job_tables.pkl', 'wb') as handle:
     pickle.dump(table_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
