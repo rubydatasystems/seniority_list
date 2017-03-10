@@ -2614,7 +2614,7 @@ def job_gain_loss_table(months, job_levels, init_job_counts,
     job change schedules defined by the settings dictionary.
 
     The second array is a one-dimensional array containing the sum for all jobs
-    for each month of the model.the
+    for each month of the model.
 
     inputs
         months (integer)

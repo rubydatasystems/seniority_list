@@ -62,11 +62,8 @@ else:
 
 jcnts_arr = f.make_jcnts(eg_counts)
 
-table = f.job_gain_loss_table(num_of_months,
-                              num_of_job_levels,
-                              jcnts_arr,
-                              j_changes,
-                              standalone=True)
+tdict = pd.read_pickle('dill/dict_job_tables.pkl')
+table = tdict['s_table']
 
 job_change_months = f.get_job_change_months(j_changes)
 job_reduction_months = f.get_job_reduction_months(j_changes)
@@ -240,10 +237,7 @@ ds.set_index('empkey', drop=False, verify_integrity=False, inplace=True)
 # global job ranking
 
 if sdict['compute_job_category_order']:
-    table = f.job_gain_loss_table(num_of_months,
-                                  num_of_job_levels,
-                                  jcnts_arr,
-                                  j_changes)
+    table = tdict['table']
     ds['cat_order'] = f.make_cat_order(ds, table[0])
 
 # save to file

@@ -8,6 +8,7 @@ some column(s) are dependent on the settings dictionary values, such as
 pay raise beyond the contract last year.
 '''
 
+import pickle
 import pandas as pd
 import numpy as np
 
@@ -48,7 +49,6 @@ df_list = []
 # cmonths is used for mnum, idx, and mth_pcnt calculations
 
 cmonths = f.career_months_df_in(df, sdict['starting_date'])
-
 # convert the python cmonths list to a numpy array and
 # use that array as input for the count_per_month function.
 # The count_per_month function output array is input for
@@ -251,3 +251,38 @@ skel.pop('s_age')
 # save results to pickle
 if sdict['save_to_pickle']:
     skel.to_pickle(skel_path_string)
+
+# END OF SKELETON GENERATION
+
+# create job tables (standalone and integrated), store as dictionary
+num_of_job_levels = sdict['num_of_job_levels']
+num_of_months = pd.unique(skel.mnum).size
+egs = np.unique(skel.eg)
+
+if sdict['enhanced_jobs']:
+    # use job dictionary(jd) from settings dictionary for conversion
+    eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
+                                                 sdict['j_changes'],
+                                                 sdict['jd'])
+else:
+    eg_counts = sdict['eg_counts']
+    j_changes = sdict['j_changes']
+
+jcnts_arr = f.make_jcnts(eg_counts)
+
+s_table = f.job_gain_loss_table(num_of_months,
+                                num_of_job_levels,
+                                jcnts_arr,
+                                j_changes,
+                                standalone=True)
+
+table = f.job_gain_loss_table(num_of_months,
+                              num_of_job_levels,
+                              jcnts_arr,
+                              j_changes,
+                              standalone=False)
+
+table_dict = {'s_table': s_table, 'table': table}
+
+with open('dill/dict_job_tables.pkl', 'wb') as handle:
+    pickle.dump(table_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)

@@ -268,10 +268,8 @@ else:
 # grab long_form indexed stovepipe jobs (int)
 orig = np.array(ds['orig_job'])
 
-table = f.job_gain_loss_table(nonret_each_month.size,
-                              num_of_job_levels,
-                              jcnts_arr,
-                              j_changes)
+tdict = pd.read_pickle('dill/dict_job_tables.pkl')
+table = tdict['table']
 
 job_change_months = f.get_job_change_months(j_changes)
 reduction_months = f.get_job_reduction_months(j_changes)
