@@ -273,20 +273,13 @@ df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 # months in the model and assigns jobs
 jobs_and_counts = \
     f.assign_jobs_nbnf_job_changes(df_align,
-                                   sdict['num_of_job_levels'],
-                                   sdict['delayed_implementation'],
                                    low_limits, high_limits,
                                    all_months,
                                    table[0], table[1],
-                                   job_change_months,
                                    reduction_months,
                                    imp_month,
                                    conditions,
-                                   sdict['sg_rights'],
-                                   sdict['ratio_cond'],
-                                   sdict['count_cond'],
-                                   sdict['quota_dict'],
-                                   sdict['recalls'],
+                                   sdict,
                                    fur_return=sdict['recall'])
 
 # if job_changes, replace original fur column...

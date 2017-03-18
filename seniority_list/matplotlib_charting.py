@@ -5777,8 +5777,12 @@ def job_count_bands(df_list, eg_list, job_colors,
 
             plt.ylim(y, 0)
 
-            plt.title(label_dict[i] + ', group ' + str(eg),
-                      fontsize=title_fontsize, y=1.01)
+            if label_dict[i] in ['standalone', 'award']:
+                title_str = label_dict[i] + ', group ' + str(eg)
+            else:
+                title_str = label_dict[i] + ' proposal, group ' + str(eg)
+
+            plt.title(title_str, fontsize=title_fontsize, y=1.01)
             fig = plt.gcf()
             ax = plt.gca()
             fig.set_size_inches(xsize, ysize)
