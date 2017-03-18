@@ -469,6 +469,7 @@ settings['j_changes'] = f.make_lists_from_columns(df, ['job', 'lister1',
                                                        'lister2'])
 
 # ## recalls
+
 df = xl['recall']
 filter_cols = [col for col in list(df) if col.startswith('eg')]
 df['lister'] = f.make_lists_from_columns(df, filter_cols)
@@ -491,32 +492,17 @@ filter_cols = [col for col in list(df) if col in sg_col_list]
 settings['sg_rights'] = f.make_lists_from_columns(df, filter_cols)
 
 # ## ratio_cond
+
 df = xl['ratio_cond']
 df['month_start'] = settings['imp_month']
 df['month_end'] = settings['ratio_final_month']
 settings['ratio_cond'] = f.make_lists_from_columns(df, ['eg', 'basic_job',
                                                         'month_start',
                                                         'month_end'])
-# REMOVE
-# ## count_cond
-df = xl['count_ratio_cond']
-df['month_start'] = settings['imp_month']
-df['month_end'] = settings['count_final_month']
-settings['count_cond'] = f.make_lists_from_columns(df, ['eg', 'basic_job',
-                                                        'count',
-                                                        'month_start',
-                                                        'month_end'])
-# REMOVE
-# ## quota_dict
-df = xl['quota_dict']
-df['lister1'] = f.make_lists_from_columns(df, ['weight_1', 'weight_2'])
-df['lister2'] = f.make_tuples_from_columns(df, ['lister1', 'cap'],
-                                           return_as_list=False)
-quota_dict = f.make_dict_from_columns(df, 'job', 'lister2')
-settings['quota_dict'] = quota_dict
 
 # ## count_ratio_dict
-df = xl['count_ratio_dict']
+
+df = xl['ratio_count_capped_cond']
 
 # make count ratio condition month range
 month_start = df.month_start.min()

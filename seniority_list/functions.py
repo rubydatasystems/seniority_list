@@ -900,8 +900,6 @@ def assign_jobs_nbnf_job_changes(df,
 
         # calc capped count condition month range and concat
     if 'count' in condition_list:
-        # count_cond = np.array(sdict['count_cond'])
-        # count_jobs = np.transpose(count_cond)[1]
         count_dict = sdict['count_ratio_dict']
         count_jobs = sorted(count_dict.keys())
         cr_mdict = {}
@@ -2998,7 +2996,6 @@ def print_config_selections():
                    'compute_pay_measures': sdict['compute_pay_measures'],
                    'compute_with_job_changes':
                    sdict['compute_with_job_changes'],
-                   'count_cond_duration': sdict['count_cond_duration'],
                    'count_final_month': sdict['count_final_month'],
                    'date_exception_end': sdict['date_exception_end'],
                    'date_exception_start': sdict['date_exception_start'],
