@@ -904,7 +904,8 @@ def assign_jobs_nbnf_job_changes(df,
         count_jobs = sorted(count_dict.keys())
         cr_mdict = {}
         for job in count_dict.keys():
-            cr_mdict[job] = range(count_dict[job][3], count_dict[job][4] + 1)
+            cr_mdict[job] = set(range(count_dict[job][3],
+                                      count_dict[job][4] + 1))
         dkeys = {'grp': 0, 'wgt': 1, 'cap': 2}
 
         count_month_range = sdict['count_ratio_month_range']
@@ -990,8 +991,7 @@ def assign_jobs_nbnf_job_changes(df,
 
                 # assign ratio count condition jobs
                 if 'count' in condition_list:
-
-                    if month in count_month_range and job in count_jobs:
+                    if (job in count_jobs) and (month in cr_mdict[job]):
                         cap = count_dict[job][dkeys['cap']]
                         weights = count_dict[job][dkeys['wgt']]
                         ratio_groups = count_dict[job][dkeys['grp']]
