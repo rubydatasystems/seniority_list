@@ -421,20 +421,6 @@ start = settings['start']
 settings['imp_month'] = ((imp_date.year - start.year) * 12) - \
     (start.month - imp_date.month)
 
-# ## ratio_final_month
-
-imp_month = settings['imp_month']
-
-r_duration = settings['ratio_cond_duration']
-
-settings['ratio_final_month'] = imp_month + r_duration
-
-# ## count_final_month
-
-c_duration = settings['count_cond_duration']
-
-settings['count_final_month'] = imp_month + c_duration
-
 # ## num_of_job_levels
 
 if settings['enhanced_jobs']:
@@ -494,11 +480,29 @@ settings['sg_rights'] = f.make_lists_from_columns(df, filter_cols)
 # ## ratio_cond
 
 df = xl['ratio_cond']
-df['month_start'] = settings['imp_month']
-df['month_end'] = settings['ratio_final_month']
-settings['ratio_cond'] = f.make_lists_from_columns(df, ['eg', 'basic_job',
-                                                        'month_start',
-                                                        'month_end'])
+
+# make count ratio condition month range
+month_start = df.month_start.min()
+month_end = df.month_end.max()
+settings['ratio_month_range'] = set(range(month_start, month_end + 1))
+
+group_cols = [col for col in list(df) if col.startswith('group')]
+weight_cols = [col for col in list(df) if col.startswith('weight')]
+for col in group_cols:
+    df[col] = f.make_group_lists(df, col)
+
+df['grp_tup'] = f.make_lists_from_columns(df, group_cols,
+                                          remove_zero_values=True,
+                                          as_tuples=True)
+df['wgt_tup'] = f.make_lists_from_columns(df,
+                                          weight_cols,
+                                          remove_zero_values=True,
+                                          as_tuples=True)
+df = df[['basic_job', 'grp_tup', 'wgt_tup',
+         'month_start', 'month_end']].copy()
+comb = f.make_lists_from_columns(df, [col for col in df if col != 'basic_job'])
+df = pd.DataFrame({'job': df.basic_job, 'data': comb})
+settings['ratio_dict'] = f.make_dict_from_columns(df, 'job', 'data')
 
 # ## count_ratio_dict
 
@@ -537,33 +541,27 @@ settings['p_dict_verbose'] = f.make_dict_from_columns(df, 'proposal',
 if settings['enhanced_jobs']:
     jd = settings['jd']
     sg_rights = settings['sg_rights']
-    ratio_cond = settings['ratio_cond']
-    count_cond = settings['count_cond']
-    quota_dict = settings['quota_dict']
+    # ratio_cond = settings['ratio_cond']
     count_dict = settings['count_ratio_dict']
+    ratio_dict = settings['ratio_dict']
 
     dist_sg = settings['sg_dist']
     dist_ratio = settings['ratio_dist']
     dist_count = settings['count_dist']
-    dist_quota = settings['quota_dist']
 
-    sg_rights, ratio_cond, \
-        count_cond, quota_dict, count_dict = cnv(job_dict=jd,
-                                                 sg_list=sg_rights,
-                                                 ratio_list=ratio_cond,
-                                                 count_list=count_cond,
-                                                 quota_dict=quota_dict,
-                                                 count_ratio_dict=count_dict,
-                                                 dist_sg=dist_sg,
-                                                 dist_ratio=dist_ratio,
-                                                 dist_count=dist_count,
-                                                 dist_quota=dist_quota)
+    sg_rights, count_dict, ratio_dict = cnv(job_dict=jd,
+                                            sg_list=sg_rights,
+                                            # ratio_list=ratio_cond,
+                                            count_ratio_dict=count_dict,
+                                            ratio_dict=ratio_dict,
+                                            dist_sg=dist_sg,
+                                            dist_ratio=dist_ratio,
+                                            dist_count_ratio=dist_count)
 
     settings['sg_rights'] = sg_rights
-    settings['ratio_cond'] = ratio_cond
-    settings['count_cond'] = count_cond
-    settings['quota_dict'] = quota_dict
+    # settings['ratio_cond'] = ratio_cond
     settings['count_ratio_dict'] = count_dict
+    settings['ratio_dict'] = ratio_dict
 
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

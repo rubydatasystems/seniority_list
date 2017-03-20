@@ -6659,3 +6659,21 @@ def add_editor_list_to_excel(case=None):
     writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
     df.to_excel(writer, sheet_name='edit')
     writer.save()
+
+
+# Pretty print a dictionary...
+def pprint_dict(dct, marker1='#', marker2='', skip_line=True):
+    '''print the key-value pairs in a horizontal, organized fashion.
+
+    inputs
+        dct (dictionary)
+            the dictionary to print
+        marker1, marker2
+            prefix and suffix for the dictionary key headers
+    '''
+    for el in sorted(dct.items()):
+        print(marker1, el[0], marker2)
+        if skip_line:
+            print('  ', el[1], '\n')
+        else:
+            print('  ', el[1])

@@ -11,6 +11,7 @@ size and age)
 '''
 import os
 import shutil
+import copy
 import pandas as pd
 import numpy as np
 import scipy.stats as st
@@ -890,12 +891,15 @@ def assign_jobs_nbnf_job_changes(df,
     # calc ratio condition month range and concat to
     # job_change_months
     if 'ratio' in condition_list:
-        ratio_cond = np.array(sdict['ratio_cond'])
-        ratio_jobs = np.transpose(ratio_cond)[1]
-        ratio_cond_month = ratio_cond[0][2]
-        ratio_cond_job = 1
-        ratio_month_range = set(np.arange(np.min(ratio_cond[:, 2]),
-                                          np.max(ratio_cond[:, 3])))
+        ratio_dict = sdict['ratio_dict']
+        ratio_jobs = list(ratio_dict.keys())
+        ratio_month_range = sdict['ratio_month_range']
+        r_mdict = {}
+        for job in ratio_dict.keys():
+            r_mdict[job] = set(range(ratio_dict[job][2],
+                                     ratio_dict[job][3] + 1))
+
+        ratio_cond_month = min(ratio_month_range)
         job_change_months = job_change_months.union(ratio_month_range)
 
         # calc capped count condition month range and concat
@@ -906,6 +910,7 @@ def assign_jobs_nbnf_job_changes(df,
         for job in count_dict.keys():
             cr_mdict[job] = set(range(count_dict[job][3],
                                       count_dict[job][4] + 1))
+
         dkeys = {'grp': 0, 'wgt': 1, 'cap': 2}
 
         count_month_range = sdict['count_ratio_month_range']
@@ -971,18 +976,16 @@ def assign_jobs_nbnf_job_changes(df,
                 # assign ratio condition jobs
                 if 'ratio' in condition_list:
 
-                    if (month == ratio_cond_month) and (job == ratio_cond_job):
+                    if month == ratio_cond_month:
 
-                        ratio_cond_dict = set_ratio_cond_dict(1,
-                                                              ratio_jobs,
-                                                              orig_job_range,
-                                                              eg_range)
+                        ratio_cond_dict = set_snapshot_weights(ratio_dict,
+                                                               orig_job_range,
+                                                               eg_range)
 
-                    if (month in ratio_month_range) and (job in ratio_jobs):
+                    if (job in ratio_jobs) and (month in r_mdict[job]):
 
                         assign_cond_ratio(job,
                                           this_job_count,
-                                          1,
                                           ratio_cond_dict,
                                           orig_job_range,
                                           assign_range,
@@ -1860,41 +1863,44 @@ def get_job_reduction_months(job_changes):
     return month_list
 
 
-# SET_RATIO_COND_DICT
-def set_ratio_cond_dict(eg_num, job_list, orig_rng, eg_range):
+# SET SNAPSHOT RATIO WEIGHTINGS
+def set_snapshot_weights(ratio_dict, orig_rng, eg_range):
     '''Determine the job distribution ratios to carry forward during
-    the ratio condition application period
+    the ratio condition application period using actual jobs held ratios.
 
     likely called at implementation month by main job assignment function
 
+    Count the number of jobs held by each of the ratio groups for each of the
+    affected job level numbers.  Set the weightings in the distribute function
+    accordingly.
+
     inputs
-        eg_num (integer)
-            employee group number
-        job_list (numpy array)
-            array of jobs subject to ratio condition
+        ratio_dict (dictionary)
+            dictionary containing job levels as keys and ratio groups,
+            weightings, month_start and month end as values.
         orig_rng (numpy array)
             month slice of original job array
         eg_range (numpy array)
             month slice of employee group code array
     '''
-    ratio_cond_dict = {}
-    for job in job_list:
+    job_nums = list(ratio_dict.keys())
+    for job in job_nums:
+        wgt_list = []
+        for ratio_group in ratio_dict[job][0]:
+            wgt_list.append(np.sum((orig_rng == job) &
+                                   (np.in1d(eg_range, ratio_group))))
+        ratio_dict[job][1] = tuple(wgt_list)
 
-        total_this_job_count = np.sum(orig_rng == job)
-        eg_count = np.sum((orig_rng == job) & (eg_range == eg_num))
-        eg_ratio = round(eg_count / total_this_job_count, 2)
-        ratio_cond_dict[job] = eg_ratio
-
-    return ratio_cond_dict
+    return ratio_dict
 
 
 # ASSIGN JOBS BY RATIO CONDITION
-def assign_cond_ratio(job, this_job_count, eg_num,
-                      ratio_dict, orig_rng, assign_rng,
-                      eg_rng, fur_rng):
+def assign_cond_ratio(job, this_job_count,
+                      ratio_dict, orig_range, assign_range,
+                      eg_range, fur_range):
     ''' Apply a job ratio condition
 
-    Main job assignment function calls this function in appropriate month
+    Main job assignment function calls this function at the appropriate month
     and with appropriate job data
 
     As written, this function applies a ratio for job assignment between
@@ -1906,48 +1912,55 @@ def assign_cond_ratio(job, this_job_count, eg_num,
             job level number
         this_job_count
             number of jobs available
-        eg_num
-            employee group number
         ratio_dict
             ratio condition dictionary, output of set_ratio_cond_dict function
-        orig_rng
+        orig_range
             original job range
             Month slice of the orig_job column array (normally pertaining a
             specific month).
-        assign_rng
+        assign_range
             job assignment range
             Month slice of the assign_range column array
-        eg_rng
+        eg_range
             employee group range
             Month slice of the eg_range column array
-        fur_rng
+        fur_range
             furlough range
             Month slice of the fur_range column array
-
     '''
-    eg_job_count = int(round(ratio_dict[job] * this_job_count))
+    ratio_groups = ratio_dict[job][0]
+    weights = ratio_dict[job][1]
+    cond_assign_counts = distribute(this_job_count, weights)
 
-    not_eg_job_count = int(this_job_count - eg_job_count)
-    np.put(assign_rng,
-           np.where((assign_rng == 0) &
-                    (eg_rng == eg_num) &
-                    (fur_rng == 0))[0][:eg_job_count],
-           job)
-    # assign not_eg1 nbnf jobs
-    np.put(assign_rng,
-           np.where((assign_rng == 0) &
-                    (eg_rng != eg_num) &
-                    (fur_rng == 0) &
-                    (orig_rng <= job))[0][:not_eg_job_count],
-           job)
+    mask_index = []
 
-    used_jobs = np.where((assign_rng == job) & (eg_rng > 1))[0].size
-    # then assign any remaining non_eg1 jobs by seniority
-    np.put(assign_rng,
-           np.where((assign_rng == 0) &
-                    (eg_rng != eg_num) &
-                    (fur_rng == 0))[0][:not_eg_job_count - used_jobs],
-           job)
+    # find the indexes of each ratio group
+    for grp in ratio_groups:
+        mask_index.append(np.in1d(eg_range, grp))
+
+    i = 0
+    for i in np.arange(len(ratio_groups)):
+        # assign jobs to employees within each ratio group who already hold
+        # that job (no bump no flush)
+        np.put(assign_range,
+               np.where((assign_range == 0) &
+                        (fur_range == 0) &
+                        (orig_range <= job) &
+                        (mask_index[i]))[0][:cond_assign_counts[i]],
+               job)
+        # count how many jobs were assigned to this ratio group by no bump
+        # no flush
+        used = np.sum((assign_range == job) &
+                      (np.in1d(eg_range, ratio_groups[i])))
+        # determine how many remain for assignment within the ratio group
+        remaining = cond_assign_counts[i] - used
+        # assign the remaining jobs by seniority within the ratio group
+        np.put(assign_range,
+               np.where((assign_range == 0) &
+                        (fur_range == 0) &
+                        (mask_index[i]))[0][:remaining],
+               job)
+        i += 1
 
 
 # ASSIGN JOBS BY RATIO for FIRST n JOBS
@@ -3020,9 +3033,6 @@ def print_config_selections():
                    'pay_table_longevity_sort':
                    sdict['pay_table_longevity_sort'],
                    'pay_table_year_sort': sdict['pay_table_year_sort'],
-                   'quota_dist': sdict['quota_dist'],
-                   'ratio_cond_duration': sdict['ratio_cond_duration'],
-                   'ratio_final_month': sdict['ratio_final_month'],
                    'save_to_pickle': sdict['save_to_pickle'],
                    'count_dist': sdict['count_dist'],
                    'ratio_dist': sdict['ratio_dist'],

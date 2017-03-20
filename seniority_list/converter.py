@@ -9,14 +9,10 @@ import numpy as np
 
 def convert(job_dict=None,
             sg_list=None,
-            ratio_list=None,
-            count_list=None,
-            quota_dict=None,
             count_ratio_dict=None,
+            ratio_dict=None,
             dist_sg=None,
             dist_ratio=None,
-            dist_count=None,
-            dist_quota=None,
             dist_count_ratio=None):
     '''Convert data relating to job assignment conditions from basic job
     level inputs to enhanced job level inputs
@@ -35,16 +31,12 @@ def convert(job_dict=None,
             case-specific sg_rights variable
         ratio_list (list)
             case-specific ratio_cond variable
-        count_list (list)
-            case-specific count_cond variable
-        quota_dict (dictionary)
-            case_specific quota_dict variable
+        ratio_dict (dictionary)
+            dictionary containing ratio condition data
         count_ratio_dict (dictionary)
             dictionary containing all data related to a capped ratio or
-            count ratio condition (will replace count list and quota_dict
-            as program is developed further)
-
-        dist_sg, dist_ratio, dist_count, dist_quota (string)
+            count ratio condition
+        dist_sg, dist_ratio, dist_count (string)
             options are: 'split', 'full', 'part'
 
             determines how jobs are distributed to the enhanced job levels.
@@ -76,16 +68,11 @@ def convert(job_dict=None,
 
     # these are the output variables
     enhan_sg_cond = []
-    enhan_ratio_cond = []
-    enhan_count_cond = []
-    enhan_quota_dict = {}
-
-    # helper dictionaries
-    sg_dict = {}
-    ratio_dict = {}
-    count_dict = {}
+    # enhan_ratio_cond = []
+    enhan_ratio_dict = {}
 
     if sg_list:
+        temp_dict = {}
         for sg_cond in sg_list:
 
             eg = sg_cond[0]
@@ -107,70 +94,34 @@ def convert(job_dict=None,
                 # calculate count, set as value
                 full_count = np.around(count * full_pcnt).astype(int)
                 part_count = np.around(count * part_pcnt).astype(int)
-                sg_dict[(eg, full_job)] = [eg, full_job,
-                                           full_count, start_month, end_month]
+                temp_dict[(eg, full_job)] = [eg, full_job, full_count,
+                                             start_month, end_month]
 
                 # same for part-time
-                sg_dict[(eg, part_job)] = [eg, part_job,
-                                           part_count, start_month, end_month]
+                temp_dict[(eg, part_job)] = [eg, part_job, part_count,
+                                             start_month, end_month]
 
             elif dist_sg == 'full':
                 # apply entire count to full-time jobs only
-                sg_dict[(eg, full_job)] = [eg, full_job,
-                                           count, start_month, end_month]
+                temp_dict[(eg, full_job)] = [eg, full_job,
+                                             count, start_month, end_month]
 
             elif dist_sg == 'part':
                 # apply entire count to part-time jobs only
-                sg_dict[(eg, part_job)] = [eg, part_job,
-                                           count, start_month, end_month]
+                temp_dict[(eg, part_job)] = [eg, part_job,
+                                             count, start_month, end_month]
 
         # sort keys and then assign corresponding values to list
-        for key in sorted(sg_dict.keys()):
-            enhan_sg_cond.append(sg_dict[key])
+        for key in sorted(temp_dict.keys()):
+            enhan_sg_cond.append(temp_dict[key])
     else:
         enhan_sg_cond = 0
-
-    if ratio_list:
-        for r_cond in ratio_list:
-
-            eg = r_cond[0]
-            job = r_cond[1]
-            start_month = r_cond[2]
-            end_month = r_cond[3]
-
-            full_job = int(job_dict[job][0])
-            part_job = int(job_dict[job][1])
-            full_pcnt = job_dict[job][2]
-            part_pcnt = 1 - job_dict[job][2]
-
-            if dist_ratio is None:
-                dist_ratio = 'split'
-
-            # no count with the ratio data...
-            if dist_ratio == 'split':
-                ratio_dict[(eg, full_job)] = [eg, full_job,
-                                              start_month, end_month]
-                ratio_dict[(eg, part_job)] = [eg, part_job,
-                                              start_month, end_month]
-
-            elif dist_ratio == 'full':
-                ratio_dict[(eg, full_job)] = [eg, full_job,
-                                              start_month, end_month]
-
-            elif dist_ratio == 'part':
-                ratio_dict[(eg, part_job)] = [eg, part_job,
-                                              start_month, end_month]
-
-        for key in sorted(ratio_dict.keys()):
-            enhan_ratio_cond.append(ratio_dict[key])
-    else:
-        enhan_ratio_cond = 0
 
 # count_ratio_dict
 
     if count_ratio_dict:
         temp_dict = {}
-        enhan_count_dict = {}
+        enhan_rcount_dict = {}
         for job in count_ratio_dict.keys():
 
             job_data = count_ratio_dict[job]
@@ -207,81 +158,38 @@ def convert(job_dict=None,
                                        start_month, end_month]
 
         for key in sorted(temp_dict.keys()):
-            enhan_count_dict[key] = temp_dict[key]
+            enhan_rcount_dict[key] = temp_dict[key]
     else:
-        enhan_count_dict = 0
+        enhan_rcount_dict = 0
 
-    if count_list:
-        for job_list in count_list:
-
-            eg = job_list[0]
-            job = job_list[1]
-            count = job_list[2]
-            start_month = job_list[3]
-            end_month = job_list[4]
+    if ratio_dict:
+        temp_dict = {}
+        for job in ratio_dict.keys():
 
             full_job = int(job_dict[job][0])
             part_job = int(job_dict[job][1])
-            full_pcnt = job_dict[job][2]
-            part_pcnt = 1 - job_dict[job][2]
 
-            if dist_count is None:
-                dist_count = 'split'
+            if dist_ratio is None:
+                dist_ratio = 'split'
 
-            if dist_count == 'split':
-                full_count = np.around(count * full_pcnt).astype(int)
-                part_count = np.around(count * part_pcnt).astype(int)
-                count_dict[(eg, full_job)] = [eg, full_job, full_count,
-                                              start_month, end_month]
-                count_dict[(eg, part_job)] = [eg, part_job, part_count,
-                                              start_month, end_month]
+            if dist_ratio == 'split':
 
-            elif dist_count == 'full':
-                count_dict[(eg, full_job)] = [eg, full_job, count,
-                                              start_month, end_month]
+                temp_dict[full_job] = ratio_dict[job][:]
+                temp_dict[part_job] = ratio_dict[job][:]
 
-            elif dist_count == 'part':
-                count_dict[(eg, part_job)] = [eg, part_job, count,
-                                              start_month, end_month]
+            if dist_ratio == 'full':
 
-        for key in sorted(count_dict.keys()):
-            enhan_count_cond.append(count_dict[key])
+                temp_dict[full_job] = ratio_dict[job][:]
+
+            if dist_ratio == 'part':
+
+                temp_dict[part_job] = ratio_dict[job][:]
+
+        for key in sorted(temp_dict.keys()):
+            enhan_ratio_dict[key] = temp_dict[key]
+
     else:
-        enhan_count_cond = 0
+        enhan_ratio_dict = 0
 
-    if quota_dict:
-        for job in quota_dict.keys():
-
-            ratio = quota_dict[job][0]
-            count = quota_dict[job][1]
-
-            full_job = int(job_dict[job][0])
-            part_job = int(job_dict[job][1])
-            full_pcnt = job_dict[job][2]
-            part_pcnt = 1 - job_dict[job][2]
-
-            if dist_quota is None:
-                dist_quota = 'split'
-
-            if dist_quota == 'split':
-                # grab full-time job number as key,
-                # calculate count, set as value
-                full_count = np.around(count * full_pcnt).astype(int)
-                part_count = np.around(count * part_pcnt).astype(int)
-                enhan_quota_dict[job_dict[job][0]] = (ratio, full_count)
-
-                # same for part-time
-                enhan_quota_dict[job_dict[job][1]] = (ratio, part_count)
-
-            elif dist_quota == 'full':
-                # apply entire count to full-time jobs only
-                enhan_quota_dict[job_dict[job][0]] = (ratio, count)
-
-            elif dist_quota == 'part':
-                # apply entire count to part-time jobs only
-                enhan_quota_dict[job_dict[job][1]] = (ratio, count)
-    else:
-        enhan_quota_dict = 0
-
-    return (enhan_sg_cond, enhan_ratio_cond,
-            enhan_count_cond, enhan_quota_dict, enhan_count_dict)
+    return (enhan_sg_cond,
+            enhan_rcount_dict, enhan_ratio_dict)
