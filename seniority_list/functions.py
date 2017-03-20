@@ -2323,6 +2323,34 @@ def distribute(available, weights, cap=None):
 
 # DISTRIBUTE VACANCIES BY WEIGHTS (CONTRACTUAL RATIOS)
 def distribute_vacancies_by_weights(available, eg_counts, weights, cap=None):
+    '''Determine how vacancies are assigned to employee groups
+    with a given distribution ratio, total count of jobs, and a
+    pre-existing and likely uneven initial job distribution.
+
+    inputs
+        available (integer)
+            total count of jobs in distribution pool
+            includes count of jobs already held by affected employee groups
+    eg_counts (list of ints)
+            count of jobs already assigned to each affected employee group
+    weights (list (ints or floats))
+            relative weighting between the employee groups
+            examples:
+
+                ::
+                    [2.5, 3, 1.1]
+
+        The length of the eg_counts list and the weights list must be the
+        same.
+        If there are zero or less vacancies, the function will
+        return an array of zeros with a length equal to the eg_counts
+
+        ...no displacements if no vacancies
+
+        If any group(s) is already over their quota, the remaining
+        vacancies will be distributed to the remaining group(s) according
+        to the weightings (up to the quota for each group)
+    '''
 
     if cap:
         max_allocations = distribute(cap, weights)
