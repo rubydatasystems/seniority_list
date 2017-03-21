@@ -1883,6 +1883,7 @@ def set_snapshot_weights(ratio_dict, orig_rng, eg_range):
         eg_range (numpy array)
             month slice of employee group code array
     '''
+    ratio_dict = copy.deepcopy(ratio_dict)
     job_nums = list(ratio_dict.keys())
     for job in job_nums:
         wgt_list = []
