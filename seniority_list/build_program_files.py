@@ -21,7 +21,7 @@ from pay_tables.xlsx:
 
     pay_table_basic.pkl
     pay_table_enhanced.pkl
-    pay_table_data.pkl
+    pay_table_data.xlsx
 
 from settings.xlsx
 
@@ -65,7 +65,7 @@ os.makedirs('dill/', exist_ok=True)
 try:
     # check to see if file exists and get value if it does
     case_dill_value = pd.read_pickle('dill/case_dill.pkl').case.value
-except:
+except OSError:
     case_dill_value = 'empty_placeholder'
 
 if case_dill_value == case:
@@ -137,7 +137,7 @@ for col in list(pay_rates.columns):
     try:
         int(col)
         longevity_cols.append(col)
-    except:
+    except ValueError:
         pass
 
 table_cols = ['year', 'jnum']
@@ -660,6 +660,7 @@ for ws in sheets:
         df['idx'] = np.arange(len(df)).astype(int) + 1
         df.to_pickle('dill/p_' + ws + '.pkl')
     except:
+        print('proposal worksheet', ws, 'skipped during processing')
         continue
 
 # LAST MONTH

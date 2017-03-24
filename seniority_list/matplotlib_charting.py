@@ -2235,7 +2235,7 @@ def parallel(df_list, dfb, eg_list, measure,
                 try:
                     stride = stride_list[eg - 1]
                     df = df[::stride]
-                except (NameError, LookupError):
+                except (TypeError, LookupError):
                     df = df[::(int(len(df) * .015))]
                 parallel_coordinates(df, 'eg', lw=1.5, alpha=.7,
                                      color=color_dict[eg - 1])
@@ -2900,10 +2900,13 @@ def job_transfer(dfc, dfb, eg, job_colors,
 
         if draw_grid:
             for xmaj in xtick_locs:
-                if i % interval == 0:
-                    ax.axvline(xtick_locs[i], ls='-', color='grey',
-                               lw=1, alpha=.2, zorder=7)
-                i += 1
+                try:
+                    if i % interval == 0:
+                        ax.axvline(xtick_locs[i], ls='-', color='grey',
+                                   lw=1, alpha=.2, zorder=7)
+                    i += 1
+                except LookupError:
+                    pass
             for i in yticks:
                 ax.axhline(i, ls='-', color='grey', lw=.75, alpha=.2, zorder=7)
 
@@ -2981,7 +2984,7 @@ def editor(settings_dict, color_dict,
 
         ds_edit.pkl
         squeeze_vals.pkl
-        new_order.pkl
+        p_new_order.pkl
 
     inputs
         settings_dict (dictionary)
@@ -6478,17 +6481,20 @@ def add_editor_list_to_excel(case=None):
 
     The list order will be saved to a new worksheet, "edit".  Subsequent saved
     lists will overwrite previous worksheets.  Change the worksheet name of
-    previously saved worksheets from "edit" to something else they are to be
-    preserved within the workbook.
+    previously saved worksheets from "edit" to something else prior to running
+    this function if they are to be preserved within the workbook.
 
-    The routine reads the case_dill.pkl file - this provides a write path.
+    The routine reads the case_dill.pkl file - this provides a write path to
+    the correct case study folder and excel "proposals.xlsx" file.
     Then the routine reads the editor-produced p_new_order.pkl file and writes
     it to the new worksheet "edit" in the proposals.xlsx file.
 
     input
         case (string)
-            the case name.  Will default to stored case name in
-            "dill/case_dill.pkl" if no input given
+            The case study name (and consequently, the write file path).
+            This variable will default to the stored case study name contained
+            within the "dill/case_dill.pkl" file if no input is supplied by
+            the user.
     '''
     if not case:
         try:

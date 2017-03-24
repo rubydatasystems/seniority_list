@@ -22,7 +22,7 @@ master_path = (pre + master_list + suf)
 
 try:
     df_list = pd.read_pickle(master_path)
-except:
+except OSError:
     print('\nMaster list not found.  Run build_program_files script?\n\n' +
           'Skeleton build failed.\n\n' +
           '  >>> exiting routine.\n')

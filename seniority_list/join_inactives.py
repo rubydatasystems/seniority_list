@@ -12,8 +12,6 @@ the 'reports' folder).
 arguments (all strings with no quotes)
     script
         'join inactives'
-    master_name
-        name of the master file, normally 'master'
     proposed_order_df
         the name of the proposal to be used as the final ordering from the
         dill folder, without the "p_" prefix and ".pkl" file extension.
@@ -44,11 +42,11 @@ import numpy as np
 import os
 from sys import argv, exit
 
-script, master_name, proposed_order_df, fill_style = argv
+script, proposed_order_df, fill_style = argv
 
 try:
     case = pd.read_pickle('dill/case_dill.pkl').case.value
-except:
+except OSError:
     print('case variable not found, tried to find it in "dill/case_dill.pkl"',
           'without success\n')
     exit()
@@ -61,7 +59,7 @@ file_path = 'reports/' + case + '/'
 # create the folder if it doesn't already exist
 os.makedirs(file_path, exist_ok=True)
 
-master_path_string = (dill_pre + master_name + pkl_suf)
+master_path_string = (dill_pre + 'master' + pkl_suf)
 order_path_string = (dill_pre + 'p_' + proposed_order_df + pkl_suf)
 
 excel_file_name = out_name + '.xlsx'
@@ -71,10 +69,17 @@ df_master = pd.read_pickle(master_path_string)
 
 try:
     df_order = pd.read_pickle(order_path_string)
-except:
+except OSError:
     print('\nfailed trying to read "' + order_path_string + '" \n' +
           '  check proposal name?\n')
     exit()
+
+# set the idx column equal to the "new_order" column if it exists.
+# this would be the case if df_order is the output from the editor tool
+if 'new_order' in list(df_order):
+    idx = 'new_order'
+else:
+    idx = 'idx'
 
 joined = df_master.join(df_order, how='outer')
 
@@ -88,18 +93,18 @@ for eg in eg_set:
     eg_df.sort_values('eg_order', inplace=True)
 
     if fill_style == 'ffill':
-        eg_df.iloc[0, eg_df.columns.get_loc('idx')] = eg_df.idx.min()
-        eg_df.idx.fillna(method='ffill', inplace=True)
+        eg_df.iloc[0, eg_df.columns.get_loc(idx)] = eg_df[idx].min()
+        eg_df[idx].fillna(method='ffill', inplace=True)
 
     if fill_style == 'bfill':
-        eg_df.iloc[-1, eg_df.columns.get_loc('idx')] = eg_df.idx.max()
-        eg_df.idx.fillna(method='bfill', inplace=True)
+        eg_df.iloc[-1, eg_df.columns.get_loc(idx)] = eg_df[idx].max()
+        eg_df[idx].fillna(method='bfill', inplace=True)
 
     final = pd.concat([final, eg_df])
 
-final = final.sort_values(['idx', 'eg_order'])
+final = final.sort_values([idx, 'eg_order'])
 final['snum'] = np.arange(len(final)).astype(int) + 1
-final.pop('idx')
+final.pop(idx)
 
 final.to_pickle(dill_pre + out_name + pkl_suf)
 

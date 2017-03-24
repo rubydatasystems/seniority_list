@@ -965,13 +965,30 @@ def assign_jobs_nbnf_job_changes(df,
 
                     if (month in sg_month_range) and (job in sg_jobs):
 
-                        # assign prex condition jobs to sg employees
                         sg_jobs_avail = min(sg_dict[job], this_job_count)
                         np.put(assign_range,
                                np.where((assign_range == 0) &
                                         (sg_range == 1) &
                                         (fur_range == 0))[0][:sg_jobs_avail],
                                job)
+
+                # assign ratio count condition jobs
+                if 'count' in condition_list:
+
+                    if (job in count_jobs) and (month in cr_mdict[job]):
+                        cap = count_dict[job][dkeys['cap']]
+                        weights = count_dict[job][dkeys['wgt']]
+                        ratio_groups = count_dict[job][dkeys['grp']]
+
+                        assign_cond_ratio_capped(job,
+                                                 this_job_count,
+                                                 ratio_groups,
+                                                 weights,
+                                                 cap,
+                                                 orig_job_range,
+                                                 assign_range,
+                                                 eg_range,
+                                                 fur_range)
 
                 # assign ratio condition jobs
                 if 'ratio' in condition_list:
@@ -991,23 +1008,6 @@ def assign_jobs_nbnf_job_changes(df,
                                           assign_range,
                                           eg_range,
                                           fur_range)
-
-                # assign ratio count condition jobs
-                if 'count' in condition_list:
-                    if (job in count_jobs) and (month in cr_mdict[job]):
-                        cap = count_dict[job][dkeys['cap']]
-                        weights = count_dict[job][dkeys['wgt']]
-                        ratio_groups = count_dict[job][dkeys['grp']]
-
-                        assign_cond_ratio_capped(job,
-                                                 this_job_count,
-                                                 ratio_groups,
-                                                 weights,
-                                                 cap,
-                                                 orig_job_range,
-                                                 assign_range,
-                                                 eg_range,
-                                                 fur_range)
 
             # TODO, (for developer) code speedup...
             # use when not in condition month and monotonic is true
@@ -3016,7 +3016,7 @@ def print_config_selections():
     sdict = pd.read_pickle('dill/dict_settings.pkl')
     try:
         case_study = pd.read_pickle('dill/case_dill.pkl')
-    except:
+    except OSError:
         case_study = 'error, no case_dill.pkl file found'
 
     config_dict = {'case_study': case_study,
@@ -3196,7 +3196,7 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
 
         try:
             ds_dict[ws] = pd.read_pickle('dill/' + ws_ref + '.pkl'), ws
-        except:
+        except OSError:
             # if dataset doesn't exist, pass and notify user
             print('dataset for proposal "' + ws + '" not found in dill folder')
             if ws == 'edit':
@@ -3545,7 +3545,7 @@ def make_lists_from_columns(df, columns,
     if try_integers:
         try:
             arrays = list(df_cols.values.astype(int))
-        except:
+        except ValueError:
             pass
 
     column_list = []
@@ -3605,7 +3605,7 @@ def make_group_lists(df, column_name):
         try:
             for el in item.strip("'").split(","):
                 this_list.append(int(el))
-        except:
+        except AttributeError:
             if type(item) == list:
                 this_list = item
             else:
@@ -3757,7 +3757,7 @@ def save_and_load_dill_folder(save_as=None,
         # get current case study name
         case_df = pd.read_pickle('dill/case_dill.pkl')
         current_case_name = case_df.case.value
-    except:
+    except OSError:
         current_case_name = 'copy'
 
     if save_as is None:
@@ -3803,7 +3803,7 @@ def save_and_load_dill_folder(save_as=None,
             print('The "' + load_case +
                   '" proposal names are:\n\n    ' +
                   str(proposal_names) + '\n')
-        except:
+        except OSError:
             print('\nError >>>  problem finding a saved dill folder with a ' +
                   load_case + ' prefix in ' +
                   'the "saved_dill_folders" folder.')

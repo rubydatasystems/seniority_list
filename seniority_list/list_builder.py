@@ -270,7 +270,7 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
             date_cols.append(col)
     try:
         df.sort_values(['eg', 'eg_number'], inplace=True)
-    except:
+    except LookupError:
         df.sort_values(['eg', 'eg_order'], inplace=True)
 
     egs = np.array(df.eg)
@@ -561,7 +561,7 @@ def compare_dataframes(base, compare, return_orphans=True,
                 (isinstance(base, pd.Series))) and \
             ((isinstance(compare, pd.DataFrame)) |
              (isinstance(compare, pd.Series)))
-    except:
+    except AssertionError:
         print('Routine aborted. Inputs must be a pandas dataframe or series.')
         return
 
