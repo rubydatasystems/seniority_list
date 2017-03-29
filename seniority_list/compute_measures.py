@@ -33,13 +33,13 @@ output_name = 'ds_' + proposal_name
 
 try:
     df_master = pd.read_pickle(pre + 'master' + suf)
-except:
+except OSError:
     print('Master list not found.  Run build_program_files script?')
 
 ds = pd.read_pickle(skeleton_path_string)
 try:
     df_order = pd.read_pickle(proposal_order_string)
-except:
+except OSError:
     prop_names = pd.read_pickle('dill/proposal_names.pkl').proposals.tolist()
     stored_case = pd.read_pickle('dill/case_dill.pkl').case.value
     print('\nerror : proposal name "' +
@@ -85,7 +85,7 @@ else:
 if os.path.isdir('dill/'):
     try:
         os.remove(dataset_path_string)
-    except:
+    except OSError:
         pass
 
 # sort the skeleton by month and proposed list order
@@ -262,7 +262,6 @@ orig = np.array(ds['orig_job'])
 table = tdict['table']
 j_changes = tdict['j_changes']
 
-job_change_months = f.get_job_change_months(j_changes)
 reduction_months = f.get_job_reduction_months(j_changes)
 # copy selected columns from ds for job assignment function input below.
 # note:  if delayed implementation, the 'fur' and 'orig_job' columns contain
@@ -273,13 +272,14 @@ df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 # months in the model and assigns jobs
 jobs_and_counts = \
     f.assign_jobs_nbnf_job_changes(df_align,
-                                   low_limits, high_limits,
+                                   low_limits,
+                                   high_limits,
                                    all_months,
-                                   table[0], table[1],
                                    reduction_months,
                                    imp_month,
                                    conditions,
                                    sdict,
+                                   tdict,
                                    fur_return=sdict['recall'])
 
 # if job_changes, replace original fur column...

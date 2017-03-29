@@ -1341,11 +1341,12 @@ def eg_boxplot(df_list, eg_list,
 
 
 # DISTRIBUTION WITHIN JOB LEVEL (NBNF effect)
-def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
+def stripplot_distribution_in_category(df, job_levels, full_time_pcnt,
                                        eg_colors, band_colors, job_strs,
                                        attr_dict,
                                        p_dict, ds_dict=None,
                                        rank_metric='cat_order',
+                                       mnum=None,
                                        attr1=None, oper1='>=', val1='0',
                                        attr2=None, oper2='>=', val2='0',
                                        attr3=None, oper3='>=', val3='0',
@@ -1366,8 +1367,6 @@ def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
             from the ds_dict dictionary object
         job_levels (integer)
             number of job levels in the data model
-        mnum (integer)
-            month number - analyze data from this month
         full_time_pcnt (float)
             percentage of each job level which is full time
         eg_colors (list)
@@ -1382,6 +1381,10 @@ def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
             eg to group string label
         ds_dict (dictionary)
             output from load_datasets function
+        rank_metric (string)
+            rank attribute (currently only accepts 'cat_order')
+        mnum (integer)
+            month number - if not None, analyze data from this month
         attr(n) (string)
             filter attribute or dataset column as string
         oper(n) (string)
@@ -1406,15 +1409,22 @@ def stripplot_distribution_in_category(df, mnum, job_levels, full_time_pcnt,
             text size of x and y tick labels
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
-    dsm = ds[ds.mnum == mnum]
+    if mnum:
+        dsm = ds[ds.mnum == mnum]
+    else:
+        dsm = ds
 
     d_filt, t_string = filter_ds(dsm,
                                  attr1=attr1, oper1=oper1, val1=val1,
                                  attr2=attr2, oper2=oper2, val2=val2,
                                  attr3=attr3, oper3=oper3, val3=val3)
 
-    d_filt = d_filt[[]].join(dsm).reindex(dsm.index)
-    data = d_filt[['mnum', rank_metric, 'jnum', 'eg']].copy()
+    d_filt = d_filt[[]].join(dsm[['mnum',
+                                  'jnum',
+                                  'eg',
+                                  rank_metric]]).reindex(dsm.index)
+
+    data = d_filt.copy()
     # fur_lvl = job_levels + 1
 
     eg_set = pd.unique(data.eg)

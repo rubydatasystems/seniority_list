@@ -763,12 +763,11 @@ def assign_jobs_nbnf_job_changes(df,
                                  lower,
                                  upper,
                                  total_months,
-                                 job_counts_each_month,
-                                 total_monthly_job_count,
                                  job_reduction_months,
                                  start_month,
                                  condition_list,
                                  sdict,
+                                 tdict,
                                  fur_return=False):
     '''Long_Form
 
@@ -793,14 +792,6 @@ def assign_jobs_nbnf_job_changes(df,
             cumsum of count_per_month function
         total_months
             sum of count_per_month function output
-        job_counts_each_month
-            output of job_gain_loss_table function[0]
-            (precalculated monthly count of jobs in each job category,
-            size (months,jobs))
-        total_monthly_job_count
-            output of job_gain_loss_table function[1]
-            (precalculated monthly total count of all job categories,
-            size (months))
         job_reduction_months
             months in which the number of jobs is decreased (list).
             from the get_job_reduction_months function
@@ -814,6 +805,8 @@ def assign_jobs_nbnf_job_changes(df,
         sdict (dictionary)
             the program settings dictionary (produced by the
             build_program_files script)
+        tdict (dictionary)
+            job tables dictionary (produced by the build_program_files script)
         fur_return (boolean)
             model employee recall from furlough if True using recall
             schedule from settings dictionary (allows call to
@@ -869,6 +862,9 @@ def assign_jobs_nbnf_job_changes(df,
 
     num_of_months = upper.size
     num_of_job_levels = sdict['num_of_job_levels']
+
+    job_counts_each_month = add_zero_col(tdict['table'][0])
+    total_monthly_job_count = tdict['table'][1]
 
     if sdict['delayed_implementation']:
         long_assign_column[:upper[start_month]] = \
@@ -941,7 +937,6 @@ def assign_jobs_nbnf_job_changes(df,
         index_range = index_data[L:U]
         index_range_next = index_data[L_next:U_next]
 
-        this_job_col = 0
         job = 1
 
         if month in job_reduction_months:
@@ -956,7 +951,7 @@ def assign_jobs_nbnf_job_changes(df,
         # use numpy arrays for job assignment process for each month
         while job <= num_of_job_levels:
 
-            this_job_count = job_counts_each_month[month, this_job_col]
+            this_job_count = job_counts_each_month[month, job]
 
             if month in job_change_months:
 
@@ -1037,7 +1032,6 @@ def assign_jobs_nbnf_job_changes(df,
                    np.where(assign_range == job)[0],
                    this_job_count)
 
-            this_job_col += 1
             job += 1
 
         # AFTER MONTHLY JOB LOOPS DONE, PRIOR TO NEXT MONTH:
@@ -2734,8 +2728,8 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
 
 # ASSIGN JOBS STANDALONE WITH JOB CHANGES and prex option
-def assign_standalone_job_changes(df_align,
-                                  num_of_job_levels,
+def assign_standalone_job_changes(eg,
+                                  df_align,
                                   lower,
                                   upper,
                                   total_months,
@@ -2745,11 +2739,9 @@ def assign_standalone_job_changes(df_align,
                                   job_change_months,
                                   job_reduction_months,
                                   start_month,
-                                  eg,
-                                  sg_rights,
-                                  recalls,
-                                  apply_sg_cond=True,
-                                  fur_return=False):
+                                  sdict,
+                                  tdict,
+                                  apply_sg_cond=True):
     '''Long_Form
 
     Uses the job_gain_or_loss_table job count array for job assignments.
@@ -2764,6 +2756,9 @@ def assign_standalone_job_changes(df_align,
     fur_data, orig_jobs)
 
     inputs
+        eg (integer)
+            input from an incremental loop which is used to select the proper
+            employee group recall scedule
         df_align (dataframe)
             dataframe with ['sg', 'fur'] columns
         num_of_job_levels (integer)
@@ -2797,28 +2792,15 @@ def assign_standalone_job_changes(df_align,
         start_month (integer)
             starting month for calculations, likely implementation month
             from settings dictionary
-        eg (integer)
-            input from an incremental loop which is used to select the proper
-            employee group recall scedule
-        sg_rights (list)
-            list of 5-element lists for a pre-existing job assignment
-            condition calculation (special group)
-
-            Formant: [employee group number, job number, count, start_month,
-                end_month]
-        recalls (list)
-            lists of integers and a nested list for recall calculations.
-
-            Format: [total monthly_recall_count,
-                [employee group recall allocation],
-                start_month, end_month]
+        sdict (dictionary)
+            the program settings dictionary (produced by the
+            build_program_files script)
+        tdict (dictionary)
+            job tables dictionary (produced by the build_program_files script)
         apply_sg_cond (boolean)
             compute with pre-existing special job quotas for certain
             employees marked with a one in the sg column (special group)
             according to a schedule defined in the settings dictionary
-        fur_return (boolean)
-            compute with a recall schedule(s) defined in the settings
-            dictionary
 
     Assigns jobs so that original standalone jobs are assigned
     each month (if available) unless a better job is available
@@ -2852,6 +2834,11 @@ def assign_standalone_job_changes(df_align,
     to furloughees unless furlough_return option is selected.
 
     '''
+    num_of_job_levels = sdict['num_of_job_levels']
+    fur_return = sdict['recall']
+    sg_rights = sdict['sg_rights']
+    recalls = sdict['recalls']
+
     sg_ident = np.array(df_align.sg)
     fur_data = np.array(df_align.fur)
     index_data = np.array(df_align.index)
@@ -2917,7 +2904,7 @@ def assign_standalone_job_changes(df_align,
         # use pandas for data alignment 'job position forwarding'
         # to future months
 
-        this_job_col = 0
+        # this_job_col = 0
         job = 1
 
         if month in job_reduction_months:
@@ -2933,7 +2920,7 @@ def assign_standalone_job_changes(df_align,
 
         while job <= num_of_job_levels:
 
-            this_job_count = job_counts_each_month[month, this_job_col]
+            this_job_count = job_counts_each_month[month, job]
 
             if month in job_change_months:
 
@@ -2973,7 +2960,7 @@ def assign_standalone_job_changes(df_align,
                    np.where(assign_range == job)[0],
                    this_job_count)
 
-            this_job_col += 1
+            # this_job_col += 1
             job += 1
 
         # AFTER MONTHLY JOB LOOPS DONE, PRIOR TO NEXT MONTH:
@@ -3808,3 +3795,41 @@ def save_and_load_dill_folder(save_as=None,
                   load_case + ' prefix in ' +
                   'the "saved_dill_folders" folder.')
             print('\nThe dill folder contents remain unchanged.\n')
+
+
+# ADD COLUMN OF ZEROS TO 2D ARRAY
+def add_zero_col(arr):
+    '''add a column of zeros as the first column in a 2d array
+
+    Output will be a numpy array.
+
+    example:
+
+        input array:
+
+            ::
+
+                array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+                       [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+                       [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+                       [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+                       [40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
+
+        output array:
+
+            ::
+
+                array([[ 0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+                       [ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+                       [ 0, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+                       [ 0, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+                       [ 0, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
+
+    input
+        arr (array)
+            2-dimensional numpy array
+
+    '''
+    zero_col = np.zeros((arr.shape[0], 1))
+    arr = np.append(zero_col, arr, 1)
+    return arr.astype(int)

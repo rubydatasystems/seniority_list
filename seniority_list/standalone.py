@@ -98,8 +98,8 @@ for eg in egs:
     low_limits = f.make_lower_slice_limits(high_limits)
     all_months = np.sum(this_ds_nonret_each_month)
 
-    this_table = table[0][eg - 1]
-    this_month_counts = table[1][eg - 1]
+    this_eg_table = f.add_zero_col(table[0][eg - 1])
+    this_eg_month_counts = table[1][eg - 1]
 
     df_align_cols = ['fur']
     if 'sg' in df_long:
@@ -112,22 +112,20 @@ for eg in egs:
     # pre-existing employee group special job assignment is included within
     # the job assignment function below...
 
-    results = f.assign_standalone_job_changes(df_align,
-                                              sdict['num_of_job_levels'],
+    results = f.assign_standalone_job_changes(eg,
+                                              df_align,
                                               low_limits,
                                               high_limits,
                                               all_months,
-                                              this_table,
-                                              this_month_counts,
+                                              this_eg_table,
+                                              this_eg_month_counts,
                                               this_ds_nonret_each_month,
                                               job_change_months,
                                               job_reduction_months,
                                               start_month,
-                                              eg,
-                                              sdict['sg_rights'],
-                                              sdict['recalls'],
-                                              apply_sg_cond=prex,
-                                              fur_return=sdict['recall'])
+                                              sdict,
+                                              tdict,
+                                              apply_sg_cond=prex)
 
     jnums = results[0]
     count_col = results[1]
@@ -166,7 +164,7 @@ for eg in egs:
                          num_of_job_levels,
                          low_limits,
                          high_limits,
-                         this_month_counts,
+                         this_eg_month_counts,
                          all_months)
 
     # RANK in JOB
