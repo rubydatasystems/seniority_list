@@ -374,8 +374,8 @@ settings['job_strs_dict'] = od(enumerate(job_strings, 1))
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-# ADD MORE ITEMS TO SETTINGS DICTIONARY
+
+# ADD MORE ITEMS TO SETTINGS DICTIONARY //////////////////////////////////
 
 settings['ret_incr'] = \
     f.make_tuples_from_columns(xl['ret_incr'],
@@ -564,11 +564,9 @@ if settings['enhanced_jobs']:
     settings['ratio_dict'] = ratio_dict
 
 
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# ///////////////////////////////////////////////////////////////////
 
-# COLOR DICTIONARY
-# ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
+# COLOR DICTIONARY~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 color_dict = mcl(num_of_colors=settings['num_of_job_levels'] + 1,
                  return_dict=True)
 
@@ -588,19 +586,16 @@ short_cols = [col for col in list(short_colors) if col != 'eg']
 short_colors = xl['eg_colors'][short_cols]
 for col in list(short_colors):
     color_dict[col] = list(short_colors[col])
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-# aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-# ATTRIBUTE DICTIONARY
-
+# ATTRIBUTE DICTIONARY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 df = xl['attribute_dict']
 attribute_dict = dict(zip(df.col_name, df.col_description))
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-# aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
-# ********************************************************
-# OLD CODE STARTS HERE:  (making pickle files...)
+# OLD CODE STARTS HERE:  (making pickle files...) *********************
 start_date = pd.to_datetime(settings['starting_date'])
 
 # MASTER FILE:
@@ -677,8 +672,61 @@ df_dates = df_dates[['last_pay']]
 df_dates.sort_index(inplace=True)
 df_dates = df_dates[~df_dates.index.duplicated()]
 df_dates.to_pickle('dill/last_month.pkl')
+# ********************************************************************
 
-# SQUEEZE_VALS
+
+# JOB TABLES AND RELATED DICTIONARY___________________________________
+# create job tables (standalone and integrated), store as dictionary
+# (also job changes and job counts input arrays)
+num_of_job_levels = settings['num_of_job_levels']
+max_dob = master[(master.fur == 1) | (master.line == 1)].dob.max() \
+    + pd.offsets.MonthEnd()
+start = pd.to_datetime(settings['starting_date'])
+ret_months = ((settings['init_ret_age_years'] * 12) +
+              (settings['init_ret_months']))
+
+if settings['ret_age_increase']:
+    ret_months = ret_months + sum(settings['ret_incr_dict'].values())
+
+ret = pd.to_datetime(max_dob) + pd.offsets.MonthEnd(ret_months)
+
+num_of_months = (np.timedelta64(ret - start).astype('timedelta64[M]') /
+                 np.timedelta64(1, 'M') + 2).astype(int)
+egs = np.unique(master.eg.values)
+
+if settings['enhanced_jobs']:
+    # use job dictionary(jd) from settings dictionary for conversion
+    eg_counts, j_changes = f.convert_to_enhanced(settings['eg_counts'],
+                                                 settings['j_changes'],
+                                                 settings['jd'])
+else:
+    eg_counts = settings['eg_counts']
+    j_changes = settings['j_changes']
+
+# compute job counts array
+jcnts_arr = f.make_jcnts(eg_counts)
+
+s_table = f.job_gain_loss_table(num_of_months,
+                                num_of_job_levels,
+                                jcnts_arr,
+                                j_changes,
+                                standalone=True)
+
+table = f.job_gain_loss_table(num_of_months,
+                              num_of_job_levels,
+                              jcnts_arr,
+                              j_changes,
+                              standalone=False)
+
+table_dict = {'s_table': s_table,
+              'table': table,
+              'j_changes': j_changes,
+              'jcnts_arr': jcnts_arr}
+
+# ___________________________________________________________________
+
+
+# SQUEEZE_VALS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # initial values for editor tool widgets.
 # The values stored within this file will be replaced and
 # updated by the editor tool when it is utilized.
@@ -698,7 +746,9 @@ init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark', 'spcnt', 'log',
                                          'slide_fac_val',
                                          'mnum_opr', 'int_mnum'],
                                 index=['value'])
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+# WRITE DICTIONARIES TO DISC ==========================================
 init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
 
 with open('dill/dict_settings.pkl', 'wb') as handle:
@@ -715,3 +765,8 @@ with open('dill/dict_attr.pkl', 'wb') as handle:
     pickle.dump(attribute_dict,
                 handle,
                 protocol=pickle.HIGHEST_PROTOCOL)
+
+with open('dill/dict_job_tables.pkl', 'wb') as handle:
+    pickle.dump(table_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+# ======================================================================
