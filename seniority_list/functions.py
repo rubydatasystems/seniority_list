@@ -865,6 +865,7 @@ def assign_jobs_nbnf_job_changes(df,
 
     job_counts_each_month = add_zero_col(tdict['table'][0])
     total_monthly_job_count = tdict['table'][1]
+    loop_check = tdict['loop_check']
 
     if sdict['delayed_implementation']:
         long_assign_column[:upper[start_month]] = \
@@ -949,7 +950,8 @@ def assign_jobs_nbnf_job_changes(df,
                             total_monthly_job_count, standalone=False)
 
         # use numpy arrays for job assignment process for each month
-        while job <= num_of_job_levels:
+        # while job <= num_of_job_levels:
+        while job <= num_of_job_levels and loop_check[month, job]:
 
             this_job_count = job_counts_each_month[month, job]
 

@@ -678,20 +678,20 @@ df_dates.to_pickle('dill/last_month.pkl')
 # JOB TABLES AND RELATED DICTIONARY___________________________________
 # create job tables (standalone and integrated), store as dictionary
 # (also job changes and job counts input arrays)
+
+# JOB_ASSIGN_FILTER_TABLE 1
+master_copy = master[['retdate', 'line', 'fur']].copy()
+# only active employees...
+df_actives = master_copy[master_copy.line == 1]
+# only furloughees...
+df_fur = master_copy[master_copy.fur == 1]
+cmonths = f.career_months_df_in(df_actives, settings['starting_date'])
+cmonths_fur = f.career_months_df_in(df_fur, settings['starting_date'])
+active_each_month = f.count_per_month(cmonths)
+fur_left_each_month = f.count_per_month(cmonths_fur)
+num_of_months = active_each_month.size
+
 num_of_job_levels = settings['num_of_job_levels']
-max_dob = master[(master.fur == 1) | (master.line == 1)].dob.max() \
-    + pd.offsets.MonthEnd()
-start = pd.to_datetime(settings['starting_date'])
-ret_months = ((settings['init_ret_age_years'] * 12) +
-              (settings['init_ret_months']))
-
-if settings['ret_age_increase']:
-    ret_months = ret_months + sum(settings['ret_incr_dict'].values())
-
-ret = pd.to_datetime(max_dob) + pd.offsets.MonthEnd(ret_months)
-
-num_of_months = (np.timedelta64(ret - start).astype('timedelta64[M]') /
-                 np.timedelta64(1, 'M') + 2).astype(int)
 egs = np.unique(master.eg.values)
 
 if settings['enhanced_jobs']:
@@ -718,10 +718,50 @@ table = f.job_gain_loss_table(num_of_months,
                               j_changes,
                               standalone=False)
 
+# JOB_ASSIGN_FILTER_TABLE 2
+# this array will contain the number of originally furloughed employees
+# who remain under the retirement age
+fur_arr = np.zeros(num_of_months)
+np.put(fur_arr, np.arange(fur_left_each_month.size), fur_left_each_month)
+
+# this array will hold the cumulative furlough recall counts
+recall_arr = np.zeros(num_of_months)
+# loop through each recall schedule and make an array of of cumulative
+# recall counts
+for recall in settings['recalls']:
+    recall_add = np.zeros(num_of_months)
+    np.put(recall_add, np.arange(recall[2], recall[3]), recall[0])
+    np.cumsum(recall_add, out=recall_add)
+    # add this recall cumsum to main recall_arr (for each recall schedule)
+    recall_arr = recall_arr + recall_add
+
+# limit each months cumulative recall count if monthly count of remaining
+# furloughed employees is less
+additive_arr = np.minimum(fur_arr, recall_arr)
+
+# add 2 zero columns in front of job count table
+zero_table = f.add_zero_col(f.add_zero_col(table[0]))
+
+# create accumulative table of job counts, left to right for comparison
+accum_table = np.add.accumulate(zero_table, axis=1)
+
+# create employee count limit array to compare with cumulative job counts
+if settings['recall']:
+    limit_arr = (active_each_month + additive_arr).astype(int)
+else:
+    limit_arr = active_each_month.astype(int)
+
+limit_arr = limit_arr[:, None]
+
+# perform a truth test on accum_table, False results will cause job loop(s) for
+# a month to be skipped with the assign_standalone_job_changes function
+loop_check = np.less_equal(accum_table, limit_arr)
+
 table_dict = {'s_table': s_table,
               'table': table,
               'j_changes': j_changes,
-              'jcnts_arr': jcnts_arr}
+              'jcnts_arr': jcnts_arr,
+              'loop_check': loop_check}
 
 # ___________________________________________________________________
 
