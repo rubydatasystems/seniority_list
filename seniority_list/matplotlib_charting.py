@@ -527,15 +527,10 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
             frame = frame[frame.age < ret_age]
 
     i = 0
-
     for emp in emp_list:
-        if len(emp_list) == 3:
-            ax = frame[frame.empkey == emp] \
-                .set_index(xax)[measure].plot(color=color_list[i],
-                                              label=emp)
-        else:
-            ax = frame[frame.empkey == emp] \
-                .set_index(xax)[measure].plot(label=emp)
+        ax = frame[frame.empkey == emp] \
+            .set_index(xax)[measure].plot(color=color_list[i],
+                                          label=emp)
         i += 1
 
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
@@ -2753,19 +2748,18 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
 
 
 def job_transfer(dfc, dfb, eg, job_colors,
-                 job_levels, starting_date, job_strs, p_dict,
+                 job_levels, job_strs, p_dict,
                  ds_dict=None, gb_period='M',
-                 custom_color=True, cm_name='Paired',
-                 start=0, stop=.95, job_alpha=1, chart_style='white',
-                 yticks_lim=5000,
+                 min_date=None, max_date=None,
+                 tgt_jobs_list=None,
+                 job_alpha=.85, chart_style='whitegrid',
                  fur_color=None,
-                 draw_face_color=True, draw_grid=True,
-                 ytick_interval=100, legend_xadj=1.62,
-                 legend_yadj=.82, annotate=False,
+                 draw_face_color=False, draw_grid=True,
+                 grid_alpha=.2, zero_line_color='m',
+                 ytick_interval=None,
                  title_fontsize=14,
                  legend_font_size=12,
-                 legend_horizontal_position=1.12,
-                 xsize=10, ysize=9):
+                 xsize=14, ysize=9):
     '''plot a differential stacked bar chart displaying color-coded job
     transfer counts over time.  Result appears to be stacked area chart.
 
@@ -2780,11 +2774,9 @@ def job_transfer(dfc, dfb, eg, job_colors,
         eg (integer)
             integer code for employee group
         job_colors (list)
-            list of colors for job levels
+            list of colors for job levels, may be value from color dictionary
         job_levels (integer)
             number of job levels in data model
-        starting_date (date string)
-            starting date for the data model
         job_strs (list)
             list of job descriptions (labels)
         p_dict (dictionary)
@@ -2796,20 +2788,14 @@ def job_transfer(dfc, dfb, eg, job_colors,
         gb_period (string)
             group_by period. default is 'M' for monthly, other options
             are 'Q' for quarterly and 'A' for annual
-        custom_color (boolean)
-            create custom color map
-        cm_name (string)
-            color map name
-        start (float)
-            custom color linspace start (0.0 - 1.0)
-        stop (float)
-            custom color linspace stop (0.0 - 1.0)
+        min_date (string date format)
+            if set, analyze job transfer data from this date forward
+        max_date (string date format)
+            if set, analyze job transfer data up to this date
         job_alpha (float)
             chart alpha level for job transfer plotting (0.0 - 1.0)
         chart_style (string)
             seaborn plotting library style
-        yticks_lim (integer)
-            limit for y tick labeling
         fur_color (color code in rgba, hex, or string style)
             custom color to signify furloughed employees (otherwise, last
             color in job_colors input will be used)
@@ -2818,14 +2804,17 @@ def job_transfer(dfc, dfb, eg, job_colors,
             and green above zero
         draw_grid (boolean)
             show major tick label grid lines
+        grid_alpha (float)
+            opacity setting for grid lines (0.0 - 1.0)
+        zero_line_color (color value)
+            color of the horizontal line a zero
         ytick_interval (integer)
-            ytick spacing
-        legend_xadj (integer)
-            horizontal addjustment for legend placement
-        legend_yadj (integer)
-            vertical adjustment for legend placement
-        annotate (boolean)
-            add text to chart, 'job count increase' and 'job count decrease'
+            optional manual ytick spacing setting (function has auto-spacing
+            built in)
+        title_fontsize (integer or float)
+            chart title text size
+        legend_font_size (integer or float)
+            chart legend text size
         xsize (integer or float)
             horizontal size of chart
         ysize (integer or float)
@@ -2834,9 +2823,18 @@ def job_transfer(dfc, dfb, eg, job_colors,
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
 
-    compare_df = dsc[dsc.eg == eg].copy()
-    base_df = dsb[dsb.eg == eg].copy()
+    if max_date:
+        compare_df = dsc[(dsc.eg == eg) & (dsc.date <= max_date)].copy()
+        base_df = dsb[(dsb.eg == eg) & (dsb.date <= max_date)].copy()
+    else:
+        compare_df = dsc[dsc.eg == eg].copy()
+        base_df = dsb[dsb.eg == eg].copy()
 
+    if min_date:
+        compare_df = compare_df[compare_df.date >= min_date].copy()
+        base_df = base_df[base_df.date >= min_date].copy()
+
+    # MAKE JOB COUNTS PER MONTH DATAFRAMES
     cg = compare_df[['date', 'jnum']].groupby(['date', 'jnum'])['jnum'] \
         .count().unstack().fillna(0)
     bg = base_df[['date', 'jnum']].groupby(['date', 'jnum'])['jnum'] \
@@ -2851,119 +2849,113 @@ def job_transfer(dfc, dfb, eg, job_colors,
     bg.sort_index(axis=1, inplace=True)
     cg.sort_index(axis=1, inplace=True)
 
+    if tgt_jobs_list:
+        bg = bg[sorted(tgt_jobs_list)]
+        cg = cg[sorted(tgt_jobs_list)]
+        if len(tgt_jobs_list) == 1:
+            job_colors = job_colors[tgt_jobs_list[0] - 1]
+        else:
+            jc = []
+            for job in sorted(tgt_jobs_list):
+                jc.append(job_colors[job - 1])
+            job_colors = jc
+
+    # MAKE DIFFERENTIAL DATAFRAME
     diff2 = cg - bg
     diff2 = diff2.resample(gb_period).mean()
     diff2 = diff2.replace(0., np.nan)
 
-    abs_diff2 = np.absolute(diff2.values).astype(int)
-    v_crop = (np.amax(np.add.reduce(abs_diff2, axis=1)) / 2) + 75
-
-    if custom_color:
-        num_of_colors = job_levels + 1
-        cm_subsection = np.linspace(start, stop, num_of_colors)
-        colormap = eval('cm.' + cm_name)
-        job_colors = [colormap(x) for x in cm_subsection]
-    if fur_color:
+    # CUSTOM FURLOUGH COLOR
+    if fur_color and tgt_jobs_list is None:
         job_colors[-1] = fur_color
 
+    # PLOT AX1
     with sns.axes_style(chart_style):
-        ax = diff2.plot(kind='bar', width=1, linewidth=0,
-                        color=job_colors, stacked=True, alpha=job_alpha)
-        fig = plt.gcf()
+        fig, ax1 = plt.subplots()
+    diff2[diff2 > 0].plot(kind='area', stacked=True, color=job_colors,
+                          ax=ax1, lw=0, alpha=job_alpha)
+    ylimit1 = (ax1.get_ylim()[1] + 100) // 100 * 100
+    plt.ylim(-ylimit1, ylimit1)
 
-        xtick_locs = ax.xaxis.get_majorticklocs()
+    # PLOT AX2
+    ax2 = ax1.twinx()
+    diff2[diff2 < 0].plot(kind='area', stacked=True, color=job_colors,
+                          ax=ax2, sharex=ax1, lw=0, alpha=job_alpha)
+    if draw_grid:
+        ax2.grid(which='both', c='gray', alpha=grid_alpha,
+                 ls='dotted', zorder=7)
+        ax1.grid(which='both', c='gray', alpha=grid_alpha,
+                 ls='dotted', zorder=7)
+    ylimit2 = (ax2.get_ylim()[0] // 100) * -100
 
-        if gb_period == 'M':
-            i = 13 - pd.to_datetime(starting_date).month
-        elif gb_period == 'Q':
-            i = ((13 - pd.to_datetime(starting_date).month) // 3) + 1
-        elif gb_period == 'A':
-            i = 0
+    # SET GREATER Y AXIS LIMIT (IF PLOTTING ONLY TARGET JOBS)
+    if ylimit2 > ylimit1:
+        plt.ylim(-ylimit2, ylimit2)
+        ax1.set_ylim(-ylimit2, ylimit2)
+        yl = ylimit2
+    else:
+        ax2.set_ylim(-ylimit1, ylimit1)
+        yl = ylimit1
 
-        xtick_dict = {'A': 1,
-                      'Q': 4,
-                      'M': 12}
+    # YTICKS
+    if ytick_interval:
+        interval = ytick_interval
+    else:
+        interval = ((yl // 1000) + 1) * 100
+    neg = np.arange(-interval, -yl - interval, -interval)
+    pos = np.arange(0, yl + interval, interval)
+    yticks = np.append(neg[::-1], pos)
+    ax1.set_yticks(yticks)
 
-        interval = xtick_dict[gb_period]
+    # REMOVE AX2 TICKS AND LEGEND
+    ax2.tick_params(axis='both',
+                    which='both',
+                    right='off',
+                    bottom='off',
+                    labelright='off',
+                    labelbottom='off')
+    ax2.legend_.remove()
 
-        xticklabels = [''] * len(diff2.index)
+    # LEGEND
+    job_labels = []
+    legend_title = 'job'
+    for col in list(diff2):
+        job_labels.append(job_strs[col - 1])
 
-        xticklabels[i::interval] = \
-            [item.strftime('%Y') for item in diff2.index[i::interval]]
+    box = ax1.get_position()
+    ax1.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+    ax2.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles, job_labels, title=legend_title, loc='center left',
+               bbox_to_anchor=(1.01, 0.5),
+               fontsize=legend_font_size)
 
-        if gb_period in ['Q']:
-            ax.set_xticklabels(xticklabels, rotation=90, ha='right')
-        else:
-            ax.set_xticklabels(xticklabels, rotation=90)
+    ax1.axhline(color=zero_line_color, alpha=.7, lw=1)
 
-        if gb_period in ['Q', 'A']:
-            ax.axvline(xtick_locs[0], ls='-', color='grey',
-                       lw=1, alpha=.2, zorder=7)
+    # GAIN-LOSS BACKGROUND
+    if draw_face_color:
+        ymin, ymax = ax1.get_ylim()
+        plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=8)
+        plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
 
-        yticks = np.arange(-yticks_lim,
-                           yticks_lim + ytick_interval,
-                           ytick_interval)
+    # AXIS LABELS
+    ax1.set_ylabel('change in job count', fontsize=16)
+    ax1.set_xlabel('date', fontsize=16, labelpad=15)
 
-        ax.set_yticks(yticks)
-        plt.ylim(-v_crop, v_crop)
-        ymin, ymax = ax.get_ylim()
+    # TITLE
+    try:
+        title_string = 'GROUP ' + p_dict[eg] + \
+            ' Jobs Exchange' + '\n' + \
+            dfc_label + \
+            ' compared to ' + dfb_label
+        plt.title(title_string,
+                  fontsize=title_fontsize, y=1.02)
+    except (NameError, LookupError):
+        print('error, problem creating title text')
 
-        if draw_grid:
-            for xmaj in xtick_locs:
-                try:
-                    if i % interval == 0:
-                        ax.axvline(xtick_locs[i], ls='-', color='grey',
-                                   lw=1, alpha=.2, zorder=7)
-                    i += 1
-                except LookupError:
-                    pass
-            for i in yticks:
-                ax.axhline(i, ls='-', color='grey', lw=.75, alpha=.2, zorder=7)
-
-        recs = []
-        job_labels = []
-        legend_title = 'job'
-        for i in diff2.columns:
-            recs.append(mpatches.Rectangle((0, 0), 1, 1,
-                                           fc=job_colors[i - 1],
-                                           alpha=job_alpha))
-            job_labels.append(job_strs[i - 1])
-
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * legend_xadj, box.height])
-        ax.legend(recs, job_labels, bbox_to_anchor=(legend_horizontal_position,
-                                                    legend_yadj),
-                  title=legend_title, fontsize=legend_font_size,
-                  ncol=1)
-
-        if annotate:
-            if gb_period in ['Q', 'M']:
-                ax.annotate('job count increase',
-                            xy=(50, v_crop - ytick_interval),
-                            xytext=(50, v_crop - ytick_interval), fontsize=14)
-                ax.annotate('job count decrease',
-                            xy=(50, -v_crop + ytick_interval),
-                            xytext=(50, -v_crop + ytick_interval), fontsize=14)
-
-        ax.axhline(color='grey', alpha=.7)
-        if draw_face_color:
-            plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=8)
-            plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
-        plt.ylabel('change in job count', fontsize=16)
-        plt.xlabel('date', fontsize=16, labelpad=15)
-
-        try:
-            title_string = 'GROUP ' + p_dict[eg] + \
-                ' Jobs Exchange' + '\n' + \
-                dfc_label + \
-                ' compared to ' + dfb_label
-            plt.title(title_string,
-                      fontsize=title_fontsize, y=1.02)
-        except (NameError, LookupError):
-            print('error, problem creating title text')
-
-        fig.set_size_inches(xsize, ysize)
-        plt.show()
+    # CHART SIZE
+    fig.set_size_inches(xsize, ysize)
+    plt.show()
 
 
 def editor(settings_dict, color_dict,
