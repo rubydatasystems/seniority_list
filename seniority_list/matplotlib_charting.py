@@ -2757,11 +2757,15 @@ def job_transfer(dfc, dfb, eg, job_colors,
                  draw_face_color=False, draw_grid=True,
                  grid_alpha=.2, zero_line_color='m',
                  ytick_interval=None,
+                 y_limit=None,
                  title_fontsize=14,
                  legend_font_size=12,
                  xsize=14, ysize=9):
-    '''plot a differential stacked bar chart displaying color-coded job
-    transfer counts over time.  Result appears to be stacked area chart.
+    '''plot a differential stacked area chart displaying color-coded job
+    transfer counts over time.
+
+    Output chart is actually 2 area charts (one for positive values and one
+    for negative values) displayed on a shared axis.
 
     inputs
         dfc (dataframe)
@@ -2811,6 +2815,11 @@ def job_transfer(dfc, dfb, eg, job_colors,
         ytick_interval (integer)
             optional manual ytick spacing setting (function has auto-spacing
             built in)
+        y_limit (integer)
+            optional manual y axis chart limit (enter positive value only).
+            This input may be used to "lock" vertical scaling (shut off
+            auto_scaling) for comparing gains and losses between proposals
+            and employee groups.
         title_fontsize (integer or float)
             chart title text size
         legend_font_size (integer or float)
@@ -2850,13 +2859,13 @@ def job_transfer(dfc, dfb, eg, job_colors,
     cg.sort_index(axis=1, inplace=True)
 
     if tgt_jobs_list:
-        bg = bg[sorted(tgt_jobs_list)]
-        cg = cg[sorted(tgt_jobs_list)]
+        bg = bg[sorted(set(tgt_jobs_list))]
+        cg = cg[sorted(set(tgt_jobs_list))]
         if len(tgt_jobs_list) == 1:
             job_colors = job_colors[tgt_jobs_list[0] - 1]
         else:
             jc = []
-            for job in sorted(tgt_jobs_list):
+            for job in sorted(set(tgt_jobs_list)):
                 jc.append(job_colors[job - 1])
             job_colors = jc
 
@@ -2872,9 +2881,10 @@ def job_transfer(dfc, dfb, eg, job_colors,
     # PLOT AX1
     with sns.axes_style(chart_style):
         fig, ax1 = plt.subplots()
+    fig.set_size_inches(xsize, ysize)
     diff2[diff2 > 0].plot(kind='area', stacked=True, color=job_colors,
                           ax=ax1, lw=0, alpha=job_alpha)
-    ylimit1 = (ax1.get_ylim()[1] + 100) // 100 * 100
+    ylimit1 = (ax1.get_ylim()[1] + 50) // 50 * 50
     plt.ylim(-ylimit1, ylimit1)
 
     # PLOT AX2
@@ -2882,30 +2892,35 @@ def job_transfer(dfc, dfb, eg, job_colors,
     diff2[diff2 < 0].plot(kind='area', stacked=True, color=job_colors,
                           ax=ax2, sharex=ax1, lw=0, alpha=job_alpha)
     if draw_grid:
-        ax2.grid(which='both', c='gray', alpha=grid_alpha,
-                 ls='dotted', zorder=7)
-        ax1.grid(which='both', c='gray', alpha=grid_alpha,
-                 ls='dotted', zorder=7)
-    ylimit2 = (ax2.get_ylim()[0] // 100) * -100
+        ax1.grid(which='both', c='gray', alpha=grid_alpha, ls='dotted')
+        ax2.grid(which='both', c='gray', alpha=grid_alpha, ls='dotted')
+    ylimit2 = (ax2.get_ylim()[0] // 50) * -50
 
     # SET GREATER Y AXIS LIMIT (IF PLOTTING ONLY TARGET JOBS)
     if ylimit2 > ylimit1:
-        plt.ylim(-ylimit2, ylimit2)
-        ax1.set_ylim(-ylimit2, ylimit2)
         yl = ylimit2
     else:
-        ax2.set_ylim(-ylimit1, ylimit1)
         yl = ylimit1
+
+    if y_limit:
+        yl = y_limit
+
+    ax1.set_ylim(-yl, yl)
+    ax2.set_ylim(-yl, yl)
 
     # YTICKS
     if ytick_interval:
         interval = ytick_interval
     else:
-        interval = ((yl // 1000) + 1) * 100
+        if yl > 500:
+            interval = ((yl // 1000) + 1) * 100
+        else:
+            interval = ((yl // 500) + 1) * 50
     neg = np.arange(-interval, -yl - interval, -interval)
     pos = np.arange(0, yl + interval, interval)
     yticks = np.append(neg[::-1], pos)
     ax1.set_yticks(yticks)
+    ax2.set_yticks(yticks)
 
     # REMOVE AX2 TICKS AND LEGEND
     ax2.tick_params(axis='both',
@@ -2935,8 +2950,8 @@ def job_transfer(dfc, dfb, eg, job_colors,
     # GAIN-LOSS BACKGROUND
     if draw_face_color:
         ymin, ymax = ax1.get_ylim()
-        plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=8)
-        plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=8)
+        plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=1)
+        plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=1)
 
     # AXIS LABELS
     ax1.set_ylabel('change in job count', fontsize=16)
@@ -2953,8 +2968,6 @@ def job_transfer(dfc, dfb, eg, job_colors,
     except (NameError, LookupError):
         print('error, problem creating title text')
 
-    # CHART SIZE
-    fig.set_size_inches(xsize, ysize)
     plt.show()
 
 
@@ -6317,10 +6330,10 @@ def make_color_list(num_of_colors=10, start=0.0, stop=1.0,
             remove before calculating the result list(s).
         reverse (boolean)
             reverse the color list order which reverses the color spectrum
-        cm_name (string)
-            any matplotlib colormap name
+        cm_name_list (list)
+            any matplotlib colormap name(s)
         return_list (boolean)
-            if True, return a list of rgba color codes for the cm_name
+            if True, return a list of rgba color codes for the cm_name_list
             colormap input only, or (if the return_dict input is set to
             True) a dictionary of all colormap names to all of the
             resultant corresponding calculated color lists using the
@@ -6333,8 +6346,8 @@ def make_color_list(num_of_colors=10, start=0.0, stop=1.0,
             if True (and return_list is False), print all the names of
             available matplotlib colormaps
         palplot_cm_name (boolean)
-            if True (and return_list is False), plot a seaborn palplot
-            of the color list produced with the cm_name colormap input
+            if True (and return_list is set to False), plot a seaborn palplot
+            of the color list produced with the cm_name_list colormap input
             using the cm_subsection data
         palplot_all (boolean)
             if True (and return_list and palplot_cm_name are False),
@@ -6392,7 +6405,7 @@ def make_color_list(num_of_colors=10, start=0.0, stop=1.0,
                 if print_all_names:
                     print(key)
                 plt.show()
-        # only plot cm_name as palplot
+        # only plot cm_name_list as palplot
         else:
             if cm_name_list:
                 for cmn in cm_name_list:
