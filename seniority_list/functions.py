@@ -950,7 +950,8 @@ def assign_jobs_nbnf_job_changes(df,
                             total_monthly_job_count, standalone=False)
 
         # use numpy arrays for job assignment process for each month
-        # while job <= num_of_job_levels:
+        # loop_check is a pre-processed boolean array which prevents looping
+        # through job levels after all remaining employees have been assigned
         while job <= num_of_job_levels and loop_check[month, job]:
 
             this_job_count = job_counts_each_month[month, job]
@@ -3835,3 +3836,4 @@ def add_zero_col(arr):
     zero_col = np.zeros((arr.shape[0], 1))
     arr = np.append(zero_col, arr, 1)
     return arr.astype(int)
+

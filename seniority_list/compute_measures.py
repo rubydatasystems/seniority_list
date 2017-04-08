@@ -323,7 +323,6 @@ ds['job_count'] = jobs_and_counts[1]
 jpcnt = np.array(ds.rank_in_job / ds.job_count)
 np.put(jpcnt, np.where(jpcnt == 1.0)[0], .99999)
 
-# ds['jobp'] = (ds['rank_in_job'] / ds['job_count']) + (ds['jnum'] - .001)
 ds['jobp'] = ds['jnum'] + jpcnt
 
 # PAY - merge with pay table - provides monthly pay
@@ -365,7 +364,6 @@ if sdict['compute_pay_measures']:
 
     # MPAY
     # adjust monthly pay for any raise and last month pay percent if applicable
-
     ds['mpay'] = ((ds['pay_raise'] * ds['mth_pcnt'] * ds['monthly'])) / 1000
 
     ds.pop('monthly')

@@ -2858,9 +2858,11 @@ def job_transfer(dfc, dfb, eg, job_colors,
     bg.sort_index(axis=1, inplace=True)
     cg.sort_index(axis=1, inplace=True)
 
+    # LIMIT JOBS TO TARGET LIST
     if tgt_jobs_list:
         bg = bg[sorted(set(tgt_jobs_list))]
         cg = cg[sorted(set(tgt_jobs_list))]
+        # grab the corresponding job colors
         if len(tgt_jobs_list) == 1:
             job_colors = job_colors[tgt_jobs_list[0] - 1]
         else:
@@ -6552,3 +6554,340 @@ def pprint_dict(dct, marker1='#', marker2='', skip_line=True):
             print('  ', el[1], '\n')
         else:
             print('  ', el[1])
+
+
+def percent_bins(eg, base, compare, measure='spcnt',
+                 by_year=True, quartiles=20,
+                 time_col='date', agg_method='median'):
+    '''Return a tuple of two dataframes containing differential percentage
+    bin counts, one containing positive counts and another containing negative
+    counts.
+
+    This function first compares list percentage between two datasets on a
+    grouped time period basis (annual or monthly), then counts the number of
+    employees within specified percentage gain or loss quartiles.
+
+    The counts are returned in dataframes with indexes reflecting the quartiles
+    and columns representing the grouped time period.
+
+    This function is used in the percent_diff_bins plotting function.
+
+    inputs
+        eg (integer)
+            employee group code
+        base (dataframe)
+            baseline dataframe (dataset) containing a list percentage column
+        compare (dataframe)
+            comparison dataframe (dataset) containing a list percentage column
+        measure (string)
+            dataset percentage attribute column ('spcnt' or 'lspcnt')
+        by_year (boolean)
+            if True, group employee percentage differentials by year, otherwise
+            by time_col input
+        quartiles (integer)
+            number of quartiles to measure.  An input of 20 would translate to
+            quartiles of 5% each (100 / 20).
+        time_col (string)
+            if by_year is False, group percentage differentials by this time
+            unit.  Inputs may be "mnum" or "date".
+        agg_method (string)
+            quartile bin aggregation method.  Inputs may be "mean" or "median"
+    '''
+    bins = np.linspace(0, 1, quartiles + 1)
+    neg_bins = np.linspace(-1, 0, quartiles + 1)
+    neg_bins[-1] = -.001
+    bins[0] = .001
+
+    c = compare[['mnum', 'date', 'eg', measure]]
+    b = base[['mnum', 'date', 'eg', measure]]
+    eg_c = c[c.eg == eg].copy()
+    eg_b = b[b.eg == eg].copy()
+
+    if by_year:
+        eg_c['year'] = eg_c.date.dt.year
+        pcnt_df = eg_c[[measure, 'year']].copy()
+    else:
+        pcnt_df = eg_c[[measure, time_col]].copy()
+
+    pcnt_df[measure + '_b'] = eg_b[measure]
+    pcnt_df['out'] = pcnt_df[measure + '_b'] - pcnt_df[measure]
+    pcnt_df['out'].replace(to_replace=0.0, value=np.nan, inplace=True)
+    pcnt_df['empkey'] = pcnt_df.index
+
+    if by_year:
+        grouped = pcnt_df[['empkey', 'year', 'out']].groupby(['empkey',
+                                                              'year'])
+    else:
+        grouped = pcnt_df[['empkey', time_col, 'out']].groupby(['empkey',
+                                                                time_col])
+
+    if agg_method == 'mean':
+        pc_df = grouped.mean().unstack().fillna(0)
+    if agg_method == 'median':
+        pc_df = grouped.median().unstack().fillna(0)
+
+    pc_df.columns = pc_df.columns.droplevel(0)
+
+    pos_df = pd.DataFrame(index=np.arange(1, quartiles + 1),
+                          columns=list(pc_df))
+    neg_df = pd.DataFrame(index=np.arange(1, quartiles + 1),
+                          columns=list(pc_df))
+
+    for time_period in list(pc_df):
+        count, division = np.histogram(pc_df[time_period],
+                                       bins=bins)
+        neg_count, neg_division = np.histogram(pc_df[time_period],
+                                               bins=neg_bins)
+        pos_df[time_period] = count
+        neg_df[time_period] = neg_count[::-1]
+
+    return pos_df, neg_df * -1
+
+
+# DIFFERENTIAL PERCENTAGE BINS
+def percent_diff_bins(eg, base, compare,
+                      measure='spcnt',
+                      kind='bar',
+                      quartiles=40,
+                      num_display_colors=25,
+                      area_xax='date',
+                      ds_dict=None,
+                      attr1=None, oper1='>=', val1=0,
+                      attr2=None, oper2='>=', val2=0,
+                      attr3=None, oper3='>=', val3=0,
+                      man_plotlim=None,
+                      invert_barh=False,
+                      cmap_pos='Vega20c',
+                      cmap_neg='Vega20c',
+                      zero_line_color='m',
+                      bright_bg=True,
+                      bg_color='#ffffe6',
+                      title_fontsize=14,
+                      legend_fontsize=12.5):
+    '''Display employee group counts within differential list
+    percentage bins over time.
+
+    Chart style options include bar, barh, and area.
+
+    Selectable inputs include the number of percentile bins, chart colors and
+    the number of colors in the color cycle representing the bins.
+
+    The analysis groups may be targeted by up to three attribute value filters.
+
+    inputs
+        eg (integer)
+            employee group code
+        base (dataframe)
+            baseline dataframe (dataset)
+        compare (dataframe)
+            comparison dataframe (dateset)
+        measure (string)
+            list percentage attribute for comparison ('spcnt' or 'lspcnt')
+        kind (string)
+            chart style ('bar', 'barh', or 'area')
+        quartiles (integer)
+            the number of differential percentage bins.  If the input is 40,
+            each bin width will be 2.5% (100 / 40)
+        num_display_colors (integer)
+            the number of distinct colors to create from the cmap inputs.  If
+            the input is less than the number of bins found for display, the
+            colors display will cycle or repeat as necessary.
+        area_xax (string)
+            attribute to use for the chart when the kind input is set to
+            'area'.  Inputs may be 'mnum' or 'date'.
+        ds_dict (dictionary)
+            variable assigned to the output of the load_datasets function.
+            This keyword variable must be set if string dictionary keys are
+            used as inputs for the dfc and/or dfb inputs.
+        attr(n)
+            filter attribute or dataset column as string
+        oper(n)
+            operator (i.e. <, >, ==, etc.) for attr1 as string
+        val(n)
+            attr1 limiting value (combined with oper1) as string
+        man_plotlim (integer)
+            if not None, restrict chart differential axis to this value.
+            Otherwise, limit is set by an algorithm.
+        invert_barh (boolean)
+            If 'kind' input is set to 'barh', if True, invert the chart y axis
+        cmap_pos (string)
+            any matplotlib colormap name representing colors to be applied to
+            positive chart values
+        cmap_neg (string)
+            any matplotlib colormap name representing colors to be applied to
+            negative chart values
+        zero_line_color (color value)
+            color to be applied to the chart zero line
+        bright_bg (boolean)
+            if True, color the chart background with the 'bg_color' color value
+        bg_color (color value)
+            color to use for the chart background if 'bright_bg' is True
+        title_fontsize (integer or float)
+            text size for the chart title
+        legend_fontsize (integer or float)
+            text size for the chart legend
+    '''
+
+    b, b_label = determine_dataset(base, ds_dict, return_label=True)
+    c, c_label = determine_dataset(compare, ds_dict, return_label=True)
+
+    d_filtb = filter_ds(b,
+                        attr1=attr1, oper1=oper1, val1=val1,
+                        attr2=attr2, oper2=oper2, val2=val2,
+                        attr3=attr3, oper3=oper3, val3=val3,
+                        return_title_string=False)
+
+    d_filtc, t_string = filter_ds(c,
+                                  attr1=attr1, oper1=oper1, val1=val1,
+                                  attr2=attr2, oper2=oper2, val2=val2,
+                                  attr3=attr3, oper3=oper3, val3=val3)
+
+    b = d_filtb[['mnum', 'date', 'eg', measure]]
+    c = d_filtc[['mnum', 'date', 'eg', measure]]
+
+    with sns.axes_style('ticks'):
+        fig, ax1 = plt.subplots()
+
+    pos_colors = make_color_list(num_of_colors=num_display_colors,
+                                 cm_name_list=[cmap_pos])
+    neg_colors = make_color_list(num_of_colors=num_display_colors,
+                                 cm_name_list=[cmap_neg])
+
+    eg_label = 'Group ' + str(eg) + ',  '
+    proposal_str = c_label + ' vs ' + b_label
+
+    if t_string:
+        t_string = t_string + '\n'
+
+    if kind == 'area':
+        title = (eg_label + proposal_str + '\n' + measure.upper() +
+                 ' percent differential bin counts\n' + t_string)
+        y_label = '<< LOSS         GAIN >>'
+
+        if any(x in ['ret_mark'] for x in [attr1, attr2, attr3]):
+            by_year = True
+        else:
+            by_year = False
+
+    if kind == 'barh':
+        title = (eg_label + proposal_str + '\n' + measure.upper() +
+                 ' percent differential bin counts\n' +
+                 t_string + '\n<< LOSS' +
+                 (' ' * 12) + (' ' * 12) + 'GAIN >>')
+        by_year = True
+    if kind == 'bar':
+        title = (eg_label + proposal_str + '\n' + measure.upper() +
+                 ' percent differential bin counts\n' + t_string)
+        y_label = '<< LOSS         GAIN >>'
+        by_year = True
+
+    pos, neg = percent_bins(eg, b, c, by_year=by_year,
+                            quartiles=quartiles, measure=measure,
+                            agg_method='median', time_col=area_xax)
+
+    pv = pos.values
+    nv = neg.values
+
+    raw_xlim = max([np.amax(np.add.reduce(pv, 0)),
+                   (np.abs(np.amin(np.add.reduce(nv, 0))))])
+    try:
+        pos_bins_found = np.amax(np.nonzero(pv)[0])
+    except ValueError:
+        pos_bins_found = 0
+    try:
+        neg_bins_found = np.amax(np.nonzero(nv)[0])
+    except ValueError:
+        neg_bins_found = 0
+
+    bins_found = max(pos_bins_found, neg_bins_found) + 1
+
+    label_arr = (np.linspace(0, 1, quartiles + 1) * 100)[1:]
+    pos_labels = [str(x) + '%' for x in label_arr][:bins_found]
+    neg_labels = [str(x) + '%' for x in label_arr * -1][:bins_found]
+
+    str_labels = pos_labels + neg_labels
+
+    if man_plotlim:
+        plotlim = man_plotlim
+    else:
+        if raw_xlim <= 1500:
+            rounder = 100
+        else:
+            rounder = 200
+        plotlim = (raw_xlim + rounder) // 100 * 100
+
+    if kind == 'bar':
+        pos.T.plot(kind='bar', stacked=True, color=pos_colors,
+                   width=1, edgecolor='k', linewidth=0.5, ax=ax1)
+        plt.ylim(-plotlim, plotlim)
+    if kind == 'barh':
+        pos.T.plot(kind='barh', stacked=True, color=pos_colors,
+                   width=1, edgecolor='k', linewidth=0.5, ax=ax1)
+        plt.xlim(-plotlim, plotlim)
+    if kind == 'area':
+        pos.T.plot(kind='area', stacked=True, color=pos_colors,
+                   linewidth=0, ax=ax1)
+        plt.ylim(-plotlim, plotlim)
+
+    ax2 = ax1.twiny()
+    ax2.tick_params(axis='both',
+                    which='both',
+                    right='off',
+                    left='off',
+                    bottom='off',
+                    top='off',
+                    labelright='off',
+                    labelbottom='off',
+                    labeltop='off',
+                    labelleft='off')
+
+    if kind == 'barh':
+        neg.T.plot(kind='barh', stacked=True, color=neg_colors,
+                   width=1, edgecolor='k', linewidth=0.5, ax=ax2)
+        plt.xlim(-plotlim, plotlim)
+        if invert_barh:
+            ax2.invert_yaxis()
+        ax1.axvline(c=zero_line_color, lw=2, ls='dotted')
+        ax2.axvline(c=zero_line_color, lw=2, ls='dotted')
+        which = 'major'
+    if kind == 'bar':
+        neg.T.plot(kind='bar', stacked=True, color=neg_colors,
+                   width=1, edgecolor='k', linewidth=0.5, ax=ax2)
+        plt.ylim(-plotlim, plotlim)
+        ax1.axhline(c=zero_line_color, lw=2, ls='dotted')
+        ax2.axhline(c=zero_line_color, lw=2, ls='dotted')
+        which = 'major'
+    if kind == 'area':
+        neg.T.plot(kind='area', stacked=True, color=neg_colors,
+                   linewidth=0, ax=ax2)
+        plt.ylim(-plotlim, plotlim)
+        ax1.axhline(c='k', lw=2, ls='dotted')
+        ax2.axhline(c='k', lw=2, ls='dotted')
+        which = 'both'
+        ax1.minorticks_on()
+        ax1.set_ylabel(y_label, fontsize=14)
+
+    ax1.grid(ls='dotted', color='gray', alpha=.25, which=which)
+    # turn off ax2 grid lines...
+    ax2.grid(False)
+
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend_.remove()
+
+    handles2 = handles2[:bins_found]
+    fig.set_size_inches(16, 10)
+    box = ax1.get_position()
+    ax1.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    ax2.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    handles1, labels1 = ax1.get_legend_handles_labels()
+
+    handles1 = handles1[:bins_found]
+    handles = handles1 + handles2
+    ax1.legend(handles, str_labels, loc='center left',
+               bbox_to_anchor=(1.01, 0.5),
+               fontsize=legend_fontsize, ncol=2,
+               title='Percentage Bins  \n\nGain            Loss')
+    if bright_bg:
+        ax1.set_facecolor(bg_color)
+
+    plt.title(title, fontsize=title_fontsize)
