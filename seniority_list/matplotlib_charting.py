@@ -10,7 +10,7 @@ import math
 from os import system, path, remove
 
 import matplotlib.pyplot as plt
-from matplotlib import cm
+from matplotlib import cm, ticker
 from matplotlib import colors as mplclrs
 from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
@@ -482,7 +482,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
 
 def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                           ret_age, color_list, job_str_list,
-                          attr_dict, ds_dict=None,
+                          attr_dict, ds_dict=None, plot_jobp=False,
                           legend_fontsize=14):
     '''select example individual employees and plot career measure
     from selected dataset attribute, i.e. list percentage, career
@@ -493,7 +493,8 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
             dataset to examine, may be a dataframe or a string key with the
             ds_dict dictionary object
         measure (string)
-            dataset attribute to plot
+            dataset attribute to plot.  Usually only one attribute to plot,
+            but may be more than one, such as 'jnum' and 'jobp'
         xax (string)
             dataset attribute for x axis
         emp_list (list)
@@ -512,12 +513,18 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         ds_dict (dictionary)
             output of the load_datasets function, dictionary.  This keyword
             argument must be set if a string key is used as the df input.
+        plot_jobp (boolean)
+            if measure input is 'jnum', also plot 'jobp' if set to True
         legend_fontsize (integer or float)
             text size of chart legend
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
     frame = ds.copy()
+    frame.set_index(xax, inplace=True, drop=True)
+    fig, ax = plt.subplots()
+    color_list_len = len(color_list)
+
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
         frame = frame[frame.jnum <= job_levels]
     if measure in ['mpay']:
@@ -528,9 +535,14 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
 
     i = 0
     for emp in emp_list:
-        ax = frame[frame.empkey == emp] \
-            .set_index(xax)[measure].plot(color=color_list[i],
-                                          label=emp)
+        c_idx = i % color_list_len
+        frame[frame.empkey == emp][measure].plot(color=color_list[c_idx],
+                                                 label=emp, ax=ax)
+        if measure == 'jnum' and plot_jobp:
+            frame[frame.empkey == emp]['jobp'].plot(color=color_list[c_idx],
+                                                    label=emp, ax=ax,
+                                                    ls='dashed', lw=1)
+
         i += 1
 
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
@@ -547,7 +559,8 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
 
         for i in np.arange(1, len(ytick_labels)):
             ytick_labels[i] = job_str_list[i - 1]
-        plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.9)
+        plt.axhspan(job_levels + 1, job_levels + 2,
+                    facecolor='.8', alpha=0.9)
         ax.set_yticklabels(ytick_labels)
         plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         plt.ylim(job_levels + 1.5, 0.5)
@@ -566,11 +579,12 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
 
 def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                          job_levels, colors, ret_age, attr_dict,
-                         ds_dict=None, mnum=0,
+                         ds_dict=None, mnum=0, ret_only=False,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
                          attr3=None, oper3='>=', val3=0,
                          scatter=False, scatter_size=7, exclude_fur=False,
+                         chart_style='ticks',
                          suptitle_fontsize=14, title_fontsize=14,
                          legend_fontsize=14, xsize=8, ysize=6,
                          full_pcnt_xscale=False):
@@ -613,6 +627,8 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             plot a scatter chart (vs. default line chart)
         exclude_fur (boolean)
             do not plot furoughed employees
+        chart_style (string)
+            any valid seaborn chart style name
         suptitle_fontsize (integer or float)
             text size of chart super title
         title_fontsize (integer or float)
@@ -632,16 +648,23 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                                  attr3=attr3, oper3=oper3, val3=val3,
                                  return_title_string=True)
 
-    frame = d_filt[(d_filt.mnum == mnum)][[xax, measure, 'eg', 'ret_mark']]
-
     if exclude_fur:
-        frame = frame[(frame.jnum >= 1) & (frame.jnum <= job_levels)]
+        d_filt = d_filt[(d_filt.jnum >= 1) & (d_filt.jnum <= job_levels)]
 
-    if measure == 'mpay':
+    if not ret_only:
+        frame = d_filt[(d_filt.mnum == mnum)][[xax, measure, 'eg', 'ret_mark']]
+    else:
+        frame = d_filt[(d_filt.ret_mark == 1)][[xax, measure,
+                                                'eg', 'ret_mark']]
+
+    if measure == 'mpay' and not ret_only:
         frame = frame[frame.ret_mark == 0]
 
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(1, 1, 1)
+    with sns.axes_style(chart_style):
+        fig, ax = plt.subplots()
+        ax.grid()
 
     for i in eg_list:
 
@@ -649,8 +672,13 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
         x = frame_for_plot[xax]
         y = frame_for_plot[measure]
         if scatter:
-            ax.scatter(x=x, y=y, color=colors[i - 1],
-                       s=scatter_size, label=i, alpha=.5)
+            if xax == 'date':
+                ax.plot_date(x=x, y=y, color=colors[i - 1],
+                             marker='o', markersize=scatter_size,
+                             label=i, alpha=.5)
+            else:
+                ax.scatter(x=x, y=y, color=colors[i - 1],
+                           s=scatter_size, label=i, alpha=.5)
         else:
             frame_for_plot.set_index(xax)[measure].plot(label=i,
                                                         color=colors[i - 1],
@@ -690,7 +718,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
         plt.xlim(xmin=0)
         plt.xlabel(xax)
 
-    if xax not in ['age', 'mlong', 'ylong']:
+    if xax not in ['age', 'mlong', 'ylong'] and not ret_only:
         ax.invert_xaxis()
 
     if xax in ['spcnt', 'lspcnt'] and full_pcnt_xscale:
@@ -2535,15 +2563,18 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
     plt.show()
 
 
-def quartile_bands_over_time(df, eg, measure, quartile_colors,
+def quartile_bands_over_time(df, eg, measure,
                              bins=20, ds_dict=None,
-                             clip=True, year_clip=2035, kind='area',
+                             year_clip=None, kind='area',
                              quartile_ticks=False,
-                             cm_name='Set1',
-                             quartile_alpha=.75, grid_alpha=.5,
-                             custom_start=0, custom_finish=.75,
-                             xsize=10, ysize=8, alt_bg_color=False,
-                             bg_color='#faf6eb', legend_xadj=0):
+                             cm_name='Vega20c', chart_style='ticks',
+                             quartile_alpha=.75, grid_alpha=.4,
+                             custom_start=0.0, custom_finish=1.0,
+                             alt_bg_color=False,
+                             bg_color='#faf6eb',
+                             legend_fontsize=13,
+                             label_fontsize=13,
+                             xsize=12, ysize=8):
     '''Visualize quartile distribution for an employee group over time
     for a selected proposal.
 
@@ -2569,8 +2600,6 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
             number of quartiles to calculate and display
         ds_dict (dictionary)
             output from load_datasets function
-        clip (boolean)
-            if True, limit the chart x axis to year_clip value
         year_clip (integer)
             maximum year to display on chart (requires 'clip'
             input to be True)
@@ -2579,10 +2608,10 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
         quartile_ticks (boolean)
             if True, display integers along y axis and in legend representing
             quartiles.  Otherwise, present percentages.
-        custom_color (boolean)
-            If True, use a matplotlib colormap for chart colors
         cm_name (string)
             colormap name (string), example: 'Set1'
+        chart_style (string)
+            style for chart output, any valid seaborn plotting style name
         quartile_alpha (float)
             alpha (opacity setting) value for quartile plot
         grid_alpha (float)
@@ -2593,24 +2622,31 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
             a custom color mapping)
         custom_finish (float)
             custom colormap finish level
-        xsize, ysize (integer or float)
-            chart size inputs
         alt_bg_color (boolean)
             if True, set the background chart color to the bg_color input value
         bg_color (color value)
             color for chart background if 'alt_bg_color' is True (string)
-        legend_xadj (float)
-            small float number (try .2 to start) for use when the
-            legend overlaps the chart.  Moves the legend to the right.
-
+        legend_fontsize (integer or float)
+            text size for chart legend
+        label_fontsize (intger or float)
+            text size for chart x and y axis labels
+        xsize, ysize (integer or float)
+            chart size inputs
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
+
+    if bins == 1:
+        bins = 2
+        print('bins must be 2 or greater, using bins == 2')
 
     cm_subsection = np.linspace(custom_start, custom_finish, bins)
     colormap = eval('cm.' + cm_name)
     quartile_colors = [colormap(x) for x in cm_subsection]
 
-    if clip:
+    quartiles = np.arange(1, bins + 1)
+    minor_quartiles = quartiles - .5
+
+    if year_clip:
         eg_df = ds[(ds.eg == eg) & (ds.date.dt.year <= year_clip)]
     else:
         eg_df = ds[ds.eg == eg]
@@ -2618,9 +2654,10 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
     eg_df = eg_df[['date', 'empkey', measure]]
     eg_df['year'] = eg_df.date.dt.year
 
-    bin_lims = np.linspace(0, 1, num=bins + 1, endpoint=True, retstep=False)
     years = pd.unique(eg_df.year)
+    year_labels = np.arange(min(years), max(years) + 1, 1)
 
+    bin_lims = np.linspace(0, 1, num=bins + 1, endpoint=True, retstep=False)
     result_arr = np.zeros((years.size, bin_lims.size - 1))
 
     if measure in ['spcnt', 'lspcnt']:
@@ -2631,9 +2668,10 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
     grouped = eg_df.groupby(['year', 'empkey'])[measure].mean().reset_index()[
         ['year', measure]].fillna(filler)
 
-    i = 0
     denom = len(grouped[grouped.year == min(eg_df.year)])
 
+    # in which quartile do we find employees over time?
+    i = 0
     for year in years:
         this_year = grouped[grouped.year == year][measure]
         these_bins = pd.cut(this_year, bin_lims)
@@ -2642,109 +2680,106 @@ def quartile_bands_over_time(df, eg, measure, quartile_colors,
         result_arr[i, :] = these_pcnts
         i += 1
 
-    frm = pd.DataFrame(result_arr, columns=np.arange(1, bins + 1), index=years)
+    frm = pd.DataFrame(result_arr, columns=quartiles, index=years)
 
-    with sns.axes_style('white'):
+    with sns.axes_style(chart_style):
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
 
-        step = 1 / bins
-        offset = step / 2
-        legend_pos_adj = 0
-        quartiles = np.arange(1, bins + 1)
+    step = 1 / bins
 
-        ymajor_ticks = np.arange(offset, 1, step)
-        yminor_ticks = np.arange(0, 1, step)
+    if kind == 'area':
+        frm.plot(kind=kind, linewidth=1, stacked=True,
+                 color=quartile_colors, alpha=quartile_alpha, ax=ax)
+    elif kind == 'bar':
+        frm.plot(kind=kind, width=1, stacked=True,
+                 color=quartile_colors, alpha=quartile_alpha,
+                 edgecolor='w', linewidth=.35, ax=ax)
 
-        xmajor_ticks = np.arange(min(ds.date.dt.year), year_clip, 1)
+    ax.set_ylim(0, 1)
+    raw_yticks = np.arange(0, 1 + step, step)
 
-        if kind == 'area':
-            frm.plot(kind=kind, linewidth=1, stacked=True,
-                     color=quartile_colors, alpha=quartile_alpha)
-        elif kind == 'bar':
-            frm.plot(kind=kind, width=1, stacked=True,
-                     color=quartile_colors, alpha=quartile_alpha)
+    if bins > 20:
+        raw_yticks = raw_yticks[::2]
+    clipped_yticks = np.clip(raw_yticks, 0, 1)
+    ax.set_yticks(clipped_yticks)
 
-        ax = plt.gca()
-        plt.ylim(0, 1)
+    ax.yaxis.set_major_formatter(pct_format)
+    ax.invert_yaxis()
+    if kind == 'area':
+        ax.set_xticks(year_labels)
+    ax.set_xticklabels(year_labels, rotation=70)
 
-        if quartile_ticks:
+    if quartile_ticks:
+        ax2 = ax.twinx()
 
-            if kind == 'area':
-                ax.set_xticks(xmajor_ticks, minor=True)
-            ax.set_yticks(ymajor_ticks)
-            ax.set_yticks(yminor_ticks, minor=True)
-            ax.invert_yaxis()
-            plt.ylabel('original quartile')
-
-            if bins > 20:
-                plt.gca().legend_ = None
-            if bins < 41:
-
-                if kind != 'area':
-                    ax.grid(which='major', color='grey',
-                            ls='dotted', alpha=grid_alpha)
-                else:
-                    ax.grid(which='minor', color='grey', alpha=grid_alpha)
-                ax.yaxis.set(ticklabels=np.arange(1, bins + 1))
-            else:
-
-                ax.grid(which='minor', color='grey', alpha=0.1)
-                plt.tick_params(axis='y', which='both', left='off',
-                                right='off', labelleft='off')
-
-            legend_labels = quartiles
-            legend_title = 'result quartile'
-
+        if bins > 20:
+            ax2_yticks = minor_quartiles[::2]
+            quartile_labels = quartiles[::2]
         else:
-            ax.set_yticks(ymajor_ticks + offset)
+            ax2_yticks = minor_quartiles
+            quartile_labels = quartiles
+        ax2.set_yticks(quartiles, minor=True)
+        ax2.yaxis.set_minor_formatter(ticker.NullFormatter())
+        ax2.set_yticks(ax2_yticks)
+        ax2.set_yticklabels(quartile_labels)
+        ax2.set_ylim(0, bins)
 
-            if kind == 'area':
-                ax.set_xticks(xmajor_ticks, minor=True)
-                ax.grid(which='both', color='grey', alpha=grid_alpha)
-            else:
-                ax.grid(which='major', color='grey',
-                        ls='dotted', alpha=grid_alpha)
+        ax2.invert_yaxis()
+        ax2.grid(False)
+        ax2.grid(which='minor', color='k', alpha=grid_alpha,
+                 linestyle='dotted')
 
-            ax.invert_yaxis()
-            plt.ylabel('original percentage')
-            plt.xlabel('year')
-            plt.gca().yaxis.set_major_formatter(pct_format)
-            legend_labels = ['{percent:.1f}'
-                             .format(percent=((quart * step) - step) * 100) +
-                             ' - ' +
-                             '{percent:.1%}'.format(percent=quart * step)
-                             for quart in quartiles]
-            legend_title = 'result_pcnt'
-            legend_pos_adj = .1
+        ax.grid(which='major', color='gray', alpha=grid_alpha)
+        ax.tick_params(axis='x', which='both', left='off',
+                       right='off', labelleft='off')
 
-        if alt_bg_color:
-            ax.set_facecolor(bg_color)
+        ax2.set_ylabel('original quartile', fontsize=label_fontsize)
+        ax2.yaxis.labelpad = 10
+        legend_labels = quartiles
+        legend_title = 'result quartile'
 
-        plt.title(df_label + ', group ' + str(eg) +
-                  ' quartile change over time',
-                  fontsize=16, y=1.02)
+    else:
+        ax.xaxis.grid(which='major', color='k', alpha=grid_alpha, ls='dotted')
 
-        quartiles = np.arange(1, bins + 1)
+        legend_labels = ['{percent:.1f}'
+                         .format(percent=((quart * step) - step) * 100) +
+                         ' - ' +
+                         '{percent:.1%}'.format(percent=quart * step)
+                         for quart in quartiles]
+        legend_title = 'result_pcnt'
 
-        recs = []
-        patch_alpha = min(quartile_alpha + .1, 1)
-        legend_font_size = np.clip(int(bins / 1.65), 12, 14)
-        legend_cols = int(bins / 30) + 1
-        legend_position = 1 + (legend_cols * .17) + \
-            legend_pos_adj + legend_xadj
+    if alt_bg_color:
+        ax.set_facecolor(bg_color)
 
-        for i in np.arange(bins, dtype='int'):
-            recs.append(mpatches.Rectangle((0, 0), 1, 1,
-                                           fc=quartile_colors[i],
-                                           alpha=patch_alpha))
+    ax.set_ylabel('original percentage', fontsize=label_fontsize)
+    ax.set_xlabel('year', fontsize=label_fontsize)
+    ax.xaxis.labelpad = 10
+    plt.title(df_label + ', group ' + str(eg) +
+              ' quartile change over time\n' + str(bins) + ' quartiles',
+              fontsize=16, y=1.02)
 
-        ax.legend(recs, legend_labels, bbox_to_anchor=(legend_position, 1),
-                  title=legend_title, fontsize=legend_font_size,
-                  ncol=legend_cols)
+    recs = []
+    patch_alpha = min(quartile_alpha + .1, 1)
+    legend_cols = int(bins / 30) + 1
 
-        fig = plt.gcf()
-        fig.set_size_inches(xsize, ysize)
-        fig.tight_layout()
-        plt.show()
+    for i in np.arange(bins, dtype='int'):
+        recs.append(mpatches.Rectangle((0, 0), 1, 1,
+                                       fc=quartile_colors[i],
+                                       alpha=patch_alpha))
+
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    if quartile_ticks:
+        ax2.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    handles, labels = ax.get_legend_handles_labels()
+
+    if bins > 50:
+        ax.legend_ = None
+    else:
+        ax.legend(recs, legend_labels, loc='center left',
+                  bbox_to_anchor=(1.08, 0.5), ncol=legend_cols,
+                  fontsize=legend_fontsize, title=legend_title)
+    plt.show()
 
 
 def job_transfer(dfc, dfb, eg, job_colors,
@@ -3729,7 +3764,6 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
     ax1.set_ylabel(attr_dict[measure])
     ax1.set_xlabel(attr_dict[xax])
     plt.show()
-    sns.set_style('darkgrid')
 
 
 def diff_range(df_list, dfb, measure, eg_list,
@@ -5544,16 +5578,17 @@ def stripplot_eg_density(df, mnum, eg_colors, attr_dict,
 
 def job_count_bands(df_list, eg_list, job_colors,
                     settings_dict, ds_dict=None,
+                    emp_list=None,
                     attr1=None, oper1='>=', val1=0,
                     attr2=None, oper2='>=', val2=0,
                     attr3=None, oper3='>=', val3=0,
-                    fur_color=None,
+                    fur_color=None, show_grid=True,
                     max_date=None, plot_alpha=.75,
                     legend_alpha=.9,
                     legend_xadj=1.3, legend_yadj=1.0,
                     legend_fontsize=11, title_fontsize=14,
                     tick_size=12, label_size=13, chart_style='darkgrid',
-                    xsize=6, ysize=6):
+                    xsize=9, ysize=6):
     '''area chart representing count of jobs available over time
 
     This chart displays the future job opportunities for each employee group
@@ -5579,6 +5614,8 @@ def job_count_bands(df_list, eg_list, job_colors,
             script
         ds_dict (dictionary)
             output from load_datasets function
+        emp_list (list)
+            optional list of employee number(s) to plot (empkey attribute)
         attr(n) (string)
             filter attribute or dataset column as string
         oper(n) (string)
@@ -5635,19 +5672,42 @@ def job_count_bands(df_list, eg_list, job_colors,
 
         for df_object in df_list:
 
-            df = df_object[df_object.eg == eg]
+            with sns.axes_style(chart_style):
+                fig, ax = plt.subplots()
+                if show_grid:
+                    ax.grid(which='major', color='k',
+                            alpha=.1, linestyle='solid')
+                    ax.grid(which='minor', color='k',
+                            alpha=.1, linestyle='dotted')
+                    ax.minorticks_on()
+                else:
+                    ax.grid(False)
+
+            df = df_object[df_object.eg == eg].copy()
             y = len(df[df.mnum == 0]) + 50
 
-            df = df.groupby(['date', 'jnum']).size()
-            df = pd.DataFrame(df.unstack().fillna(0))
-            cols = list(df.columns)
+            dfg = df.groupby(['date', 'jnum']).size()
+            dfg = pd.DataFrame(dfg.unstack().fillna(0))
+            cols = list(dfg.columns)
 
             plot_colors = [job_colors[j - 1] for j in cols]
 
-            with sns.axes_style(chart_style):
+            dfg.plot(kind='area', stacked=True,
+                     color=plot_colors, linewidth=0,
+                     alpha=plot_alpha, ax=ax)
 
-                df.plot(kind='area', stacked=True,
-                        color=plot_colors, linewidth=0, alpha=plot_alpha)
+            if emp_list:
+                empkey_set = set(df.empkey)
+
+                if any(x in empkey_set for x in emp_list):
+                    df['eg_order'] = df.groupby('mnum').cumcount() + 1
+
+                for emp in emp_list:
+                    if emp in empkey_set:
+                        df[df.empkey == emp].plot('date', 'eg_order',
+                                                  ls='dashed',
+                                                  lw=2,
+                                                  ax=ax)
 
             plt.ylim(y, 0)
 
@@ -5664,7 +5724,7 @@ def job_count_bands(df_list, eg_list, job_colors,
             # legend
             recs = []
             job_labels = []
-            legend_title = 'job'
+            # legend_title = 'job'
 
             for k in cols:
                 recs.append(mpatches.Rectangle((0, 0), 1, 1,
@@ -5673,12 +5733,12 @@ def job_count_bands(df_list, eg_list, job_colors,
                 job_labels.append(settings_dict['job_strs'][k - 1])
 
             box = ax.get_position()
-            ax.set_position([box.x0, box.y0,
-                            box.width * legend_xadj, box.height])
-            ax.legend(recs, job_labels, bbox_to_anchor=(legend_xadj,
-                                                        legend_yadj),
-                      title=legend_title, fontsize=legend_fontsize,
-                      ncol=1)
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(recs, job_labels, loc='center left',
+                      bbox_to_anchor=(1.01, 0.5),
+                      fontsize=legend_fontsize, title='job')
+
             ax.xaxis.label.set_size(label_size)
             ax.yaxis.label.set_size(label_size)
             plt.tick_params(axis='y', labelsize=tick_size)
@@ -6857,6 +6917,7 @@ def percent_diff_bins(eg, base, compare,
         ax1.axhline(c=zero_line_color, lw=2, ls='dotted')
         ax2.axhline(c=zero_line_color, lw=2, ls='dotted')
         which = 'major'
+        ax1.set_ylabel(y_label, fontsize=14)
     if kind == 'area':
         neg.T.plot(kind='area', stacked=True, color=neg_colors,
                    linewidth=0, ax=ax2)
@@ -6891,3 +6952,4 @@ def percent_diff_bins(eg, base, compare,
         ax1.set_facecolor(bg_color)
 
     plt.title(title, fontsize=title_fontsize)
+    plt.show()
