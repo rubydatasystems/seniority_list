@@ -3688,7 +3688,7 @@ def save_and_load_dill_folder(save_as=None,
 
     The user may print a list of available saved dill folders (for loading)
     by setting the print_saved input to True.  No other action will take place
-    with this option.
+    when this option is set to True.
 
     If an award has conditions which differ from proposed conditions, the
     settings dictionary must be modified prior to calculating the award
