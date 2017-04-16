@@ -123,6 +123,17 @@ def quartile_years_in_position(dfc, dfb, job_levels,
             text size of chart title
         xsize, ysize (integer or float)
             size of chart display
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 
     dsc, df_labelc = determine_dataset(dfc, ds_dict, return_label=True)
@@ -445,6 +456,17 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
             text size of chart legend
         xsize, ysize (integer or float)
             plot size in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -487,10 +509,6 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
     if image_dir:
         if not path.exists(image_dir):
             makedirs(image_dir)
-
-        # plt.subplots_adjust(top=0.93)
-        # plt.savefig(image_dir + '/' + func_name + '.' + image_format,
-        #             bbox_extra_artists=plt.suptitle)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format,
                     bbox_extra_artists=plt.suptitle)
     plt.show()
@@ -501,6 +519,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                           attr_dict, ds_dict=None, plot_jobp=False,
                           chart_style='darkgrid',
                           legend_fontsize=14,
+                          xsize=12, ysize=8,
                           image_dir=None, image_format='svg'):
     '''select example individual employees and plot career measure
     from selected dataset attribute, i.e. list percentage, career
@@ -535,6 +554,19 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
             if measure input is 'jnum', also plot 'jobp' if set to True
         legend_fontsize (integer or float)
             text size of chart legend
+        xsize, ysize (integer or float)
+            plot size in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -542,7 +574,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     frame.set_index(xax, inplace=True, drop=True)
 
     with sns.axes_style(chart_style):
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
 
     color_list_len = len(color_list)
 
@@ -667,6 +699,17 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             plot size in inches
         full_pcnt_xscale (boolean)
             plot x axis percentage from 0 to 100 percent
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -785,6 +828,8 @@ def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
                      attr2=None, oper2='>=', val2='0',
                      attr3=None, oper3='>=', val3='0',
                      scale='count', title_fontsize=12,
+                     chart_style='darkgrid',
+                     xsize=12, ysize=10,
                      image_dir=None, image_format='svg'):
     '''From the seaborn website:
     Draw a combination of boxplot and kernel density estimate.
@@ -827,6 +872,17 @@ def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
             If 'width', each violin will have the same width.
         title_fontsize (integer or float)
             text size of chart title
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
     dsm = ds[ds.mnum == mnum]
@@ -856,26 +912,29 @@ def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
     if measure == 'mpay':
         frame = frame[frame.ret_mark == 0]
 
+    with sns.axes_style(chart_style):
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
+
     sns.violinplot(x=frame.eg, y=frame[measure],
                    cut=0, scale=scale, inner='box',
                    bw=.1, linewidth=linewidth,
-                   palette=['gray', '#3399ff', '#ff8000'])
+                   palette=['gray', '#3399ff', '#ff8000'], ax=ax)
 
     plt.suptitle(df_label + ' - ' +
                  attr_dict[measure].upper() + ',  Month ' +
                  str(mnum) + ' Distribution')
 
     plt.title(title_string, fontsize=title_fontsize)
-    fig = plt.gca()
+
     if measure == 'age':
-        plt.ylim(25, 70)
+        ax.set_ylim(25, 70)
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
                    'jobp', 'cat_order']:
-        fig.invert_yaxis()
+        ax.invert_yaxis()
         if measure in ['spcnt', 'lspcnt']:
-            fig.yaxis.set_major_formatter(pct_format)
-            plt.gca().set_yticks(np.arange(0, 1.05, .05))
-            plt.ylim(1.04, -.04)
+            ax.yaxis.set_major_formatter(pct_format)
+            ax.set_yticks(np.arange(0, 1.05, .05))
+            ax.set_ylim(1.04, -.04)
     plt.xlabel('employee group')
     plt.ylabel(attr_dict[measure])
     func_name = sys._getframe().f_code.co_name
@@ -889,6 +948,8 @@ def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
 def age_kde_dist(df, color_list, p_dict, max_age,
                  ds_dict=None, mnum=0,
                  title_fontsize=14, min_age=25,
+                 chart_style='darkgrid',
+                 xsize=12, ysize=10,
                  image_dir=None, image_format='svg'):
     '''From the seaborn website:
     Fit and plot a univariate or bivariate kernel density estimate.
@@ -909,16 +970,25 @@ def age_kde_dist(df, color_list, p_dict, max_age,
             month number to analyze
         title_fontsize (integer or float)
             text size of chart title
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds = determine_dataset(df, ds_dict)
 
     frame = ds[ds.mnum == mnum]
     eg_set = pd.unique(frame.eg)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-
-    ax.plot(sharex=True, figsize=(10, 8))
+    with sns.axes_style(chart_style):
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
 
     for x in eg_set:
         try:
@@ -931,9 +1001,10 @@ def age_kde_dist(df, color_list, p_dict, max_age,
             print('error plotting for eg:', x)
 
     ax.set_xlim(min_age, max_age)
-    fig.set_size_inches(10, 8)
+
     plt.title('Age Distribution Comparison - Month ' + str(mnum), y=1.02,
               fontsize=title_fontsize)
+
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
@@ -1016,6 +1087,17 @@ def eg_diff_boxplot(df_list, dfb, eg_list, eg_colors, job_levels,
             If True, show boxplots with a notch at median point vs. only a line
         xsize, ysize (integer or float)
             plot size in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 
     label_dict = {}
@@ -1242,58 +1324,71 @@ def eg_boxplot(df_list, eg_list,
     (vs. differential values) from a selected dataset(s) for selected
     employee group(s).
 
-    df_list (list)
-        list of datasets to compare, may be ds_dict (output of load_datasets
-        function) string keys or dataframe variable(s) or mixture of each
-    eg_list (list)
-        list of integers for employee groups to be included in analysis
-        example: [1, 2, 3]
-    measure (string)
-        attribute for analysis
-    eg_colors (list)
-        list of colors for plotting the employee groups
-    attr_dict (dictionary)
-        dataset column name description dictionary
-    ds_dict (dictionary)
-        output from load_datasets function
-    job_clip (float)
-        if measure is jnum or jobp, limit max y axis range to this value
-    attr(n) (string)
-        filter attribute or dataset column as string
-    oper(n) (string)
-        operator (i.e. <, >, ==, etc.) for attr(n) as string
-    val(n) (string, integer, float, date as string as appropriate)
-        attr(n) limiting value (combined with oper(n)) as string
-    year_clip (integer)
-        only present results through this year
-    exclude_fur (boolean)
-        remove all employees from analysis who are furloughed within the
-        data model at any time (boolean)
-    chart_style (string)
-        chart styling (string), any valid seaborn chart style
-    width (float)
-        plotting width of boxplot or grouped boxplots for each year.
-        a width of 1 leaves no gap between groups
-    notch (boolean)
-        If True, show boxplots with a notch at median point
-    show_xgrid (boolean)
-        include vertical grid lines on chart
-    show_ygrid (boolean)
-        include horizontal grid lines on chart
-    grid_alpha (float)
-        opacity value for grid lines
-    grid_linestyle (string)
-        examples: 'solid', 'dotted', 'dashed'
-    suptitle_fontsize (integer or float)
-        text size of chart super title
-    title_fontsize (integer or float)
-        text size of chart title
-    tick_size (integer or float)
-        text size of x and y tick labels
-    label_size (integer or float)
-        text size of x and y descriptive labels
-    xsize, ysize (integer or float)
-        plot size in inches
+    inputs
+        df_list (list)
+            list of datasets to compare, may be ds_dict (output of
+            load_datasets function) string keys or dataframe variable(s)
+            or mixture of each
+        eg_list (list)
+            list of integers for employee groups to be included in analysis
+            example: [1, 2, 3]
+        measure (string)
+            attribute for analysis
+        eg_colors (list)
+            list of colors for plotting the employee groups
+        attr_dict (dictionary)
+            dataset column name description dictionary
+        ds_dict (dictionary)
+            output from load_datasets function
+        job_clip (float)
+            if measure is jnum or jobp, limit max y axis range to this value
+        attr(n) (string)
+            filter attribute or dataset column as string
+        oper(n) (string)
+            operator (i.e. <, >, ==, etc.) for attr(n) as string
+        val(n) (string, integer, float, date as string as appropriate)
+            attr(n) limiting value (combined with oper(n)) as string
+        year_clip (integer)
+            only present results through this year
+        exclude_fur (boolean)
+            remove all employees from analysis who are furloughed within the
+            data model at any time (boolean)
+        chart_style (string)
+            chart styling (string), any valid seaborn chart style
+        width (float)
+            plotting width of boxplot or grouped boxplots for each year.
+            a width of 1 leaves no gap between groups
+        notch (boolean)
+            If True, show boxplots with a notch at median point
+        show_xgrid (boolean)
+            include vertical grid lines on chart
+        show_ygrid (boolean)
+            include horizontal grid lines on chart
+        grid_alpha (float)
+            opacity value for grid lines
+        grid_linestyle (string)
+            examples: 'solid', 'dotted', 'dashed'
+        suptitle_fontsize (integer or float)
+            text size of chart super title
+        title_fontsize (integer or float)
+            text size of chart title
+        tick_size (integer or float)
+            text size of x and y tick labels
+        label_size (integer or float)
+            text size of x and y descriptive labels
+        xsize, ysize (integer or float)
+            width and hieght of plot in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     label_dict = {}
     filt_title = ''
@@ -1498,6 +1593,17 @@ def stripplot_distribution_in_category(df, job_levels, full_time_pcnt,
             text size of x and y tick labels
         xsize, ysize (integer or float)
             width and height of chart in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
     if mnum:
@@ -1661,7 +1767,18 @@ def job_level_progression(df, emp_list, through_date,
             if number of plots more than this number, reduce plot linewidth and
             remove legend
         xsize, ysize (integer or float)
-            plot size in inches
+            plot size in inches (width, height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -1879,7 +1996,18 @@ def differential_scatter(df_list, dfb,
         chart_style (string)
             style for chart, valid inputs are any seaborn chart style
         xsize, ysize (integer or float)
-            size of chart
+            size of chart (width, height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 
     label_dict = {}
@@ -2125,7 +2253,18 @@ def job_grouping_over_time(df, eg_list, jobs, job_colors, p_dict,
         label_size (integer or float)
             text size of x and y descriptive labels
         xsize, ysize (integer or float)
-            size of each chart in inches
+            size of each chart in inches (width, height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -2210,8 +2349,8 @@ def job_grouping_over_time(df, eg_list, jobs, job_colors, p_dict,
         if image_dir:
             if not path.exists(image_dir):
                 makedirs(image_dir)
-            plt.savefig(image_dir + '/' + func_name + ' - ' + 'group'
-                        + str(eg) + '.' + image_format)
+            plt.savefig(image_dir + '/' + func_name + ' - ' + 'group' +
+                        str(eg) + '.' + image_format)
         plt.show()
 
 
@@ -2279,7 +2418,18 @@ def parallel(df_list, dfb, eg_list, measure,
         facecolor (color value)
             chart background color
         xsize, ysize (integer or float)
-            size of individual subplots
+            size of individual subplots (width, height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     label_dict = {}
     i = 0
@@ -2495,7 +2645,18 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
         legend_fontsize (integer or float)
             text size of chart legend
         xsize, ysize (integer or float)
-            size of chart
+            size of chart in inches (width, height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -2747,7 +2908,18 @@ def quartile_bands_over_time(df, eg, measure,
         label_fontsize (intger or float)
             text size for chart x and y axis labels
         xsize, ysize (integer or float)
-            chart size inputs
+            chart size inputs in inches (width, height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -2985,6 +3157,17 @@ def job_transfer(dfc, dfb, eg, job_colors,
             horizontal size of chart
         ysize (integer or float)
             vertical size of chart
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
@@ -3684,6 +3867,44 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
                     }
 
     sg refers to special group - a group with special job rights
+
+    inputs
+        df
+        mnum
+        measure
+        xax
+        job_strs
+        span_colors
+        job_levels
+        settings_dict
+        attr_dict
+        ds_dict
+        fur_color
+        single_eg
+        num
+        exclude_fur
+        plot_scatter
+        s
+        a
+        lw
+        job_bands_alpha
+        title_fontsize
+        tick_fontsize
+        label_pad
+        chart_style
+        remove_ax2_border
+        xsize, ysize
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     df, df_label = determine_dataset(df, ds_dict, return_label=True)
 
@@ -3980,7 +4201,18 @@ def diff_range(df_list, dfb, measure, eg_list,
         plot_style (string)
             any valid seaborn plotting style (string)
         xsize, ysize (integer or font)
-            size of chart, width and height
+            size of chart in inches (width and height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     print('''NOTE:  Each chart represents a single employee group.
           The lines represent how that group is affected
@@ -4177,7 +4409,18 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
         total_color (color value)
             color for combined job level count from all employee groups
         xsize, ysize (integer or float)
-            size of chart display
+            size of chart display in inches (width and height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
@@ -4346,8 +4589,8 @@ def build_subplotting_order(rows, cols):
 
 def emp_quick_glance(empkey, df, ds_dict=None,
                      title_fontsize=14, tick_size=13,
-                     xsize=8, ysize=48, lw=4,
-                     chart_style='dark',
+                     lw=4, chart_style='dark',
+                     xsize=8, ysize=48,
                      image_dir=None, image_format='svg'):
     '''view basic stats for selected employee and proposal
 
@@ -4364,10 +4607,23 @@ def emp_quick_glance(empkey, df, ds_dict=None,
             text size of chart title
         tick_size (integer or font)
             text size of chart tick labels
-        xsize, ysize (integer or float)
-            size of chart display
         lw (integer or float)
             line width of plot lines
+        chart_style (string)
+            any valid seaborn charting style
+        xsize, ysize (integer or float)
+            size of chart display
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -4494,7 +4750,18 @@ def quartile_yrs_in_pos_single(dfc, dfb, job_levels, num_bins,
         title_fontsize (integer or float)
             text size of chart title
         xsize, ysize (integer or float)
-            size of chart display
+            size of chart display in inches (width and height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
         '''
 
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
@@ -4874,7 +5141,18 @@ def cond_test(df, grp_sel, enhanced_jobs, job_colors, job_dict,
         title_fontsize (integer or float)
             text size of chart title
         xsize, ysize (integer or float)
-            size of chart display
+            size of chart display in inches (width and height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 
     d, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -5149,7 +5427,18 @@ def single_emp_compare(emp, measure, df_list, xax,
         legend_fontsize (integer or float)
             text size of chart legend
         xsize, ysize (integer or float)
-            width and height of output chart
+            width and height of output chart in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 
     label_dict = {}
@@ -5306,7 +5595,18 @@ def job_time_change(ds_list, ds_base, eg_list,
         tick_size (integer or float)
             text size of chart tick labels
         xsize, ysize (integer or float)
-            x and y size of each plot
+            x and y size of each plot in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     label_dict = {}
     i = 0
@@ -5478,7 +5778,6 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
                              use_filtered_results=True,
                              job_labels=True,
                              max_date=None, chart_style='whitegrid',
-                             legend_horizontal_position=1.4,
                              xsize=14, ysize=8,
                              image_dir=None, image_format='svg'):
     '''Plot group average and/or median for a selected attribute over time
@@ -5553,6 +5852,19 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
             be the maximum date within the list data.
         chart_style (string)
             option to specify alternate seaborn chart style
+        xsize, ysize (integer or float)
+            x and y size of chart in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
@@ -5766,7 +6078,18 @@ def stripplot_eg_density(df, mnum, eg_colors, attr_dict,
         suptitle_fontsize (integer or float)
             chart text size of suptitle
         xsize, ysize (integer or float)
-            size of chart width and height
+            size of chart width and height in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
     ds = ds[ds.mnum == mnum]
@@ -5883,7 +6206,18 @@ def job_count_bands(df_list, eg_list, job_colors,
         chart_style (string)
             chart styling (string), any valid seaborn chart style
         xsize, ysize (integer or float)
-            plot size in inches
+            plot size in inches (width and height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
     label_dict = {}
     i = 0
@@ -5960,10 +6294,9 @@ def job_count_bands(df_list, eg_list, job_colors,
             ax = plt.gca()
             fig.set_size_inches(xsize, ysize)
 
-            # legend
+            # legend-----------
             recs = []
             job_labels = []
-            # legend_title = 'job'
 
             for k in cols:
                 recs.append(mpatches.Rectangle((0, 0), 1, 1,
@@ -5977,6 +6310,7 @@ def job_count_bands(df_list, eg_list, job_colors,
             ax.legend(recs, job_labels, loc='center left',
                       bbox_to_anchor=(1.01, 0.5),
                       fontsize=legend_fontsize, title='job')
+            # -----------------
 
             ax.xaxis.label.set_size(label_size)
             ax.yaxis.label.set_size(label_size)
@@ -6397,7 +6731,18 @@ def quartile_groupby(df, eg_list, measure, quartiles, eg_colors,
         label_size (integer or float)
             Font size value for x and y unit labels
         xsize, ysize (integers or floats)
-            Width and height of chart
+            Width and height of chart in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 # **************
     df, df_label = determine_dataset(df, ds_dict, return_label=True)
@@ -6981,6 +7326,7 @@ def percent_diff_bins(eg, base, compare,
                       bg_color='#ffffe6',
                       title_fontsize=14,
                       legend_fontsize=12.5,
+                      xsize=16, ysize=10,
                       image_dir=None, image_format='svg'):
     '''Display employee group counts within differential list
     percentage bins over time.
@@ -7044,6 +7390,19 @@ def percent_diff_bins(eg, base, compare,
             text size for the chart title
         legend_fontsize (integer or float)
             text size for the chart legend
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        xsize, ysize (integers or floats)
+            Width and height of chart in inches
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
     '''
 
     b, b_label = determine_dataset(base, ds_dict, return_label=True)
@@ -7064,7 +7423,7 @@ def percent_diff_bins(eg, base, compare,
     c = d_filtc[['mnum', 'date', 'eg', measure]]
 
     with sns.axes_style('ticks'):
-        fig, ax1 = plt.subplots()
+        fig, ax1 = plt.subplots(figsize=(xsize, ysize))
 
     pos_colors = make_color_list(num_of_colors=num_display_colors,
                                  cm_name_list=[cmap_pos])
@@ -7194,7 +7553,6 @@ def percent_diff_bins(eg, base, compare,
     ax2.legend_.remove()
 
     handles2 = handles2[:bins_found]
-    fig.set_size_inches(16, 10)
     box = ax1.get_position()
     ax1.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     ax2.set_position([box.x0, box.y0, box.width * 0.8, box.height])
