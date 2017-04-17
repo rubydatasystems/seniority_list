@@ -521,7 +521,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
                           attr_dict, ds_dict=None, plot_jobp=False,
                           chart_style='darkgrid',
                           legend_fontsize=14,
-                          xsize=12, ysize=8,
+                          xsize=12, ysize=9,
                           image_dir=None, image_format='svg'):
     '''select example individual employees and plot career measure
     from selected dataset attribute, i.e. list percentage, career
@@ -2102,7 +2102,7 @@ def differential_scatter(df_list, dfb,
             xax = 'separate_eg_percentage'
 
         with sns.axes_style(chart_style):
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(xsize, ysize))
 
         for eg in eg_list:
             data = df[df.eg == eg].copy()
@@ -2125,7 +2125,7 @@ def differential_scatter(df_list, dfb,
                           color=color_dict['mean_colors'][eg - 1],
                           label=label,
                           alpha=.6, ax=ax)
-                plt.xlim(0, x_limit)
+                ax.set_xlim(0, x_limit)
 
             if show_lin_reg:
                 if show_scatter:
@@ -2140,19 +2140,17 @@ def differential_scatter(df_list, dfb,
                             line_kws={'lw': 20,
                                       'alpha': .4},
                             ax=ax)
-                plt.xlim(0, x_limit)
+                ax.set_xlim(0, x_limit)
 
         if measure == 'jobp':
             ymin = math.floor(min(df[yax]))
             ymax = math.ceil(max(df[yax]))
             scale_lim = max(abs(ymin), ymax)
-            plt.yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
+            ax.set_yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
             if ylimit:
-                plt.ylim(-ylim, ylim)
+                ax.set_ylim(-ylim, ylim)
             else:
-                plt.ylim(-scale_lim, scale_lim)
-
-        plt.gcf().set_size_inches(xsize, ysize)
+                ax.set_ylim(-scale_lim, scale_lim)
 
         if label_dict[prop_num] == 'Proposal':
             p_label = 'df_list item ' + str(prop_num)
@@ -2163,25 +2161,25 @@ def differential_scatter(df_list, dfb,
 
         if tb_string:
             plt.suptitle(suptitle_str, fontsize=suptitle_fontsize)
-            plt.title(tb_string, fontsize=title_fontsize, y=1.005)
+            ax.set_title(tb_string, fontsize=title_fontsize, y=1.005)
         else:
-            plt.title(suptitle_str, fontsize=suptitle_fontsize)
-        plt.xlim(xmin=0)
+            ax.set_title(suptitle_str, fontsize=suptitle_fontsize)
+        ax.set_xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
-            plt.gca().yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format)
 
         if xax == 'separate_eg_percentage':
-            plt.gca().xaxis.set_major_formatter(pct_format)
-            plt.xticks(np.arange(0, 1.1, .1))
-            plt.xlim(xmax=1)
+            ax.xaxis.set_major_formatter(pct_format)
+            ax.set_xticks(np.arange(0, 1.1, .1))
+            ax.set_xlim(xmax=1)
 
         ax.axhline(0, c='m', ls='-', alpha=1, lw=2)
         ax.invert_xaxis()
         if bright_bg:
             ax.set_facecolor(bright_bg_color)
-        plt.ylabel('differential', fontsize=label_size)
-        plt.tick_params(axis='both', which='major', labelsize=tick_size)
+        ax.set_ylabel('differential', fontsize=label_size)
+        ax.tick_params(axis='both', which='major', labelsize=tick_size)
         ax.xaxis.label.set_size(label_size)
         ax.legend(markerscale=1.5, fontsize=legend_fontsize)
         func_name = sys._getframe().f_code.co_name
@@ -2294,7 +2292,7 @@ def job_grouping_over_time(df, eg_list, jobs, job_colors, p_dict,
     for eg in eg_list:
 
         with sns.axes_style(chart_style):
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(xsize, ysize))
 
         denom = len(ds[(ds.mnum == 0) & (ds.eg == eg)])
         df_eg = d_filt[d_filt.eg == eg]
@@ -2345,20 +2343,19 @@ def job_grouping_over_time(df, eg_list, jobs, job_colors, p_dict,
         if plt_kind == 'bar':
             ax.set_xlim(0, display_yrs)
 
-        plt.legend((labels), loc=legend_loc, fontsize=legend_fontsize)
-        plt.ylabel(ylbl, fontsize=label_size)
+        ax.legend((labels), loc=legend_loc, fontsize=legend_fontsize)
+        ax.set_ylabel(ylbl, fontsize=label_size)
 
         suptitle_str = df_label + ' group ' + p_dict[eg]
 
         if t_string:
             plt.suptitle(suptitle_str, fontsize=suptitle_fontsize)
-            plt.title(t_string, fontsize=title_fontsize, y=1.005)
+            ax.set_title(t_string, fontsize=title_fontsize, y=1.005)
         else:
-            plt.title(suptitle_str, fontsize=suptitle_fontsize)
+            ax.set_title(suptitle_str, fontsize=suptitle_fontsize)
 
-        plt.tick_params(axis='both', which='major', labelsize=tick_size)
+        ax.tick_params(axis='both', which='major', labelsize=tick_size)
         ax.xaxis.label.set_size(label_size)
-        fig.set_size_inches(xsize, ysize)
 
         func_name = sys._getframe().f_code.co_name
         if image_dir:
@@ -2376,7 +2373,8 @@ def parallel(df_list, dfb, eg_list, measure,
              attr1=None, oper1='>=', val1=0,
              attr2=None, oper2='>=', val2=0,
              attr3=None, oper3='>=', val3=0,
-             left=0, stride_list=None, grid_color='.7',
+             left=0, stride_list=None,
+             chart_style='whitegrid', grid_color='.7',
              suptitle_fontsize=14, title_fontsize=12,
              facecolor='w', xsize=6, ysize=8,
              image_dir=None, image_format='svg'):
@@ -2476,8 +2474,6 @@ def parallel(df_list, dfb, eg_list, measure,
     num_months = len(month_list)
 
     fig, ax = plt.subplots(num_months, num_egplots)
-
-    fig = plt.gcf()
     fig.set_size_inches(xsize * num_egplots, ysize * num_months)
 
     plot_num = 0
@@ -2518,31 +2514,32 @@ def parallel(df_list, dfb, eg_list, measure,
 
         df_joined.columns = col_list
 
-        with sns.axes_style('whitegrid', {'axes.facecolor': facecolor,
-                                          'axes.axisbelow': True,
-                                          'axes.edgecolor': '.2',
-                                          'axes.linewidth': 1.0,
-                                          'grid.color': grid_color,
-                                          'grid.linestyle': u'--'}):
+        for eg in eg_list:
 
-            for eg in eg_list:
-                plot_num += 1
-                plt.subplot(num_months, num_egplots, plot_num)
-                df = df_joined[df_joined.eg == eg]
-                try:
-                    stride = stride_list[eg - 1]
-                    df = df[::stride]
-                except (TypeError, LookupError):
-                    df = df[::(int(len(df) * .015))]
-                parallel_coordinates(df, 'eg', lw=1.5, alpha=.7,
-                                     color=color_dict[eg - 1])
+            plot_num += 1
+            with sns.axes_style(chart_style, {'axes.facecolor': facecolor,
+                                              'axes.axisbelow': True,
+                                              'axes.edgecolor': '.2',
+                                              'axes.linewidth': 1.0,
+                                              'grid.color': grid_color,
+                                              'grid.linestyle': u'--'}):
 
-                plt.title('Group ' + group_dict[eg].upper() + ' ' +
-                          attr_dict[measure].upper() +
-                          ' ' + str(month) + ' mths',
-                          fontsize=title_fontsize, y=1.02)
+                ax = plt.subplot(num_months, num_egplots, plot_num)
 
-    fig = plt.gcf()
+            df = df_joined[df_joined.eg == eg]
+            try:
+                stride = stride_list[eg - 1]
+                df = df[::stride]
+            except (TypeError, LookupError):
+                df = df[::(int(len(df) * .015))]
+            parallel_coordinates(df, 'eg', lw=1.5, alpha=.7,
+                                 color=color_dict[eg - 1], ax=ax)
+
+            ax.set_title('Group ' + group_dict[eg].upper() + ' ' +
+                         attr_dict[measure].upper() +
+                         ' ' + str(month) + ' mths',
+                         fontsize=title_fontsize, y=1.02)
+
     for ax in fig.axes:
 
         if measure in ['spcnt', 'lspcnt']:
@@ -2565,9 +2562,10 @@ def parallel(df_list, dfb, eg_list, measure,
             ax.invert_yaxis()
         ax.grid()
         ax.legend_.remove()
-    plt.suptitle(tb_string, fontsize=title_fontsize, y=1.01)
 
+    plt.suptitle(tb_string, fontsize=title_fontsize, y=1.01)
     plt.tight_layout()
+
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
@@ -2758,7 +2756,7 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
     with sns.axes_style(chart_style):
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
 
         if cell_border:
             sns.heatmap(heat_data, vmin=0, vmax=len(plot_colors),
@@ -2770,11 +2768,10 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
                         cbar=False, annot=False,
                         cmap=cmap, ax=ax)
 
-        fig.set_size_inches(xsize, ysize)
         ax.set_xticks([])
-        plt.tick_params(axis='y', labelsize=max(9, (min(12, ysize - 3))))
-        plt.ylabel(str(cols) + ' per row',
-                   fontsize=max(12, min(ysize + 1, 18)))
+        ax.tick_params(axis='y', labelsize=max(9, (min(12, ysize - 3))))
+        ax.set_ylabel(str(cols) + ' per row',
+                      fontsize=max(12, min(ysize + 1, 18)))
         ax.spines['top'].set_visible(True)
         ax.spines['bottom'].set_visible(True)
         ax.spines['left'].set_visible(True)
@@ -2835,9 +2832,9 @@ def rows_of_color(df, mnum, measure_list, eg_colors,
 
     if t_string:
         plt.suptitle(suptitle, fontsize=suptitle_fontsize)
-        plt.title(t_string, fontsize=title_fontsize, y=1.01)
+        ax.set_title(t_string, fontsize=title_fontsize, y=1.01)
     else:
-        plt.title(suptitle, fontsize=suptitle_fontsize)
+        ax.set_title(suptitle, fontsize=suptitle_fontsize)
 
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -3057,7 +3054,7 @@ def quartile_bands_over_time(df, eg, measure,
     ax.set_ylabel('original percentage', fontsize=label_fontsize)
     ax.set_xlabel('year', fontsize=label_fontsize)
     ax.xaxis.labelpad = 10
-    plt.title(df_label + ', group ' + str(eg) +
+    ax.set_title(df_label + ', group ' + str(eg) +
               ' quartile change over time\n' + str(bins) + ' quartiles',
               fontsize=16, y=1.02)
 
@@ -3237,12 +3234,12 @@ def job_transfer(dfc, dfb, eg, job_colors,
 
     # PLOT AX1
     with sns.axes_style(chart_style):
-        fig, ax1 = plt.subplots()
-    fig.set_size_inches(xsize, ysize)
+        fig, ax1 = plt.subplots(figsize=(xsize, ysize))
+
     diff2[diff2 > 0].plot(kind='area', stacked=True, color=job_colors,
                           ax=ax1, lw=0, alpha=job_alpha)
     ylimit1 = (ax1.get_ylim()[1] + 50) // 50 * 50
-    plt.ylim(-ylimit1, ylimit1)
+    ax1.set_ylim(-ylimit1, ylimit1)
 
     # PLOT AX2
     ax2 = ax1.twinx()
@@ -3307,8 +3304,8 @@ def job_transfer(dfc, dfb, eg, job_colors,
     # GAIN-LOSS BACKGROUND
     if draw_face_color:
         ymin, ymax = ax1.get_ylim()
-        plt.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=1)
-        plt.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=1)
+        ax1.axhspan(0, ymax, facecolor='g', alpha=0.05, zorder=1)
+        ax1.axhspan(0, ymin, facecolor='r', alpha=0.05, zorder=1)
 
     # AXIS LABELS
     ax1.set_ylabel('change in job count', fontsize=16)
@@ -3320,7 +3317,7 @@ def job_transfer(dfc, dfb, eg, job_colors,
             ' Jobs Exchange' + '\n' + \
             dfc_label + \
             ' compared to ' + dfb_label
-        plt.title(title_string,
+        ax1.set_title(title_string,
                   fontsize=title_fontsize, y=1.02)
     except (NameError, LookupError):
         print('error, problem creating title text')
@@ -3609,32 +3606,31 @@ def editor(settings_dict, color_dict,
                                  line_kws={'lw': 20,
                                            'alpha': .4},
                                  ax=ax)
-        plt.xlim(0, x_limit)
+        ax.set_xlim(0, x_limit)
 
         if measure == 'jobp':
             ymin = math.floor(min(df[yval]))
             ymax = math.ceil(max(df[yval]))
             scale_lim = max(abs(ymin), ymax)
-            plt.yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
+            ax.set_yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
             if ylimit:
-                plt.ylim(-ylim, ylim)
+                ax.set_ylim(-ylim, ylim)
             else:
-                plt.ylim(-scale_lim, scale_lim)
+                ax.set_ylim(-scale_lim, scale_lim)
 
-        plt.gcf().set_size_inches(width, height)
-        plt.tick_params(labelsize=13)
+        ax.tick_params(labelsize=13)
 
         for item in ([ax.title, ax.xaxis.label, ax.yaxis.label]):
             item.set_fontsize(15)
 
-        plt.title(title_label + ' differential: ' + measure, fontsize=16)
-        plt.xlim(xmin=0)
+        ax.set_title(title_label + ' differential: ' + measure, fontsize=16)
+        ax.set_xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
-            plt.gca().yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format)
 
         if xval == 'separate_eg_percentage':
-            plt.xlim(xmax=1)
+            ax.set_xlim(xmax=1)
             ax.xaxis.set_major_formatter(pct_format)
             ax.set_xticks(np.arange(0, 1.05, .05))
 
@@ -3746,12 +3742,12 @@ def editor(settings_dict, color_dict,
             if bright_bg:
                 ax2.set_facecolor(bg_clr)
 
-            plt.xticks(np.arange(0, len(data_reorder), 1000))
+            ax2.set_xticks(np.arange(0, len(data_reorder), 1000))
             if measure in ['spcnt', 'lspcnt', 'cpay']:
-                plt.ylabel('\n\neg\n')
+                ax2.set_ylabel('\n\neg\n')
             else:
-                plt.ylabel('eg\n')
-            plt.xlim(len(data_reorder), 0)
+                ax2.set_ylabel('eg\n')
+            ax2.set_xlim(len(data_reorder), 0)
             plt.show()
 
             data_reorder[['new_order']].to_pickle('dill/p_new_order.pkl')
@@ -3928,6 +3924,9 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
     max_count = df.groupby('mnum').size().max()
     df = df[df.mnum == mnum].copy()
 
+    with sns.axes_style(chart_style):
+        fig, ax1 = plt.subplots(figsize=(xsize, ysize))
+
     if measure == 'cat_order':
 
         tdict = pd.read_pickle('dill/dict_job_tables.pkl')
@@ -3975,8 +3974,6 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         print('\n"num" input codes:\n', grp_dict)
 
         clr = clr_dict[num]
-        with sns.axes_style(chart_style):
-            fig, ax1 = plt.subplots()
 
         if plot_scatter:
             df.plot(x=xax, y=measure, kind='scatter', color=clr,
@@ -3987,9 +3984,9 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
             print('''Ignore the vertical lines.
                   Look right to left within each job level
                   for each group\'s participation''')
-        plt.title(grp_dict[num] + ' job disbursement - ' +
-                  df_label + ' month=' + str(mnum), y=1.02,
-                  fontsize=title_fontsize)
+        ax1.set_title(grp_dict[num] + ' job disbursement - ' +
+                      df_label + ' month=' + str(mnum), y=1.02,
+                      fontsize=title_fontsize)
 
     else:
 
@@ -4000,9 +3997,6 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         d2 = df[(df.eg == 1) & (df.sg == 0)]
         d3 = df[df.eg == 2]
         d4 = df[df.eg == 3]
-
-        with sns.axes_style(chart_style):
-            fig, ax1 = plt.subplots()
 
         if plot_scatter:
             d1.plot(x=xax, y=measure, kind='scatter',
@@ -4042,33 +4036,37 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
                   Look right to left within each job \
                   level for each group\'s participation''')
 
-        plt.title('job disbursement - ' +
-                  df_label + ' month ' + str(mnum), y=1.02)
+        ax1.set_title('job disbursement - ' +
+                      df_label + ' month ' + str(mnum), y=1.02)
 
-    plt.tick_params(labelsize=tick_fontsize)
+    ax1.tick_params(labelsize=tick_fontsize)
 
     if measure in ['snum', 'spcnt', 'lspcnt',
                    'jnum', 'jobp', 'fbff', 'cat_order']:
         ax1.invert_yaxis()
+
         if measure in ['spcnt', 'lspcnt']:
             ax1.set_yticks(np.arange(1, -.05, -.05))
             ax1.yaxis.set_major_formatter(pct_format)
-            plt.ylim(1, 0)
+            ax1.set_ylim(1, 0)
         else:
             ax1.set_yticks(np.arange(0, max_count, 1000))
-            plt.ylim(max_count, 0)
+            ax1.set_ylim(max_count, 0)
+
         if measure in ['cat_order']:
             with sns.axes_style('white'):
                 ax2 = ax1.twinx()
             if remove_ax2_border:
                 for axis in ['top', 'bottom', 'left', 'right']:
                     ax2.spines[axis].set_linewidth(0.0)
+
             ax1_lims = ax1.get_ylim()
             reversed_ax1_lims = (ax1_lims[1], ax1_lims[0])
             ax2.set_ylim(reversed_ax1_lims)
 
             axis2_lbl_locs = []
             axis2_lbls = []
+
             for i in np.arange(1, job_ticks.size):
                 axis2_lbl_locs.append(round((job_ticks[i - 1] +
                                              job_ticks[i]) / 2))
@@ -4081,6 +4079,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
 
             for level in job_ticks:
                 ax1.axhline(y=level, c='.8', ls='-', alpha=.8, lw=.6, zorder=0)
+
             ax2.invert_yaxis()
 
             # plot job band background on chart
@@ -4098,17 +4097,19 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         for i in np.arange(1, len(yticks)):
             yticks[i] = job_strs[i - 1]
 
-        plt.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.2)
+        ax1.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.2)
         ax1.set_yticklabels(yticks)
-        plt.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
+        ax1.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         ax1.set_ylim(job_levels + 1.5, 0.5)
 
     if xax in ['snum']:
         ax1.set_xlim(max_count, 0)
+
     if xax in ['spcnt', 'lspcnt']:
         ax1.xaxis.set_major_formatter(pct_format)
         ax1.set_xticks(np.arange(0, 1.1, .1))
         ax1.set_xlim(1, 0)
+
     if xax in ['age']:
         if settings_dict['ret_age_increase']:
             month_val = 1 / 12
@@ -4119,14 +4120,17 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
         else:
             ret_age_limit = settings_dict['ret_age']
         ax1.set_xlim(xmax=ret_age_limit)
+
     if xax in ['ylong']:
         ax1.set_xticks(np.arange(0, 55, 5))
         ax1.set_xlim(-0.5, max(df.ylong) + 1)
-    plt.tick_params(labelsize=tick_fontsize)
+
+    ax1.tick_params(labelsize=tick_fontsize)
 
     # LEGEND --------------
     box = ax1.get_position()
     ax1.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
     if measure in ['cat_order']:
         ax2.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 
@@ -4134,9 +4138,9 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
                frameon=True, fancybox=True, shadow=True, markerscale=2)
     # ---------------------
 
-    fig.set_size_inches(xsize, ysize)
     ax1.set_ylabel(attr_dict[measure])
     ax1.set_xlabel(attr_dict[xax])
+
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
@@ -4296,7 +4300,7 @@ def diff_range(df_list, dfb, measure, eg_list,
     for eg in eg_list:
 
         with sns.axes_style(plot_style):
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(xsize, ysize))
 
         if show_range:
                 sa_ds[sa_ds.eg == eg][cols].set_index('date') \
@@ -4318,8 +4322,7 @@ def diff_range(df_list, dfb, measure, eg_list,
                        'cat_order']:
             ax.invert_yaxis()
 
-        plt.axhline(c='m', lw=2, ls='--')
-        fig.set_size_inches(xsize, ysize)
+        ax.axhline(c='m', lw=2, ls='--')
         if measure in ['spcnt', 'lspcnt']:
             ax.yaxis.set_major_formatter(pct_format)
             if normalize_y:
@@ -4330,9 +4333,9 @@ def diff_range(df_list, dfb, measure, eg_list,
             attr_dict[measure] + ' differential'
         if tb_string:
             plt.suptitle(suptitle, fontsize=suptitle_fontsize)
-            plt.title(tb_string, fontsize=title_fontsize)
+            ax.set_title(tb_string, fontsize=title_fontsize)
         else:
-            plt.title(suptitle, fontsize=suptitle_fontsize)
+            ax.set_title(suptitle, fontsize=suptitle_fontsize)
 
         plt.tight_layout()
 
@@ -4344,8 +4347,8 @@ def diff_range(df_list, dfb, measure, eg_list,
                   loc='center left', fontsize=legend_fontsize)
         # ---------------------
 
-        plt.tick_params(axis='y', labelsize=tick_size)
-        plt.tick_params(axis='x', labelsize=tick_size)
+        ax.tick_params(axis='y', labelsize=tick_size)
+        ax.tick_params(axis='x', labelsize=tick_size)
         ax.xaxis.label.set_size(label_size)
         func_name = sys._getframe().f_code.co_name
         if image_dir:
@@ -4363,10 +4366,10 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
                      attr3=None, oper3='>=', val3=0,
                      plot_egs_sep=False, plot_total=True,
                      xax='date', year_max=None,
+                     chart_style='darkgrid',
                      base_ls='solid', prop_ls='dotted',
                      base_lw=1.6, prop_lw=2.5,
                      suptitle_fontsize=14, title_fontsize=12,
-                     chart_style='whitegrid',
                      total_color='g', xsize=5, ysize=4,
                      image_dir=None, image_format='svg'):
     '''line-style charts displaying job category counts over time.
@@ -4506,8 +4509,10 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
             # loop through employee groups
             for eg in eg_list:
 
-                ax = plt.subplot(num_jobs, num_egplots, plot_idx)
-                plt.tick_params(axis='both', which='both', labelsize=10)
+                with sns.axes_style(chart_style):
+                    ax = plt.subplot(num_jobs, num_egplots, plot_idx)
+
+                ax.tick_params(axis='both', which='both', labelsize=10)
                 ax.xaxis.label.set_size(12)
 
                 # show combined job level count on chart, otherwise skip over
@@ -4531,16 +4536,17 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
                 count_plot(eg_jobs, jnum, dum, eg_colors[eg - 1],
                            ax, prop_lw, 1, ls=prop_ls)
 
-                plt.title(settings_dict['p_dict_verbose'][eg] + '  ' +
-                          settings_dict['job_strs_dict'][jnum],
-                          fontsize=title_fontsize)
+                ax.set_title(settings_dict['p_dict_verbose'][eg] + '  ' +
+                             settings_dict['job_strs_dict'][jnum],
+                             fontsize=title_fontsize)
                 plot_idx += 1
 
         # plot all employee groups on same job level chart
         else:
 
-            ax = plt.subplot(num_jobs, num_egplots, plot_idx)
-            plt.tick_params(axis='both', which='both', labelsize=10)
+            with sns.axes_style(chart_style):
+                ax = plt.subplot(num_jobs, num_egplots, plot_idx)
+            ax.tick_params(axis='both', which='both', labelsize=10)
             ax.xaxis.label.set_size(12)
 
             # show combined job level count on chart, otherwise skip over
@@ -4564,8 +4570,8 @@ def job_count_charts(dfc, dfb, settings_dict, eg_colors,
                 count_plot(eg_jobs, jnum, dum, eg_colors[eg - 1],
                            ax, prop_lw, 1, ls=prop_ls)
 
-            plt.title(settings_dict['job_strs_dict'][jnum],
-                      fontsize=title_fontsize)
+            ax.set_title(settings_dict['job_strs_dict'][jnum],
+                         fontsize=title_fontsize)
             plot_idx += 1
 
     fig = plt.gcf()
@@ -4654,6 +4660,7 @@ def emp_quick_glance(empkey, df, ds_dict=None,
     plt.xticks(rotation=0, horizontalalignment='center')
 
     fig = plt.gcf()
+
     i = 0
     for ax in fig.axes:
         if cols[i] in ['new_order', 'jnum', 'snum', 'spcnt', 'lnum',
