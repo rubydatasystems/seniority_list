@@ -13,6 +13,7 @@ import sys
 import matplotlib.pyplot as plt
 from matplotlib import cm, ticker
 from matplotlib import colors as mplclrs
+from matplotlib import dates as mdate
 from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 
@@ -1941,12 +1942,14 @@ def differential_scatter(df_list, dfb,
                          chart_style='whitegrid',
                          xsize=12, ysize=8,
                          image_dir=None, image_format='svg'):
-    '''plot an attribute differential between datasets filtered with another
-    attribute if desired.
+    '''plot an attribute differential between datasets.
+
+    datasets may be filtered by other attributes if desired.
 
     Example:  plot the difference in cat_order (job rank number) between all
     integrated datasets vs. standalone for all employee groups, applicable to
-    month 57.
+    month 57. (optionally add a pre-filter(s), such as all employees hired
+    prior to a certain date)
 
     The chart may be set to use proposal order or native list percentage for
     the x axis.
@@ -3063,8 +3066,8 @@ def quartile_bands_over_time(df, eg, measure,
     ax.set_xlabel('year', fontsize=label_fontsize)
     ax.xaxis.labelpad = 10
     ax.set_title(df_label + ', group ' + str(eg) +
-              ' quartile change over time\n' + str(bins) + ' quartiles',
-              fontsize=16, y=1.02)
+                 ' quartile change over time\n' + str(bins) + ' quartiles',
+                 fontsize=16, y=1.02)
 
     recs = []
     patch_alpha = min(quartile_alpha + .1, 1)
@@ -7041,12 +7044,12 @@ def percent_diff_bins(eg, base, compare,
             text size for the chart title
         legend_fontsize (integer or float)
             text size for the chart legend
+        xsize, ysize (integers or floats)
+            Width and height of chart in inches
         image_dir (string)
             if not None, name of a directory in which to save an image of the
             chart output.  If the directory does not exist, it will be
             created.
-        xsize, ysize (integers or floats)
-            Width and height of chart in inches
         image_format (string)
             file extension string for a saved chart image if the image_dir
             input is not None
@@ -7219,6 +7222,275 @@ def percent_diff_bins(eg, base, compare,
         ax1.set_facecolor(bg_color)
 
     ax1.set_title(title, fontsize=title_fontsize)
+    func_name = sys._getframe().f_code.co_name
+    if image_dir:
+        if not path.exists(image_dir):
+            makedirs(image_dir)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+    plt.show()
+
+
+def cohort_differential(ds, base, sdict, cdict, adict,
+                        measure='ldate',
+                        compare_value='2010-12-31',
+                        mnum=None, ds_dict=None,
+                        single_eg_compare=None,
+                        sort_xax_by_measure=False,
+                        attr1=None, oper1='>=', val1=0,
+                        attr2=None, oper2='>=', val2=0,
+                        attr3=None, oper3='>=', val3=0,
+                        pos_color='g', neg_color='r',
+                        pos_alpha=.25, neg_alpha=.25,
+                        bg_color=None, bg_alpha=.3,
+                        zero_line_color='m',
+                        title_fontsize=16,
+                        label_fontsize=14,
+                        tick_fontsize=12.5,
+                        legend_fontsize=12.5,
+                        xsize=14, ysize=10,
+                        image_dir=None, image_format='svg'):
+    '''Compare the locations of employees from different groups who share the
+    same attribute value.
+
+    This function is best used with date-type attributes, such as longevity
+    date or date of hire.
+
+    The comparative list locations are a continuous list of index locations
+    determined by finding the last list position within an attribute column
+    from another employee group which is less than or equal to a corresponding
+    column from the base employee group.  A variance or differential is
+    calculated by comparing the base and comparative locations.
+
+    Attributes (measures) are sorted within each employee group prior to
+    comparison.  The x axis may be arranged to display proposed list ordering
+    or the attribute value range (typically a date range).
+
+    Differences in list position are shown with a line above or below zero.
+    One employee group (base) is compared to other group(s) in the proposed
+    list within a selected month.  When the line is above zero, it means
+    that the base group cohort at a particular x axis position is on the list
+    ahead of another group cohort by an amount equal to the y displacement
+    of the line.  The line colors correspond to the employee group color
+    codes.
+
+    The default behavior is to compare the base group with all other groups
+    at once, but single group comparison may be accomplished as well.
+
+    When the x axis is set to display list location (not attribute values),
+    the user may designate a compare value.  The list location of employees
+    from each group who share the comparison attribute value will be marked
+    on the chart with a color-coded vertical line.
+
+    inputs
+        ds (dataframe)
+            dataset for analysis
+        base (integer)
+            employee group number code
+        sdict (dictionary)
+            program settings dictionary
+        cdict (dictionary)
+            program color dictionary
+        adict (dictionary)
+            program attribute dictionary
+        measure (string)
+            attribute column for list location comparison, likely 'ldate' or
+            'doh'
+        compare_value (type to match measure input dtype)
+            value to mark on chart if "sort_xax_by_measure" input is False.
+            Likely a date string, such as "2001-01-31"
+        mnum (integer)
+            data model month number to study
+        ds_dict (dictionary)
+            dictionary of datasets, likely generated by the "load_datasets"
+            function
+        single_eg_compare (integer)
+            if not None, compare base employee group to this group only
+        sort_xax_by_measure (boolean)
+            if True, use an x axis for the chart based on the selected measure.
+            if False, use list location for the x axis
+        attr(n) (string)
+            filter attribute or dataset column as string
+        oper(n) (string)
+            operator (i.e. <, >, ==, etc.) for attr(n) as string
+        val(n) (integer, float, date as string, string (as appropriate))
+            attr(n) limiting value (combined with oper(n)) as string
+        pos_color, neg_color (color value string)
+            color used for the positive and negative area shading
+        pos_alpha, neg_alpha (integer or float)
+            transparency value assigned to the positive and negative color
+            shading areas (0.0 to 1.0)
+        bg_color (color value string)
+            if not None, the color for the chart background
+        bg_alpha (integer or float)
+            transparency setting if a bg_color is used (0.0 to 1.0)
+        zero_line_color (color value string)
+            color for the zero line
+        title_fontsize (integer or float)
+            text size for the chart title
+        label_fontsize (integer or float)
+            text size for the chart axis labels
+        tick_fontsize (integer or float)
+            text size for the chart tick labels
+        legend_fontsize (integer or float)
+            text size for the chart legend
+        xsize, ysize (integer or float)
+            size of the chart in inches (width, height)
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
+    '''
+    d, d_label = determine_dataset(ds, ds_dict, return_label=True)
+
+    if mnum is None:
+        mnum = 0
+
+    df0 = d[d.mnum == mnum].copy()
+    df0['list_order'] = np.arange(len(df0))
+
+    df0 = filter_ds(df0,
+                    attr1=attr1, oper1=oper1, val1=val1,
+                    attr2=attr2, oper2=oper2, val2=val2,
+                    attr3=attr3, oper3=oper3, val3=val3,
+                    return_title_string=False)
+
+    df0 = df0[['eg', measure, 'list_order']]
+
+    eg_colors = cdict['eg_colors']
+
+    eg_dict = {}
+    color_dict = {}
+    for eg in set(df0.eg):
+        df = df0[df0.eg == eg].copy()
+        df[measure] = np.sort(df[measure])
+        eg_dict[eg] = df
+        color_dict[eg] = eg_colors[eg - 1]
+
+    other_egs = [eg for eg in list(eg_dict.keys()) if eg != base]
+    dfb = eg_dict[base]
+
+    asof_dict = {}
+
+    for eg in other_egs:
+        dfc = eg_dict[eg]
+        asof = pd.merge_asof(dfb[[measure, 'list_order']],
+                             dfc[[measure, 'list_order']],
+                             on=measure,
+                             suffixes=('_grp' + str(base), '_compare'),
+                             allow_exact_matches=True)
+        asof['cohort_diff'] = asof['list_order_compare'] -\
+            asof['list_order_grp' + str(base)]
+        if sort_xax_by_measure:
+            asof.set_index(measure, inplace=True)
+            asof_dict[eg] = asof
+        else:
+            asof.set_index('list_order_grp' + str(base), inplace=True)
+            asof_dict[eg] = asof
+
+    with sns.axes_style('ticks'):
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
+
+    if single_eg_compare:
+        if single_eg_compare == base:
+            print('''single_eg_compare input must be different than base eg,\n
+                  reverting to plotting all employee groups...''')
+            plot_egs = list(asof_dict.keys())
+        else:
+            plot_egs = [single_eg_compare]
+    else:
+        plot_egs = list(asof_dict.keys())
+
+    for eg in plot_egs:
+        yvals = asof_dict[eg].cohort_diff
+        yvals.plot(color=color_dict[eg],
+                   lw=1.5,
+                   label=sdict['p_dict_verbose'][eg])
+
+        ax.invert_xaxis()
+        ax.fill_between(asof.index, 0, yvals,
+                        where=yvals > 0, facecolor=pos_color,
+                        alpha=pos_alpha, interpolate=True)
+        ax.fill_between(asof.index, 0, yvals,
+                        where=yvals < 0, facecolor=neg_color,
+                        alpha=neg_alpha, interpolate=True)
+
+    if sort_xax_by_measure:
+        ax.set_xlim(max(df0[measure]), min(df0[measure]))
+        ax.set_xlabel(adict[measure], fontsize=label_fontsize)
+    else:
+        ax.set_xlim(max(df0.list_order), 0)
+        ax.set_xlabel(ax.get_xlabel(), fontsize=label_fontsize)
+    ax.legend(fontsize=legend_fontsize, loc=0)
+    ax.axhline(lw=1.5, color='m')
+
+    ax.set_title('Proposal ' + d_label +
+                 ' - [ group ' + str(base) +
+                 ' ] - ' + adict[measure] +
+                 ' differential - month ' +
+                 str(mnum), fontsize=title_fontsize)
+
+    ax.set_ylabel('list position compared to cohorts',
+                  fontsize=label_fontsize)
+
+    ax.tick_params(axis='both', labelsize=tick_fontsize)
+    ax.grid(alpha=.15, ls='dotted', color='k')
+    if sort_xax_by_measure and measure in ['ldate', 'doh', 'retdate']:
+        locator = mdate.YearLocator()
+        ax.xaxis.set_major_locator(locator)
+        fig.autofmt_xdate()
+        plt.xticks(rotation=75, ha='center')
+        ax.yaxis.labelpad = 10
+        ax.xaxis.labelpad = 10
+        for label in ax.xaxis.get_ticklabels()[1::2]:
+            label.set_visible(False)
+
+    if not sort_xax_by_measure and compare_value:
+
+        try:
+            marker_dict = {}
+            base_and_plot_egs = [base] + plot_egs
+            print('Base group is group < ' + str(base) + ' >')
+            print('finding last list locations for:\n\n  ' +
+                  measure + ' <= ' + str(compare_value) + '\n')
+            print('Results:')
+            for eg in base_and_plot_egs:
+                df = eg_dict[eg]
+                if compare_value:
+                    try:
+                        marker_dict[eg] = (df[df[measure] <= compare_value]
+                                           .list_order.values[-1])
+                    except IndexError:
+                        marker_dict[eg] = np.nan
+
+                print('Group ' + str(eg) +
+                      ' location: ' + str(marker_dict[eg]))
+                if eg == base:
+                    ls = 'solid'
+                else:
+                    ls = 'dotted'
+                ax.axvline(marker_dict[eg], color=color_dict[eg], ls=ls, lw=2)
+
+            print('')
+            for eg in plot_egs:
+                print('Relative to group ' + str(eg) + ' cohort: ' +
+                      str(marker_dict[eg] - marker_dict[base]))
+
+        except (ValueError, TypeError):
+
+            print('''Error plotting comparative location "compare_value"
+                  vertical lines.\n perhaps check type equivalence?\n
+                  ("compare_value" input vs. "measure" input)''')
+
+    if bg_color:
+        ax.set_facecolor(bg_color, alpha=bg_alpha)
+
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
