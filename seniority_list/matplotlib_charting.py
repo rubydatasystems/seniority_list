@@ -48,6 +48,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                                attr1=None, oper1='>=', val1=0,
                                attr2=None, oper2='>=', val2=0,
                                attr3=None, oper3='>=', val3=0,
+                               chart_style='darkgrid', grid_alpha=None,
                                custom_color=False, cm_name='Dark2',
                                start=0.0, stop=1.0, fur_color=None,
                                flip_x=False, flip_y=False,
@@ -96,6 +97,8 @@ def quartile_years_in_position(dfc, dfb, job_levels,
             operator (i.e. <, >, ==, etc.) for attr(n) as string
         val(n) (integer, float, date as string, string (as appropriate))
             attr(n) limiting value (combined with oper(n)) as string
+        chart_style (string)
+            any valid seaborn plotting style name
         custom_color, cm_name, start, stop (boolean, string, float, float)
             if custom color is set to True, create a custom color map from
             the cm_name color map style.  A portion of the color map may be
@@ -271,7 +274,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
 
             sa_quantile_yrs.sort_index(axis=1, inplace=True)
 
-        with sns.axes_style('darkgrid'):
+        with sns.axes_style(chart_style):
 
             ax = plt.subplot(num_rows, num_cols, plot_num)
 
@@ -312,6 +315,8 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                 ax.invert_xaxis()
 
             ax.set_title('group ' + str(eg), fontsize=label_size)
+            if grid_alpha:
+                ax.grid(alpha=grid_alpha)
             ax.legend_.remove()
 
             ax.tick_params(axis='y', labelsize=tick_fontsize)
@@ -361,6 +366,8 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                 ax.set_title('group ' + str(eg), fontsize=label_size)
                 ax.tick_params(axis='y', labelsize=tick_fontsize)
                 ax.legend_.remove()
+                if grid_alpha:
+                    ax.grid(alpha=grid_alpha)
                 plot_num += 1
 
     fig.suptitle(df_labelc + ', ' + t_string,
@@ -617,7 +624,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
             ytick_labels[i] = job_str_list[i - 1]
         ax.axhspan(job_levels + 1, job_levels + 2,
                    facecolor='.8', alpha=0.9)
-        ax.set_yticklabels(ytick_labels)
+        ax.set_yticklabels(ytick_labels, va='top')
         ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         ax.set_ylim(job_levels + 1.5, 0.5)
 
@@ -630,6 +637,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     ax.set_ylabel(attr_dict[measure])
     ax.set_xlabel(attr_dict[xax])
     ax.legend(loc=4, markerscale=1.5, fontsize=legend_fontsize)
+
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
@@ -644,12 +652,15 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
                          attr3=None, oper3='>=', val3=0,
-                         scatter=False, scatter_size=7, exclude_fur=False,
-                         chart_style='ticks', grid=True,
+                         scatter=True, scatter_size=5, exclude_fur=False,
+                         chart_style='ticks',
+                         marker_alpha=.4, grid=True,
                          grid_color='gray', grid_alpha=.25,
                          suptitle_fontsize=14, title_fontsize=14,
-                         legend_fontsize=14, xsize=8, ysize=6,
-                         full_pcnt_xscale=False,
+                         legend_fontsize=14,
+                         full_pcnt_xscale=True,
+                         full_pcnt_yscale=True,
+                         xsize=12, ysize=10,
                          image_dir=None, image_format='svg'):
     '''plot separate selected employee group data for a specific month.
 
@@ -689,8 +700,10 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             operator (i.e. <, >, ==, etc.) for attr(n) as string
         val(n) (string, integer, float, date as string as appropriate)
             attr(n) limiting value (combined with oper(n)) as string
+        marker_alpha (integer or float)
+            transparency setting for plot lines or points (0.0 to 1.0)
         scatter (boolean)
-            plot a scatter chart (vs. default line chart)
+            plot a scatter chart (vs. line chart)
         exclude_fur (boolean)
             do not plot furoughed employees
         chart_style (string)
@@ -701,10 +714,12 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             text size of chart title
         legend_fontsize (integer or float)
             text size of chart legend
+        full_pcnt_xscale (boolean)
+            plot x axis percentage from 0 to 100 percent (vs. autoscale)
+        full_pcnt_yscale (boolean)
+            plot y axis percentage from 0 to 100 percent (vs. autoscale)
         xsize, ysize (integer or float)
             plot size in inches
-        full_pcnt_xscale (boolean)
-            plot x axis percentage from 0 to 100 percent
         image_dir (string)
             if not None, name of a directory in which to save an image of the
             chart output.  If the directory does not exist, it will be
@@ -737,8 +752,14 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
     if measure == 'mpay' and not ret_only:
         frame = frame[frame.ret_mark == 0]
 
+    if measure in ['date', 'ldate', 'doh', 'retdate']:
+        print('''\nError: (invalid "measure" input),
+              \n  date-type values not allowed for "measure" input...
+              ...however, date-type values are permitted for "xax" inputs\n''')
+        return
+
     with sns.axes_style(chart_style):
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
     if grid:
         ax.grid(color=grid_color, alpha=grid_alpha)
 
@@ -748,27 +769,25 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
         x = frame_for_plot[xax]
         y = frame_for_plot[measure]
         if scatter:
-            if xax == 'date':
+            if xax in ['date', 'ldate', 'doh', 'retdate']:
                 ax.plot_date(x=x, y=y, color=colors[i - 1],
                              marker='o', markersize=scatter_size,
-                             label=i, alpha=.5)
+                             label=i, alpha=marker_alpha)
             else:
                 ax.scatter(x=x, y=y, color=colors[i - 1],
-                           s=scatter_size, label=i, alpha=.5)
+                           s=scatter_size, label=i, alpha=marker_alpha)
         else:
             frame_for_plot.set_index(xax)[measure].plot(label=i,
                                                         color=colors[i - 1],
-                                                        alpha=.6)
+                                                        alpha=marker_alpha)
 
-    if measure in ['snum', 'spcnt', 'jnum', 'jobp', 'fbff',
-                   'lspcnt', 'rank_in_job', 'cat_order']:
-        ax.invert_yaxis()
     if measure in ['spcnt', 'lspcnt']:
         ax.yaxis.set_major_formatter(pct_format)
-        ax.set_yticks = (np.arange(0, 1.05, .05))
-    if xax in ['spcnt', 'lspcnt']:
-        ax.xaxis.set_major_formatter(pct_format)
-        ax.set_xticks(np.arange(0, 1.1, .1))
+        if full_pcnt_yscale:
+            ax.set_yticks(np.arange(0, 1.05, .05))
+            ax.set_ylim(ymin=-0.01, ymax=1.01)
+        else:
+            ax.set_ylim(ymin=-0.01)
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
@@ -779,25 +798,63 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             ytick_labels[i] = job_strs[i - 1]
 
         ax.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.3)
-        ax.set_yticklabels(ytick_labels)
+        ax.set_yticklabels(ytick_labels, va='top')
         ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.3, lw=3)
-        ax.set_ylim(job_levels + 2, 0.5)
+        ax.set_ylim(.75, job_levels + 2)
 
-    if measure in ['mpay', 'cpay', 'mlong', 'ylong']:
-        ax.set_ylim(ymin=0)
+    limit_dict = {'mpay': -0.2,
+                  'mlong': -10.0,
+                  'ylong': -1.0,
+                  'cpay': -50,
+                  'new_order': -50,
+                  'cat_order': -50,
+                  'lnum': -50,
+                  'snum': -50}
+
+    if measure in limit_dict.keys():
+        ax.set_ylim(ymin=limit_dict[measure])
+    if xax in limit_dict.keys():
+        ax.set_xlim(xmin=limit_dict[xax])
+
+    if xax in ['spcnt', 'lspcnt']:
+        ax.xaxis.set_major_formatter(pct_format)
+        if full_pcnt_xscale:
+            ax.set_xticks(np.arange(0, 1.1, .1))
+            ax.set_xlim(xmin=-0.01, xmax=1.01)
+        else:
+            ax.set_xlim(xmin=-0.01)
 
     if xax in ['new_order', 'cat_order', 'lnum', 'snum']:
         ax.set_xlabel(xax)
 
     if xax in ['mlong', 'ylong']:
-        ax.set_xlim(xmin=0)
+        # ax.set_xlim(xmin=0)
         ax.set_xlabel(xax)
 
-    if xax not in ['age', 'mlong', 'ylong'] and not ret_only:
+    if xax in ['jnum', 'nbnf', 'jobp', 'fbff']:
+        ax.set_xticks(np.arange(0, job_levels + 2, 1))
+        ax.set_xlim(.75, job_levels + 2)
+
+    # invert axis as required:
+    if measure in ['snum', 'lnum', 'spcnt', 'lspcnt', 'rank_in_job',
+                   'cat_order', 'jnum', 'nbnf', 'jobp', 'fbff', 'new_order']:
+        ax.invert_yaxis()
+
+    if xax in ['spcnt', 'lspcnt', 'date', 'ldate', 'doh', 'retdate',
+               'jnum', 'nbnf', 'jobp', 'fbff', 'cat_order', 'new_order',
+               'lnum', 'snum']:
         ax.invert_xaxis()
 
-    if xax in ['spcnt', 'lspcnt'] and full_pcnt_xscale:
-        ax.set_xlim(1, 0)
+    if xax in ['date', 'retdate'] and ret_only:
+        ax.invert_xaxis()
+
+    if xax in ['date', 'ldate', 'doh', 'retdate']:
+        locator = mdate.YearLocator()
+        ax.xaxis.set_major_locator(locator)
+        fig.autofmt_xdate()
+        plt.xticks(rotation=75, ha='center')
+        for label in ax.xaxis.get_ticklabels()[1::2]:
+            label.set_visible(False)
 
     ax.legend(loc=4, markerscale=1.5, fontsize=legend_fontsize)
 
@@ -806,10 +863,10 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
     if ret_only:
         title_suffix = ' - at retirement'
     else:
-        title_suffix = ' - Month: ' + str(mnum)
+        title_suffix = ' - month: ' + str(mnum)
 
-    suptitle = attr_dict[measure].upper() + ' ordered by ' + xax + ' - ' + \
-        prop_text + title_suffix
+    suptitle = (attr_dict[measure].upper() + ' ordered by ' +
+                attr_dict[xax].upper() + ' - ' + prop_text + title_suffix)
 
     if t_string:
         fig.suptitle(suptitle, fontsize=suptitle_fontsize)
@@ -937,12 +994,15 @@ def violinplot_by_eg(df, measure, ret_age, attr_dict, ds_dict=None,
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
                    'jobp', 'cat_order']:
         ax.invert_yaxis()
+
         if measure in ['spcnt', 'lspcnt']:
             ax.yaxis.set_major_formatter(pct_format)
             ax.set_yticks(np.arange(0, 1.05, .05))
             ax.set_ylim(1.04, -.04)
+
     ax.set_xlabel('employee group')
     ax.set_ylabel(attr_dict[measure])
+
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
@@ -2567,7 +2627,7 @@ def parallel(df_list, dfb, eg_list, measure,
             for i in np.arange(1, len(yticks)):
                 yticks[i] = jobs[i - 1]
 
-            ax.set_yticklabels(yticks, fontsize=12)
+            ax.set_yticklabels(yticks, va='top', fontsize=12)
 
         if measure in ['snum', 'lnum', 'cat_order']:
             ax.invert_yaxis()
@@ -3148,6 +3208,8 @@ def job_transfer(dfc, dfb, eg, job_colors,
             if set, analyze job transfer data from this date forward
         max_date (string date format)
             if set, analyze job transfer data up to this date
+        tgt_jobs_list (list)
+            if not None, only plot job level(s) in this list
         job_alpha (float)
             chart alpha level for job transfer plotting (0.0 - 1.0)
         chart_style (string)
@@ -3328,8 +3390,7 @@ def job_transfer(dfc, dfb, eg, job_colors,
             ' Jobs Exchange' + '\n' + \
             dfc_label + \
             ' compared to ' + dfb_label
-        ax1.set_title(title_string,
-                  fontsize=title_fontsize, y=1.02)
+        ax1.set_title(title_string, fontsize=title_fontsize, y=1.02)
     except (NameError, LookupError):
         print('error, problem creating title text')
 
@@ -4109,7 +4170,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure, xax, job_strs,
             yticks[i] = job_strs[i - 1]
 
         ax1.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.2)
-        ax1.set_yticklabels(yticks)
+        ax1.set_yticklabels(yticks, va='top')
         ax1.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         ax1.set_ylim(job_levels + 1.5, 0.5)
 
@@ -5142,7 +5203,7 @@ def single_emp_compare(emp, measure, df_list, xax,
         for i in np.arange(1, len(yticks)):
             yticks[i] = job_strs[i - 1]
         ax.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.9)
-        ax.set_yticklabels(yticks)
+        ax.set_yticklabels(yticks, va='top')
         ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
         ax.set_ylim(job_levels + 1.5, 0.5)
 
@@ -5436,6 +5497,7 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
                              plot_median=False, plot_average=True,
                              compare_to_dfb=True,
                              use_filtered_results=True,
+                             show_full_yscale=False,
                              job_labels=True,
                              max_date=None, chart_style='whitegrid',
                              xsize=14, ysize=8,
@@ -5502,7 +5564,11 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
             the same attribute, a different set of employees could be returned.
             This option ensures that the same group of employees from both the
             dfc (filtered first) list and the dfb list are compared.
-            (dfc refers to comparisonproposal, dfb refers to baseline)
+            (dfc refers to the comparison proposal, dfb refers to baseline)
+        show_full_yscale (boolean)
+            if measure input is one of these: 'jnum', 'nbnf', 'jobp', 'fbff',
+            if True, show all job levels on chart.  Otherwise, allow chart to
+            autoscale with plotted data
         job_labels (boolean)
             if measure input is one of these: 'jnum', 'nbnf', 'jobp', 'fbff',
             use job text description labels vs. number labels on the y axis
@@ -5640,20 +5706,27 @@ def group_average_and_median(dfc, dfb, eg_list, eg_colors,
         ax.invert_yaxis()
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
-        if job_labels:
-            ax.set_yticks(np.arange(0, job_levels + 2, 1))
-            yticks = ax.get_yticks().tolist()
 
+        if job_labels:
+            if show_full_yscale:
+                ax.set_yticks(np.arange(0, job_levels + 2, 1))
+            yticks = ax.get_yticks().tolist()
             job_strs_dict = settings_dict['job_strs_dict']
             for i in np.arange(1, len(yticks)):
                 yticks[i] = job_strs_dict[i]
-            ax.axhspan(job_levels + 1, job_levels + 2,
-                       facecolor='.8', alpha=0.9)
-            ax.set_yticklabels(yticks)
-            ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
-            ax.set_ylim(job_levels + 1.5, 0.5)
+            ax.set_yticklabels(yticks, va='top')
+            ax.set_ylim(ymax=0.75)
+
         else:
-            ax.set_ylim(ymax=0)
+            if show_full_yscale:
+                ax.set_yticks(np.arange(0, job_levels + 2, 1))
+            ax.set_ylim(ymax=0.75)
+
+        if show_full_yscale:
+            ax.set_ylim(ymin=job_levels + 2)
+            ax.axhspan(job_levels + 1, job_levels + 2,
+                       facecolor='.8', alpha=0.5)
+            ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
 
     if settings_dict['delayed_implementation']:
         # plot vertical line at implementation date
@@ -6451,6 +6524,7 @@ def quartile_groupby(df, eg_list, measure, quartiles, eg_colors,
         fig, ax1 = plt.subplots(figsize=(xsize, ysize))
 
     job_levels = settings_dict['num_of_job_levels']
+    job_strs = settings_dict['job_strs_dict']
 
 # ************
 
@@ -6561,8 +6635,13 @@ def quartile_groupby(df, eg_list, measure, quartiles, eg_colors,
             pass
 
     if measure in ['fbff', 'jobp', 'jnum', 'orig_job']:
-        ax1.set_ylim(job_levels + 1.25, 0.75)
-        ax1.set_yticks(np.arange(1, job_levels + 2, 1))
+        jnums = np.arange(1, job_levels + 2, 1)
+        ax1.set_yticks(jnums)
+        yticks = []
+        for i in jnums:
+            yticks.append(job_strs[i])
+        ax1.set_yticklabels(yticks, va='top')
+        ax1.set_ylim(job_levels + 1.25, 0.5)
 
     if measure in ['spcnt', 'lspcnt']:
         ax1.yaxis.set_major_formatter(pct_format)
@@ -6973,10 +7052,11 @@ def percent_diff_bins(eg, base, compare,
                       attr3=None, oper3='>=', val3=0,
                       man_plotlim=None,
                       invert_barh=False,
+                      chart_style='ticks',
                       cmap_pos='Vega20c',
                       cmap_neg='Vega20c',
                       zero_line_color='m',
-                      bright_bg=True,
+                      bright_bg=False,
                       bg_color='#ffffe6',
                       title_fontsize=14,
                       legend_fontsize=12.5,
@@ -7028,6 +7108,8 @@ def percent_diff_bins(eg, base, compare,
             Otherwise, limit is set by an algorithm.
         invert_barh (boolean)
             If 'kind' input is set to 'barh', if True, invert the chart y axis
+        chart_style (string)
+            any valid seaborn plotting style name
         cmap_pos (string)
             any matplotlib colormap name representing colors to be applied to
             positive chart values
@@ -7076,7 +7158,7 @@ def percent_diff_bins(eg, base, compare,
     b = d_filtb[['mnum', 'date', 'eg', measure]]
     c = d_filtc[['mnum', 'date', 'eg', measure]]
 
-    with sns.axes_style('ticks'):
+    with sns.axes_style(chart_style):
         fig, ax1 = plt.subplots(figsize=(xsize, ysize))
 
     pos_colors = make_color_list(num_of_colors=num_display_colors,
@@ -7241,7 +7323,7 @@ def cohort_differential(ds, base, sdict, cdict, adict,
                         attr3=None, oper3='>=', val3=0,
                         pos_color='g', neg_color='r',
                         pos_alpha=.25, neg_alpha=.25,
-                        bg_color=None, bg_alpha=.3,
+                        bg_color=None,  # #ffffe6
                         zero_line_color='m',
                         title_fontsize=16,
                         label_fontsize=14,
@@ -7249,8 +7331,8 @@ def cohort_differential(ds, base, sdict, cdict, adict,
                         legend_fontsize=12.5,
                         xsize=14, ysize=10,
                         image_dir=None, image_format='svg'):
-    '''Compare the locations of employees from different groups who share the
-    same attribute value.
+    '''Compare proposed integrated list locations of employees from different
+    groups who share a similar attribute value.
 
     This function is best used with date-type attributes, such as longevity
     date or date of hire.
@@ -7321,8 +7403,6 @@ def cohort_differential(ds, base, sdict, cdict, adict,
             shading areas (0.0 to 1.0)
         bg_color (color value string)
             if not None, the color for the chart background
-        bg_alpha (integer or float)
-            transparency setting if a bg_color is used (0.0 to 1.0)
         zero_line_color (color value string)
             color for the zero line
         title_fontsize (integer or float)
@@ -7446,10 +7526,10 @@ def cohort_differential(ds, base, sdict, cdict, adict,
         ax.xaxis.set_major_locator(locator)
         fig.autofmt_xdate()
         plt.xticks(rotation=75, ha='center')
-        ax.yaxis.labelpad = 10
-        ax.xaxis.labelpad = 10
         for label in ax.xaxis.get_ticklabels()[1::2]:
             label.set_visible(False)
+        ax.yaxis.labelpad = 10
+        ax.xaxis.labelpad = 10
 
     if not sort_xax_by_measure and compare_value:
 
@@ -7489,7 +7569,7 @@ def cohort_differential(ds, base, sdict, cdict, adict,
                   ("compare_value" input vs. "measure" input)''')
 
     if bg_color:
-        ax.set_facecolor(bg_color, alpha=bg_alpha)
+        ax.set_facecolor(bg_color)
 
     func_name = sys._getframe().f_code.co_name
     if image_dir:
