@@ -3949,7 +3949,7 @@ def anon_names(length=10, min_seg=3, max_seg=3, add_rev=False,
                df=None, inplace=False):
     '''Generate a list of random strings
 
-    Output may be used to "anonomize" a dataset name column
+    Output may be used to anonymize a dataset name column
 
     The length of the output strings will be determined by the min_seg and
     max_seg inputs.  The segments (seg) are random 2-letter combinations of
@@ -4016,7 +4016,8 @@ def anon_names(length=10, min_seg=3, max_seg=3, add_rev=False,
 
 def anon_empkeys(df, seq_start=10001, frame_num=10000000, inplace=False):
     '''Produce a list of unique, randomized employee numbers, catogorized
-    by employee group number code.
+    by employee group number code.  Output may be used to anonymize a dataset
+    empkey column.
 
     Dataframe input (df) must contain an employee group (eg) column.
 
@@ -4140,3 +4141,63 @@ def anon_pay(df, inplace=False):
 
     if not inplace:
         return df0[val_cols]
+
+
+def sample_dataframe(df, n=None, frac=None, reset_index=False):
+    '''Get a random sample of a dataframe by rows, with the sample size
+    defined either by a count or fraction.
+
+    inputs
+        df (dataframe)
+            pandas dataframe for sampling
+        n (integer)
+            If not None, the count of the rows in the returned sample
+            dataframe.
+            The "n" input will override the "frac" input if both are not None.
+            Will be clipped between zero and len(df) if input exceeds these
+            boundries.
+        frac (float)
+            If not None, the size of the returned sample dataframe relative to
+            the input dataframe.  Will be ignored if "n" input is not None.
+            Will be clipped between 0.0 and 1.0 if input exceeds these
+            boundries.
+        sort_index (boolean)
+            If True, sort the sample dataframe by the original index and then
+            reset the index
+
+    If both the "n" and "frac" inputs are None, a random single row will be
+    returned.
+    '''
+    # set "frac" input to None if "n" input is not None (cannot use both
+    # inputs at once)
+    if (frac is not None) and (n is not None):
+        frac = None
+
+    # make an order column for sorting after sample operation
+    df['df_order'] = np.arange(len(df)) + 1
+
+    if n is not None:
+        n = np.clip(n, 0, len(df))
+        df = df.sample(n=n)
+
+    else:
+        if frac is not None:
+            frac = np.clip(frac, 0.0, 1.0)
+        df = df.sample(frac=frac)
+
+    # use order column to restore original order to sampled data
+    df.sort_values('df_order', inplace=True)
+    # get rid of utility order column
+    df.pop('df_order')
+
+    if reset_index:
+        df.reset_index(drop=True, inplace=True)
+
+    # recalculate "eg_order" column if it exists in dataframe
+    try:
+        df['eg_order'] = df.groupby('eg').cumcount() + 1
+    except:
+        pass
+
+    return df
+
