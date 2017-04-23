@@ -12,6 +12,7 @@ size and age)
 import os
 import shutil
 import copy
+import random
 import pandas as pd
 import numpy as np
 import scipy.stats as st
@@ -3837,3 +3838,305 @@ def add_zero_col(arr):
     arr = np.append(zero_col, arr, 1)
     return arr.astype(int)
 
+
+def update_excel(case, file, ws_dict={}, remove_list=None):
+    '''Read an excel file, modify worksheet(s), and write the excel file
+    back to disk
+
+    inputs
+        case (string)
+            the data model case name
+        file (string)
+            the excel file name without the .xlsx extension
+        ws_dict (dictionary)
+            dictionary of worksheet names as keys and pandas dataframes as
+            values.  The items in this dictionary will be passed into the
+            excel file as worksheets. The worksheet name keys may be the
+            same as some or all of the worksheet names in the excel file.
+            In the case of matching names, the data from the input dict will
+            overwrite the existing data (worksheet) in the excel file.
+            Non-overlapping worksheet names/dataframe values will be added
+            as new worksheets.
+        remove_list (list)
+            a list of worksheet names (strings) representing worksheets to
+            remove from the excel workbook.  It is not necessary to remove
+            sheets which are being replaced by worksheet with the same name.
+    '''
+    # read a single or multi-sheet excel file
+    # (returns dict of sheetname(s), dataframe(s))
+    path = 'excel/' + case + '/' + file + '.xlsx'
+
+    # make a copy of file before modifying
+    copy_excel_file(case, file, verbose=False)
+
+    # get a dictionary from the excel file consisting of worksheet name keys
+    # and worksheet contents as values (as dataframes)
+    try:
+        dict0 = pd.read_excel(path, sheetname=None)
+    except OSError:
+        print('Error: Unable to find "' + path + '"')
+        return
+    # all worksheets are now accessible as dataframes.
+    # drop worksheets which match an element in the remove_list:
+    if remove_list is not None:
+        for ws_name in remove_list:
+            dict0.pop(ws_name, None)
+
+    # update worksheet dictionary with ws_dict (ws_dict values will override
+    # existing values in the case of matching worksheet name keys):
+    dict0.update(ws_dict)
+
+    # write the updated dictionary back to excel...
+    with pd.ExcelWriter(path,
+                        engine='xlsxwriter',
+                        datetime_format='yyyy-mm-dd',
+                        date_format='yyyy-mm-dd') as writer:
+
+        for sheet_name, df_sheet in dict0.items():
+            df_sheet.to_excel(writer, sheet_name=sheet_name)
+
+
+def copy_excel_file(case, file, revert=False, verbose=True):
+    '''Copy an excel file and add '_orig' to the file name, or restore an
+    excel file from the '_orig' copy.
+
+    inputs
+        case (string)
+            the data model case name
+        file (string)
+            the excel file name without the .xlsx extension
+        revert (boolean)
+            if False, copy the excel file and add '_orig' to the file name.
+            if True, restore the copied file and drop the '_orig' suffix
+        verbose (boolean)
+            if True, print a brief summary of the operation result
+    '''
+    path_orig = 'excel/' + case + '/' + file + '_orig.xlsx'
+    path = 'excel/' + case + '/' + file + '.xlsx'
+
+    # copy file as <file>_orig.xlsx
+    if not revert:
+        try:
+            if not os.path.isfile(path_orig):
+                shutil.copyfile(path, path_orig)
+                if verbose:
+                    print('"' + path + '" *copied* as "' + path_orig + '"')
+            else:
+                if verbose:
+                    print('"' + path_orig + '" file *already exists*')
+        except OSError:
+            if verbose:
+                print('"' + path + '" file *not found*')
+        return
+
+    # restore <file>_orig.xlsx as <file>.xlsx
+    if revert:
+        try:
+            if os.path.isfile(path_orig):
+                os.remove(path)
+                os.rename(path_orig, path)
+                if verbose:
+                    print('"' + path_orig + '" *restored* as "' + path + '"')
+            else:
+                if verbose:
+                    print('"' + path_orig + '" file *not found*')
+        except OSError:
+            if verbose:
+                print(path + ' file not found')
+
+
+def anon_names(length=10, min_seg=3, max_seg=3, add_rev=False,
+               df=None, inplace=False):
+    '''Generate a list of random strings
+
+    Output may be used to "anonomize" a dataset name column
+
+    The length of the output strings will be determined by the min_seg and
+    max_seg inputs.  The segments (seg) are random 2-letter combinations of
+    a consonant and a vowel.  An additional random consonant or vowel will
+    be added to the segment combinations, so the length of the output strings
+    will always be an odd number.  The min and max may be the same value to
+    produce a list of strings of uniform length.
+
+    Example:
+
+    If the min_seg input is 1 and the max_seg input is 3, the output list will
+    contain strings from 3 (2-letter seg + 1 random letter) to 7 characters.
+
+    inputs
+        length (integer)
+            the length of the output list
+        min_seg (integer)
+            the minimum number of 2 letter segments to include in the output
+            list
+        max_seg (integer)
+            the maximum number of 2 letter segments to include in the output
+            list (must be => "min_seg" input)
+        add_rev (boolean)
+            add vowel-consonant combinations to the consonant-vowel segments.
+            (this is not normally needed to produce random and readable
+            strings)
+        df (dataframe)
+            optional short-form pandas dataframe input.  If not None, use the
+            length of the dataframe as the "length" input value
+        inplace (boolean)
+            if the "df" input is not None, insert the results directly into
+            the input "lname" column.  Caution: make a copy first!
+    '''
+    segs = []
+    vowels = 'aeiou'
+    letters = 'abcdefghijklmnopqrstuvwxyz'
+    anon_list = []
+
+    for l in letters:
+        for v in vowels:
+            segs.append(l + v)
+    if add_rev:
+        rev_segs = [el[::-1] for el in segs if el[::-1] not in segs]
+        segs.extend(rev_segs)
+
+    segs.remove('fu')
+    segs.remove('hi')
+    segs.remove('cu')
+    segs.remove('co')
+    segs.remove('mo')
+
+    rnd = len(segs) - 1
+
+    for n in range(length):
+        anon = ''
+        num_segs = random.randint(min_seg, max_seg)
+        for i in range(num_segs):
+            anon = anon + segs[random.randint(1, rnd)]
+        anon = anon + letters[random.randrange(0, 25)]
+        anon_list.append(anon)
+
+    return anon_list
+
+
+def anon_empkeys(df, seq_start=10001, frame_num=10000000, inplace=False):
+    '''Produce a list of unique, randomized employee numbers, catogorized
+    by employee group number code.
+
+    Dataframe input (df) must contain an employee group (eg) column.
+
+    inputs
+        df (dataframe)
+            short-form (master list) pandas dataframe containing an employee
+            group code column
+        seq_start (integer)
+            this number will be added to each employee group cumulative count
+            to "seed" the random employee numbers.  These numbers will be
+            shuffled within employee groups by the function for the output
+        frame_num (integer)
+            This number will be multiplied by each employee code and added to
+            the employee group cumulative counts (added to the seq_start
+            number), and should be much larger than the data model population
+            to provide a constant length employee number (empkey) for all
+            employees.
+        inplace (boolean)
+            if True, insert the results directly into the "empkey" column
+            of the input dataframe.  Caution: make a copy first!
+    '''
+    df0 = df[['eg']].copy()
+    df0['new_emp'] = (df0.groupby('eg').cumcount() + seq_start) +\
+        (df0.eg * frame_num)
+
+    eg = np.array(df0.eg)
+    emp = np.array(df0.new_emp)
+
+    for eg_num in np.unique(eg):
+        emp_slice = emp[np.where(eg == eg_num)[0]]
+        shuffled = np.random.permutation(emp_slice)
+        np.put(emp,
+               np.where(eg == eg_num)[0],
+               shuffled)
+    if inplace:
+        df.empkey = emp
+    else:
+        return emp
+
+
+def anon_dates(df, date_col_list, max_adj=5,
+               positive_only=True, inplace=False):
+    '''Add (or optionally, add or subtract) a random number of days to each
+    element of a date attribute column.
+
+    inputs
+        df (dataframe)
+            short-form (master list) pandas dataframe containing a date
+            attribute column
+        date_col_list (list)
+            name(s) of date attribute column(s) to be adjusted (as a list
+            of strings)
+
+            Example:
+
+                ['ldate', 'doh', 'dob']
+        max_adj (integer)
+            the maximum number of days to add (or optionally subtract) from
+            each element within the date column
+        positive_only (boolean)
+            if True limit the range of adjustment days from zero to the
+            max_adj value.  If False, limit the range of adjustment from
+            negative max_adj value to positive max_adj value.  Caution:  It
+            is recommended that the "dob" (date of birth) attribute only be
+            adjusted positively, to aviod potential issues with earlier
+            retirements, which affect the initial data model counts.
+        inplace (boolean)
+            if True, insert the results directly into the date column(s)
+            of the input dataframe.  Caution: make a copy first!
+    '''
+    # p_adj is only positive adjustment
+    # pn_adj is both positive and negative adjustment
+    df0 = df.copy()
+    # print(df0.head())
+    if positive_only:
+        adj_range = range(max_adj)
+        # make arrays slightly longer than dataframe length
+    else:
+        adj_range = range(-max_adj, max_adj)
+
+    adj = np.random.permutation(np.repeat(adj_range,
+                                          int(len(df) / len(adj_range)) + 1))
+
+    df0['adjust'] = adj[:len(df)]
+    days_adjust = pd.TimedeltaIndex(df0['adjust'], unit='D')
+
+    for col in date_col_list:
+        if inplace:
+            df[col] = df0[col] + days_adjust
+        else:
+            df0[col] = df0[col] + days_adjust
+
+    if not inplace:
+        return df0[date_col_list]
+
+
+def anon_pay(df, inplace=False):
+    '''Change the pay table baseline information with a non-linear,
+    non-proportional method.
+
+    inputs
+        df (dataframe)
+            pandas dataframe containing pay rate date (dataframe
+            representation of the "rates" worksheet from the pay_tables.xlsx
+            workbook)
+        inplace (boolean)
+            if True, replace the values within the original dataframe with
+            the "anonomized" values.  Caution: make a copy first!
+    '''
+    df0 = df.copy()
+
+    val_cols = [col for col in list(df) if type(col) == int]
+    data = df0[val_cols].values
+    arr_mod = np.where(data > 0,
+                       (((((data - 17) / 1.4) + 20) / 1.3) - 5) * 1.1, 0)
+
+    if inplace:
+        df[val_cols] = arr_mod
+    else:
+        df0[val_cols] = arr_mod
+
+    if not inplace:
+        return df0[val_cols]
