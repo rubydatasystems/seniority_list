@@ -76,7 +76,7 @@ except OSError:
 
 # set the idx column equal to the "new_order" column if it exists.
 # this would be the case if df_order is the output from the editor tool
-if 'new_order' in list(df_order):
+if 'new_order' in df_order.columns.values.tolist():
     idx = 'new_order'
 else:
     idx = 'idx'

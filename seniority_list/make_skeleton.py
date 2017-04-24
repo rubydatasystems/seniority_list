@@ -8,7 +8,6 @@ some column(s) are dependent on the settings dictionary values, such as
 pay raise beyond the contract last year.
 '''
 
-import pickle
 import pandas as pd
 import numpy as np
 
@@ -21,7 +20,7 @@ master_list = 'master'
 master_path = (pre + master_list + suf)
 
 try:
-    df_list = pd.read_pickle(master_path)
+    df_mlist = pd.read_pickle(master_path)
 except OSError:
     print('\nMaster list not found.  Run build_program_files script?\n\n' +
           'Skeleton build failed.\n\n' +
@@ -37,13 +36,13 @@ sdict = pd.read_pickle('dill/dict_settings.pkl')
 # only include pilots that are not retired prior to the starting_month
 start_date = sdict['starting_date']
 
-df_list = df_list[
-    df_list.retdate >= start_date - pd.DateOffset(months=1)]
+df_mlist = df_mlist[
+    df_mlist.retdate >= start_date - pd.DateOffset(months=1)]
 
 # include furloughees by default
-df = df_list[(df_list.line == 1) | (df_list.fur == 1)].copy()
+df = df_mlist[(df_mlist.line == 1) | (df_mlist.fur == 1)].copy()
 
-df_list = []
+df_mlist = []
 
 # MNUM*
 # calculate the number of career months for each employee (short_form)

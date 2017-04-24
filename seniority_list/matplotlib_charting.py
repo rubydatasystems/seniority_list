@@ -211,9 +211,8 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                            retbins=True,
                            labels=np.arange(num_bins) + 1)[1].astype(int)
 
-        result_arr = np.zeros((num_bins, len(months_in_jobs.columns)))
-
-        cols = list(months_in_jobs.columns)
+        cols = months_in_jobs.columns.values.tolist()
+        result_arr = np.zeros((num_bins, len(cols)))
 
         labels = []
         colors = []
@@ -591,7 +590,7 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
         frame = frame[frame.jnum <= job_levels]
     if measure in ['mpay']:
-        if 'ret_mark' in list(frame):
+        if 'ret_mark' in frame.columns.values.tolist():
             frame = frame[frame.ret_mark != 1]
         else:
             frame = frame[frame.age < ret_age]
@@ -662,9 +661,9 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                          full_pcnt_yscale=True,
                          xsize=12, ysize=10,
                          image_dir=None, image_format='svg'):
-    '''plot separate selected employee group data for a specific month.
+    '''Plot separate selected employee group data for a specific month.
 
-    chart type may be line or scatter.
+    The chart marker type may be line or scatter(default).
 
     inputs
         df (dataframe)
@@ -876,6 +875,7 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
 
     ax.set_ylabel(attr_dict[measure])
     ax.set_xlabel(attr_dict[xax])
+
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
@@ -1701,7 +1701,6 @@ def stripplot_distribution_in_category(df, job_levels, full_time_pcnt,
                                   rank_metric]]).reindex(dsm.index)
 
     data = d_filt.copy()
-    # fur_lvl = job_levels + 1
 
     eg_set = pd.unique(data.eg)
     max_eg_plus_one = max(eg_set) + 1
@@ -1710,7 +1709,6 @@ def stripplot_distribution_in_category(df, job_levels, full_time_pcnt,
 
     clr_idx = (np.unique(dsm.jnum) - 1).astype(int)
     cum_job_counts = dsm.jnum.value_counts().sort_index().cumsum()
-    # lowest_cat = max(cum_job_counts.index)
 
     cnts = list(cum_job_counts)
     cnts.insert(0, 0)
@@ -3361,7 +3359,7 @@ def job_transfer(dfc, dfb, eg, job_colors,
     # LEGEND
     job_labels = []
     legend_title = 'job'
-    for col in list(diff2):
+    for col in diff2.columns.values.tolist():
         job_labels.append(job_strs[col - 1])
 
     box = ax1.get_position()
@@ -4980,11 +4978,11 @@ def cond_test(df, grp_sel, enhanced_jobs, job_colors, job_dict,
 
             cnd_jcnts = all_jcnts.copy()
 
-            # cnd_jcnts['mnum'] = range(len(cnd_jcnts))
             jdf = cnd_jcnts[(cnd_jcnts.mnum >= min_mnum) &
                             (cnd_jcnts.mnum <= max_mnum)]
-            not_found = [job for job in job_list if job not in list(jdf)]
-            job_list = [job for job in job_list if job in list(jdf)]
+            jdf_cols = jdf.columns.values.tolist()
+            not_found = [job for job in job_list if job not in jdf_cols]
+            job_list = [job for job in job_list if job in jdf_cols]
             if not_found:
                 print('these jobs are not found and are not plotted >>',
                       not_found)
@@ -5998,7 +5996,7 @@ def job_count_bands(df_list, eg_list, job_colors,
 
             dfg = df.groupby(['date', 'jnum']).size()
             dfg = pd.DataFrame(dfg.unstack().fillna(0))
-            cols = list(dfg.columns)
+            cols = dfg.columns.values.tolist()
 
             plot_colors = [job_colors[j - 1] for j in cols]
 
@@ -7022,13 +7020,14 @@ def percent_bins(eg, base, compare, measure='spcnt',
         pc_df = grouped.median().unstack().fillna(0)
 
     pc_df.columns = pc_df.columns.droplevel(0)
+    pc_df_col_list = pc_df.columns.values.tolist()
 
     pos_df = pd.DataFrame(index=np.arange(1, quartiles + 1),
-                          columns=list(pc_df))
+                          columns=pc_df_col_list)
     neg_df = pd.DataFrame(index=np.arange(1, quartiles + 1),
-                          columns=list(pc_df))
+                          columns=pc_df_col_list)
 
-    for time_period in list(pc_df):
+    for time_period in pc_df_col_list:
         count, division = np.histogram(pc_df[time_period],
                                        bins=bins)
         neg_count, neg_division = np.histogram(pc_df[time_period],
@@ -7521,7 +7520,7 @@ def cohort_differential(ds, base, sdict, cdict, adict,
 
     ax.tick_params(axis='both', labelsize=tick_fontsize)
     ax.grid(alpha=.15, ls='dotted', color='k')
-    if sort_xax_by_measure and measure in ['ldate', 'doh', 'retdate']:
+    if sort_xax_by_measure and measure in ['date', 'ldate', 'doh', 'retdate']:
         locator = mdate.YearLocator()
         ax.xaxis.set_major_locator(locator)
         fig.autofmt_xdate()

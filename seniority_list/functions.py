@@ -3839,7 +3839,7 @@ def add_zero_col(arr):
     return arr.astype(int)
 
 
-def update_excel(case, file, ws_dict={}, remove_list=None):
+def update_excel(case, file, ws_dict={}, sheets_to_remove=None):
     '''Read an excel file, modify worksheet(s), and write the excel file
     back to disk
 
@@ -3857,7 +3857,7 @@ def update_excel(case, file, ws_dict={}, remove_list=None):
             overwrite the existing data (worksheet) in the excel file.
             Non-overlapping worksheet names/dataframe values will be added
             as new worksheets.
-        remove_list (list)
+        sheets_to_remove (list)
             a list of worksheet names (strings) representing worksheets to
             remove from the excel workbook.  It is not necessary to remove
             sheets which are being replaced by worksheet with the same name.
@@ -3877,9 +3877,9 @@ def update_excel(case, file, ws_dict={}, remove_list=None):
         print('Error: Unable to find "' + path + '"')
         return
     # all worksheets are now accessible as dataframes.
-    # drop worksheets which match an element in the remove_list:
-    if remove_list is not None:
-        for ws_name in remove_list:
+    # drop worksheets which match an element in the sheets_to_remove:
+    if sheets_to_remove is not None:
+        for ws_name in sheets_to_remove:
             dict0.pop(ws_name, None)
 
     # update worksheet dictionary with ws_dict (ws_dict values will override
@@ -4003,6 +4003,9 @@ def anon_names(length=10, min_seg=3, max_seg=3, add_rev=False,
 
     rnd = len(segs) - 1
 
+    if df is not None:
+        length = len(df)
+
     for n in range(length):
         anon = ''
         num_segs = random.randint(min_seg, max_seg)
@@ -4011,7 +4014,10 @@ def anon_names(length=10, min_seg=3, max_seg=3, add_rev=False,
         anon = anon + letters[random.randrange(0, 25)]
         anon_list.append(anon)
 
-    return anon_list
+    if not inplace:
+        return anon_list
+    else:
+        df['lname'] = anon_list
 
 
 def anon_empkeys(df, seq_start=10001, frame_num=10000000, inplace=False):
@@ -4080,10 +4086,7 @@ def anon_dates(df, date_col_list, max_adj=5,
         positive_only (boolean)
             if True limit the range of adjustment days from zero to the
             max_adj value.  If False, limit the range of adjustment from
-            negative max_adj value to positive max_adj value.  Caution:  It
-            is recommended that the "dob" (date of birth) attribute only be
-            adjusted positively, to aviod potential issues with earlier
-            retirements, which affect the initial data model counts.
+            negative max_adj value to positive max_adj value.
         inplace (boolean)
             if True, insert the results directly into the date column(s)
             of the input dataframe.  Caution: make a copy first!
@@ -4129,7 +4132,8 @@ def anon_pay(df, inplace=False):
     '''
     df0 = df.copy()
 
-    val_cols = [col for col in list(df) if type(col) == int]
+    all_cols = df.columns.values.tolist()
+    val_cols = [col for col in all_cols if type(col) == int]
     data = df0[val_cols].values
     arr_mod = np.where(data > 0,
                        (((((data - 17) / 1.4) + 20) / 1.3) - 5) * 1.1, 0)
@@ -4144,8 +4148,8 @@ def anon_pay(df, inplace=False):
 
 
 def sample_dataframe(df, n=None, frac=None, reset_index=False):
-    '''Get a random sample of a dataframe by rows, with the sample size
-    defined either by a count or fraction.
+    '''Get a random sample of a dataframe by rows, with the number of rows
+    in the returned sample defined by a count or fraction input.
 
     inputs
         df (dataframe)
@@ -4160,7 +4164,8 @@ def sample_dataframe(df, n=None, frac=None, reset_index=False):
             If not None, the size of the returned sample dataframe relative to
             the input dataframe.  Will be ignored if "n" input is not None.
             Will be clipped between 0.0 and 1.0 if input exceeds these
-            boundries.
+            boundries.  An input of .3 would randomly select 30% of the rows
+            from the input dataframe.
         sort_index (boolean)
             If True, sort the sample dataframe by the original index and then
             reset the index

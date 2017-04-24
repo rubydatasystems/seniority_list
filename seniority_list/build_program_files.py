@@ -16,6 +16,7 @@ from proposals.xlsx:
 from master.xlsx:
     master.pkl,
     last_month.pkl
+    dict_job_tables.pkl
 
 from pay_tables.xlsx:
 
@@ -133,7 +134,7 @@ contract_years = np.unique(pay_rates.year)
 
 # extract integer column names (represents years of pay longevity)
 longevity_cols = []
-for col in list(pay_rates.columns):
+for col in pay_rates.columns.values.tolist():
     try:
         int(col)
         longevity_cols.append(col)
@@ -429,7 +430,8 @@ else:
     settings['num_of_job_levels'] = settings['job_levels_basic']
 
 df = xl['job_counts']
-filter_cols = [col for col in list(df) if col.startswith('eg')]
+filter_cols = \
+    [col for col in df.columns.values.tolist() if col.startswith('eg')]
 df_filt = df[filter_cols]
 eg_counts = []
 for col in df_filt:
@@ -448,7 +450,8 @@ for i in np.arange(len(start)):
 settings['jc_months'] = jc_set
 
 df['lister1'] = f.make_lists_from_columns(df, ['month_start', 'month_end'])
-filter_cols = [col for col in list(df) if col.startswith('eg')]
+filter_cols = \
+    [col for col in df.columns.values.tolist() if col.startswith('eg')]
 df['lister2'] = f.make_lists_from_columns(df, filter_cols)
 settings['j_changes'] = f.make_lists_from_columns(df, ['job', 'lister1',
                                                        'total_change',
@@ -457,7 +460,8 @@ settings['j_changes'] = f.make_lists_from_columns(df, ['job', 'lister1',
 # ## recalls
 
 df = xl['recall']
-filter_cols = [col for col in list(df) if col.startswith('eg')]
+filter_cols = \
+    [col for col in df.columns.values.tolist() if col.startswith('eg')]
 df['lister'] = f.make_lists_from_columns(df, filter_cols)
 settings['recalls'] = f.make_lists_from_columns(df, ['total_monthly',
                                                      'lister',
@@ -474,7 +478,7 @@ month_end = df.month_end.max()
 settings['prex_month_range'] = set(range(month_start, month_end + 1))
 
 sg_col_list = ['eg', 'job', 'count', 'month_start', 'month_end']
-filter_cols = [col for col in list(df) if col in sg_col_list]
+filter_cols = [col for col in df.columns.values.tolist() if col in sg_col_list]
 settings['sg_rights'] = f.make_lists_from_columns(df, filter_cols)
 
 # ## ratio_cond
@@ -486,8 +490,9 @@ month_start = df.month_start.min()
 month_end = df.month_end.max()
 settings['ratio_month_range'] = set(range(month_start, month_end + 1))
 
-group_cols = [col for col in list(df) if col.startswith('group')]
-weight_cols = [col for col in list(df) if col.startswith('weight')]
+df_cols = df.columns.values.tolist()
+group_cols = [col for col in df_cols if col.startswith('group')]
+weight_cols = [col for col in df_cols if col.startswith('weight')]
 for col in group_cols:
     df[col] = f.make_group_lists(df, col)
 
@@ -513,8 +518,9 @@ month_start = df.month_start.min()
 month_end = df.month_end.max()
 settings['count_ratio_month_range'] = set(range(month_start, month_end + 1))
 
-group_cols = [col for col in list(df) if col.startswith('group')]
-weight_cols = [col for col in list(df) if col.startswith('weight')]
+df_cols = df.columns.values.tolist()
+group_cols = [col for col in df_cols if col.startswith('group')]
+weight_cols = [col for col in df_cols if col.startswith('weight')]
 for col in group_cols:
     df[col] = f.make_group_lists(df, col)
 df['grp_tup'] = f.make_lists_from_columns(df, group_cols,
@@ -603,7 +609,6 @@ master = pd.read_excel('excel/' + case + '/master.xlsx')
 
 master.set_index('empkey', drop=False, inplace=True)
 
-retage = settings['ret_age']
 master['retdate'] = master['dob'] + \
     pd.DateOffset(years=settings['init_ret_age_years']) + \
     pd.DateOffset(months=settings['init_ret_age_months'])
