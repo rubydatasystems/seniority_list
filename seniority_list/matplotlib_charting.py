@@ -174,7 +174,7 @@ def quartile_years_in_position(dfc, dfb, job_levels,
     egs = sorted(list(set(ds_sel_cols.eg)))
 
     legend_font_size = np.clip(int(ysize * .8), 12, 18)
-    tick_fontsize = (np.clip(int(ysize * .45), 9, 14))
+    tick_fontsize = (np.clip(int(ysize * .55), 11, 14))
     label_size = (np.clip(int(ysize * .8), 14, 16))
 
     num_rows = len(egs)
@@ -306,7 +306,6 @@ def quartile_years_in_position(dfc, dfb, job_levels,
                 else:
                     ax.set_ylabel('years', fontsize=label_size)
                     ax.set_xlabel('quartiles', fontsize=label_size)
-                    # ax.xticks(rotation='horizontal')
                     ax.set_xticklabels(ax.xaxis.get_ticklabels(),
                                        rotation='horizontal')
 
@@ -376,6 +375,14 @@ def quartile_years_in_position(dfc, dfb, job_levels,
         xsize = xsize * .5
     fig.set_size_inches(xsize, ysize)
     plt.tight_layout()
+
+    for ax in fig.axes:
+        if len(ax.get_xticks()) > 20:
+            for label in ax.xaxis.get_ticklabels()[1::2]:
+                label.set_visible(False)
+        if len(ax.get_yticks()) > 20:
+            for label in ax.yaxis.get_ticklabels()[1::2]:
+                label.set_visible(False)
 
     if gain_loss_bg:
             legend_labels = ['Loss', 'Gain']
@@ -524,10 +531,15 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
 
 
 def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
-                          ret_age, color_list, job_str_list,
+                          ret_age, color_list, job_str_list, sdict,
                           attr_dict, ds_dict=None, plot_jobp=False,
-                          chart_style='darkgrid',
-                          legend_fontsize=14,
+                          show_implementation_date=True,
+                          through_date=None, pcnt_ylimit=1.0,
+                          chart_style='ticks', linewidth=3,
+                          line_alpha=.7,
+                          grid_linestyle='dotted', grid_alpha=.75,
+                          legend_size=14, label_size=13,
+                          tick_size=13, title_size=18,
                           xsize=12, ysize=9,
                           image_dir=None, image_format='svg'):
     '''select example individual employees and plot career measure
@@ -554,6 +566,8 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         job_str_list (list)
             list of string job descriptions corresponding to
             number of job levels
+        sdict (dictionary)
+            program settings dictionary
         attr_dict (dictionary)
             dataset column name description dictionary
         ds_dict (dictionary)
@@ -561,8 +575,27 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
             argument must be set if a string key is used as the df input.
         plot_jobp (boolean)
             if measure input is 'jnum', also plot 'jobp' if set to True
-        legend_fontsize (integer or float)
+        show_implementation_date (boolean)
+            if True and "xax" input is "date", plot a vertical line at the
+            implementation date
+        chart_style (string)
+            any seaborn plotting style name
+        linewidth (integer or float)
+            width of chart solid lines
+        line_alpha (float)
+            transparency value of the plotted lines (0.0 to 1.0)
+        grid_linestyle (string)
+            matplotlib line style for grid, such as "dotted" or "solid"
+        grid_alpha
+            transparency value for grid (0.0 to 1.0)
+        legend_size (integer or float)
             text size of chart legend
+        label_size (integer or float)
+            font size of x and y axis labels
+        tick_size (integer or float)
+            font size of chart tick labels
+        title_size (integer or float)
+            font size of chart title
         xsize, ysize (integer or float)
             plot size in inches
         image_dir (string)
@@ -580,15 +613,19 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
 
     frame = ds.copy()
-    frame.set_index(xax, inplace=True, drop=True)
+
+    frame_cols = [xax, measure, 'age', 'ret_mark', 'empkey']
+    if measure == 'jnum' and plot_jobp:
+        frame_cols.append('jobp')
+    frame = frame[frame_cols]
 
     with sns.axes_style(chart_style):
         fig, ax = plt.subplots(figsize=(xsize, ysize))
 
     color_list_len = len(color_list)
 
-    if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
-        frame = frame[frame.jnum <= job_levels]
+    # if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
+    #     frame = frame[frame.jnum <= job_levels]
     if measure in ['mpay']:
         if 'ret_mark' in frame.columns.values.tolist():
             frame = frame[frame.ret_mark != 1]
@@ -596,23 +633,61 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
             frame = frame[frame.age < ret_age]
 
     i = 0
-    for emp in emp_list:
-        c_idx = i % color_list_len
-        frame[frame.empkey == emp][measure].plot(color=color_list[c_idx],
-                                                 label=emp, ax=ax)
-        if measure == 'jnum' and plot_jobp:
-            frame[frame.empkey == emp]['jobp'].plot(color=color_list[c_idx],
-                                                    label=emp, ax=ax,
-                                                    ls='dashed', lw=1)
+    if xax in ['date', 'ldate', 'doh', 'retdate']:
+        for emp in emp_list:
+            c_idx = i % color_list_len
+            y = frame.loc[emp][measure]
+            x = frame.loc[emp][xax]
+            ax.plot_date(x=x, y=y, color=color_list[c_idx],
+                         label=str(emp), ls='solid', lw=linewidth,
+                         markersize=0, alpha=line_alpha)
+            if measure == 'jnum' and plot_jobp:
+                y = frame.loc[emp]['jobp']
+                ax.plot_date(x=x, y=y, color=color_list[c_idx],
+                             label='_nolegend_', ls='dashed', markersize=0,
+                             alpha=line_alpha, lw=1.5)
 
-        i += 1
+            i += 1
+        if xax == 'date':
+            if through_date:
+                ax.set_xlim(xmax=pd.to_datetime(through_date))
+
+        ax.set_xlim(xmin=sdict['starting_date'] + pd.offsets.MonthEnd(-1))
+        locator = mdate.YearLocator()
+        ax.xaxis.set_major_locator(locator)
+        fig.autofmt_xdate()
+        plt.xticks(rotation=75, ha='center')
+
+        if len(ax.get_xticks()) > 20:
+            for label in ax.xaxis.get_ticklabels()[1::2]:
+                label.set_visible(False)
+
+    else:
+        frame.set_index(xax, inplace=True, drop=True)
+        for emp in emp_list:
+            c_idx = i % color_list_len
+            eg_df = frame[frame.empkey == emp]
+            eg_df[measure].plot(color=color_list[c_idx], alpha=line_alpha,
+                                label=str(emp), lw=linewidth, ax=ax)
+            if measure == 'jnum' and plot_jobp:
+                eg_df['jobp'].plot(color=color_list[c_idx], alpha=line_alpha,
+                                   label='_nolegend_', ax=ax,
+                                   ls='dashed', lw=1)
+
+            i += 1
+
+    if measure in ['lspcnt', 'spcnt']:
+        if pcnt_ylimit:
+            ax.set_yticks(np.arange(0, 1.05, .05))
+            pcnt_ylimit = np.clip(pcnt_ylimit, 0.05, 1.0)
+            ax.set_ylim(ymax=pcnt_ylimit)
+        else:
+            ax.set_yticks(np.arange(0, 1.05, .05))
+        ax.yaxis.set_major_formatter(pct_format)
 
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
                    'lnum', 'jobp', 'fbff', 'cat_order']:
         ax.invert_yaxis()
-    if measure in ['lspcnt', 'spcnt']:
-        ax.yaxis.set_major_formatter(pct_format)
-        ax.set_yticks = (np.arange(0, 1.05, .05))
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
@@ -632,10 +707,19 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
         ax.set_xticks(np.arange(0, 1.1, .1))
         ax.set_xlim(1, 0)
 
-    ax.set_title(attr_dict[measure] + ' - ' + df_label, y=1.02)
-    ax.set_ylabel(attr_dict[measure])
-    ax.set_xlabel(attr_dict[xax])
-    ax.legend(loc=4, markerscale=1.5, fontsize=legend_fontsize)
+    if show_implementation_date:
+        if sdict['delayed_implementation'] and xax == 'date':
+            ax.axvline(sdict['imp_date'], c='g', ls='--', alpha=1, lw=1)
+
+    ax.set_title(attr_dict[measure] + ' - proposal ' + df_label,
+                 y=1.02, fontsize=title_size)
+    ax.set_ylabel(attr_dict[measure], fontsize=label_size)
+    ax.set_xlabel(attr_dict[xax], fontsize=label_size)
+    ax.tick_params(axis='both', which='major', labelsize=tick_size)
+    ax.yaxis.labelpad = 10
+    ax.xaxis.labelpad = 10
+    ax.grid(ls=grid_linestyle, alpha=grid_alpha)
+    ax.legend(loc=4, markerscale=1.5, fontsize=legend_size)
 
     func_name = sys._getframe().f_code.co_name
     if image_dir:
@@ -646,7 +730,8 @@ def multiline_plot_by_emp(df, measure, xax, emp_list, job_levels,
 
 
 def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
-                         job_levels, colors, ret_age, attr_dict,
+                         job_levels, colors, ret_age,
+                         sdict, attr_dict,
                          ds_dict=None, mnum=0, ret_only=False,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
@@ -683,6 +768,8 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
             colors for eg plots
         ret_age (float)
             retirement age (example: 65.0)
+        sdict (dictionary)
+            program settings dictionary
         attr_dict (dictionary)
             dataset column name description dictionary
         ds_dict (dictionary)
@@ -839,6 +926,9 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
                    'cat_order', 'jnum', 'nbnf', 'jobp', 'fbff', 'new_order']:
         ax.invert_yaxis()
 
+    if xax in ['date']:
+        ax.set_xlim(xmin=sdict['starting_date'] + pd.offsets.MonthEnd(-1))
+
     if xax in ['spcnt', 'lspcnt', 'date', 'ldate', 'doh', 'retdate',
                'jnum', 'nbnf', 'jobp', 'fbff', 'cat_order', 'new_order',
                'lnum', 'snum']:
@@ -852,10 +942,11 @@ def multiline_plot_by_eg(df, measure, xax, eg_list, job_strs,
         ax.xaxis.set_major_locator(locator)
         fig.autofmt_xdate()
         plt.xticks(rotation=75, ha='center')
-        for label in ax.xaxis.get_ticklabels()[1::2]:
-            label.set_visible(False)
+        if len(ax.get_xticks()) > 20:
+            for label in ax.xaxis.get_ticklabels()[1::2]:
+                label.set_visible(False)
 
-    ax.legend(loc=4, markerscale=1.5, fontsize=legend_fontsize)
+    ax.legend(loc=4, markerscale=2, fontsize=legend_fontsize)
 
     prop_text = df_label
 
@@ -1797,8 +1888,14 @@ def job_level_progression(df, emp_list, through_date,
                           eg_colors, band_colors,
                           ds_dict=None, rank_metric='cat_order',
                           chart_style='white',
-                          alpha=.12,
+                          show_implementation_date=True,
+                          job_bands_alpha=.1,
                           max_plots_for_legend=5,
+                          xgrid_alpha=.65, xgrid_linestyle='dotted',
+                          ygrid_alpha=.5, ygrid_linestyle='dotted',
+                          tick_fontsize=13, job_descr_fontsize=12.5,
+                          job_descr_pad=115,
+                          label_fontsize=15, title_fontsize=18,
                           xsize=12, ysize=10,
                           image_dir=None, image_format='svg'):
     '''show employee(s) career progression through job levels regardless of
@@ -1841,11 +1938,31 @@ def job_level_progression(df, emp_list, through_date,
             is valid.
         chart_style (string)
             any valid seaborn plotting chart style name
-        alpha (float)
+        show_implementation_date (boolean)
+            plot a vertical dashed line at the implementation date
+        job_bands_alpha (float)
             opacity level of background job bands stacked area chart
         max_plots_for_legend (integer)
             if number of plots more than this number, reduce plot linewidth and
             remove legend
+        xgrid_alpha, ygrid_alpha (float)
+            transparency value for grid.  x and y axis may be set independently
+        xgrid_linestyle, ygrid_linestyle (string)
+            matplotlib line style for grid, such as "dotted" or "dashed".
+            x and y axis may be set independently
+        job_descr_fontsize (integer or float)
+            font size of job description text labels on right side of chart
+        job_descr_pad (integer)
+            padding to add between job description labels when they would
+            otherwise overlap
+        tick_fontsize (intger or float)
+            font size of tick labels
+        job_descr_fontsize (integer or float)
+            font size of job description labels
+        label_fontsize (integer or float)
+            font size of axis labels
+        title_fontsize (integer or label)
+            font size of title
         xsize, ysize (integer or float)
             plot size in inches (width, height)
         image_dir (string)
@@ -1910,7 +2027,7 @@ def job_level_progression(df, emp_list, through_date,
         axis2_lbls.append(jobs_dict[job_num])
         i += 1
 
-    axis2_lbl_locs = add_pad(axis2_lbl_locs, pad=110)
+    axis2_lbl_locs = add_pad(axis2_lbl_locs, pad=job_descr_pad)
 
     egs = ds[ds.mnum == 0].eg
 
@@ -1939,42 +2056,46 @@ def job_level_progression(df, emp_list, through_date,
         ax1.legend(title='')
 
     if settings_dict['delayed_implementation']:
-        ax1.axvline(settings_dict['imp_date'], c='g',
-                    ls='--', alpha=1, lw=1)
+        if show_implementation_date:
+            ax1.axvline(settings_dict['imp_date'], c='g',
+                        ls='--', alpha=1, lw=1)
 
     jobs_table.plot.area(stacked=True,
-                         figsize=(12, 10),
+                         figsize=(xsize, ysize),
                          sort_columns=True,
                          linewidth=2,
                          color=band_colors,
-                         alpha=alpha,
+                         alpha=job_bands_alpha,
                          legend=False,
                          ax=ax1)
 
     ax1.invert_yaxis()
     ax1.set_ylim(max(df_monthly_non_ret['count']), 0)
 
-    ax1.set_title(df_label + ' job level progression', y=1.02)
+    ax1.set_title(df_label + ' job level progression',
+                  y=1.01, fontsize=title_fontsize)
 
     if lowest_cat == fur_lvl:
         ax1.axhspan(cnts[-2], cnts[-1], facecolor='#fbfbea', alpha=0.9)
         axis2_lbls[-1] = 'FUR'
 
     ax2 = ax1.twinx()
-    ax2.grid(False)
     ax2.set_yticks(axis2_lbl_locs)
     yticks = ax2.get_yticks().tolist()
 
     for i in np.arange(len(yticks)):
         yticks[i] = axis2_lbls[i]
 
-    ax2.set_yticklabels(yticks)
+    ax2.set_yticklabels(yticks, fontsize=job_descr_fontsize)
+    ax2.grid(False)
     ax2.invert_yaxis()
 
-    ax1.xaxis.grid(True)
+    ax1.xaxis.grid(True, alpha=xgrid_alpha, ls=xgrid_linestyle)
+    ax1.yaxis.grid(True, alpha=ygrid_alpha, ls=ygrid_linestyle)
     ax1.set_axisbelow(True)
-    ax1.set_ylabel('global job ranking', fontsize=12)
-
+    ax1.set_ylabel('global job ranking', fontsize=label_fontsize)
+    ax1.set_xlabel('year', fontsize=label_fontsize)
+    ax1.tick_params(axis='both', which='major', labelsize=tick_fontsize)
     func_name = sys._getframe().f_code.co_name
     if image_dir:
         if not path.exists(image_dir):
@@ -3076,7 +3197,11 @@ def quartile_bands_over_time(df, eg, measure,
     ax.invert_yaxis()
     if kind == 'area':
         ax.set_xticks(year_labels)
-    ax.set_xticklabels(year_labels, rotation=70)
+    ax.set_xticklabels(year_labels, rotation=80, ha='center')
+
+    if len(ax.get_xticks()) > 20:
+        for label in ax.xaxis.get_ticklabels()[1::2]:
+            label.set_visible(False)
 
     if quartile_ticks:
         ax2 = ax.twinx()
@@ -3396,7 +3521,8 @@ def job_transfer(dfc, dfb, eg, job_colors,
     if image_dir:
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '_g' + str(eg) +
+                    '.' + image_format)
     plt.show()
 
 
@@ -7525,10 +7651,11 @@ def cohort_differential(ds, base, sdict, cdict, adict,
         ax.xaxis.set_major_locator(locator)
         fig.autofmt_xdate()
         plt.xticks(rotation=75, ha='center')
-        for label in ax.xaxis.get_ticklabels()[1::2]:
-            label.set_visible(False)
-        ax.yaxis.labelpad = 10
-        ax.xaxis.labelpad = 10
+        if len(ax.get_xticks()) > 20:
+            for label in ax.xaxis.get_ticklabels()[1::2]:
+                label.set_visible(False)
+    ax.yaxis.labelpad = 10
+    ax.xaxis.labelpad = 10
 
     if not sort_xax_by_measure and compare_value:
 
