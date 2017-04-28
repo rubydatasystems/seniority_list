@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''Build list orderings from master list data as a starting point for
-further analysis and/or list editing.  Lists may be built by various
-weighting and sorting methods.
+'''The list_builder module contains routines to build list orderings from the
+master list data as a starting point for further analysis and/or list editing.
+Lists may be built by various weighting and sorting methods.
 
 Typical workflow:
 
@@ -37,7 +37,8 @@ import functions as f
 import warnings
 
 
-def prepare_master_list(name_int_demo=False, pre_sort=True):
+def prepare_master_list(name_int_demo=False,
+                        pre_sort=True):
     '''Add attribute columns to a master list.  One or more of these columns
     will be used by the build_list function to construct
     a "hybrid" list ordering.
@@ -149,8 +150,12 @@ def prepare_master_list(name_int_demo=False, pre_sort=True):
     return master
 
 
-def build_list(df, measure_list, weight_list, show_weightings=False,
-               hide_rank_cols=True, return_df=False):
+def build_list(df,
+               measure_list,
+               weight_list,
+               show_weightings=False,
+               hide_rank_cols=True,
+               return_df=False):
     '''Construct a "hybrid" list ordering.
 
     Note: first run the "prepare_master_list" function and use the output
@@ -244,7 +249,8 @@ def build_list(df, measure_list, weight_list, show_weightings=False,
 
 
 def sort_eg_attributes(df, attributes=['doh', 'ldate'],
-                       reverse_list=[0, 0], add_columns=False):
+                       reverse_list=[0, 0],
+                       add_columns=False):
     '''Sort master list attribute columns by employee group in preparation
     for list construction.  The overall master list structure and order is
     unaffected, only the selected attribute columns are sorted (normally
@@ -302,7 +308,10 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
     return df
 
 
-def sort_and_rank(df, col, tiebreaker1=None, tiebreaker2=None,
+def sort_and_rank(df,
+                  col,
+                  tiebreaker1=None,
+                  tiebreaker2=None,
                   reverse=False):
     '''Sort a datframe by a specified attribute and insert a column indicating
     the resultant ranking.  Tiebreaker inputs select columns to be used for
@@ -336,7 +345,9 @@ def sort_and_rank(df, col, tiebreaker1=None, tiebreaker2=None,
     return df
 
 
-def names_to_integers(names, leading_precision=5, normalize_alpha=True):
+def names_to_integers(names,
+                      leading_precision=5,
+                      normalize_alpha=True):
     '''convert a list or series of string names (i.e. last names) into integers
     for numerical sorting
 
@@ -411,8 +422,11 @@ def names_to_integers(names, leading_precision=5, normalize_alpha=True):
     return int_names, int_range, name_percentages
 
 
-def find_row_orphans(base_df, compare_df, col,
-                     ignore_case=True, print_output=False):
+def find_row_orphans(base_df,
+                     compare_df,
+                     col,
+                     ignore_case=True,
+                     print_output=False):
     '''Given two columns (series) with the same column label in separate pandas
     dataframes, return values which are unique to one or the other column,
     not common to both series.
@@ -514,8 +528,10 @@ def find_row_orphans(base_df, compare_df, col,
         return base_loners, compare_loners
 
 
-def compare_dataframes(base, compare, return_orphans=True,
-                       ignore_case=True, print_info=False,
+def compare_dataframes(base, compare,
+                       return_orphans=True,
+                       ignore_case=True,
+                       print_info=False,
                        convert_np_timestamps=True):
     """
     Compare all common index and common column DataFrame values and
@@ -754,7 +770,8 @@ def compare_dataframes(base, compare, return_orphans=True,
 
 
 # FIND LABEL LOCATIONS (index input)
-def find_index_locs(df, index_values):
+def find_index_locs(df,
+                    index_values):
     '''Find the pandas dataframe index location of an array-like input
     of index labels.
 
@@ -777,7 +794,9 @@ def find_index_locs(df, index_values):
 
 
 # FIND SERIES VALUE INDEX LOCATIONS
-def find_series_locs(df, series_values, column_label):
+def find_series_locs(df,
+                     series_values,
+                     column_label):
     '''Find the pandas dataframe index location of an array-like input
     of series values.
 
@@ -804,7 +823,9 @@ def find_series_locs(df, series_values, column_label):
     return loc_list
 
 
-def test_df_col_or_idx_equivalence(df1, df2, col=None):
+def test_df_col_or_idx_equivalence(df1,
+                                   df2,
+                                   col=None):
     '''check whether two dataframes contain the same elements (but not
     necessarily in the same order) in either the indexes or a selected column
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''test doc
+'''The converter module contains a function which is used when constructing
+a data model with an enhanced job level hierarchy (vs. basic) which also
+contains special or conditional job assignment requirements.
 '''
 
 import numpy as np

@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 
-'''month_form is length n months in model
+'''The functions module contains core program routines related to building and
+working with the data model and associated files.
 
-short_form is length n employees
+General definitions:
 
-long_form is length cumulative sum non-retired each month
+dataset "month_form" is length n months in model
 
-(could be millions of rows, depending on workgroup
-size and age)
+"short_form" data has a length equal to the number of employees
+
+"long_form" data is the length of the cumulative sum non-retired employees
+for all months in the data model (could be millions of rows,
+depending on workgroup size and age)
 '''
+
+
 import os
 import shutil
 import copy
@@ -77,7 +83,8 @@ def career_months_df_in(df, startdate):
 
 
 # LONGEVITY AT STARTDATE (for pay purposes)
-def longevity_at_startdate(ldates_list, start_date,
+def longevity_at_startdate(ldates_list,
+                           start_date,
                            return_months=False):
     ''' Short_Form
 
@@ -254,7 +261,9 @@ def gen_skel_emp_idx(monthly_count_array,
 
 # AGE FOR EACH MONTH (correction to starting age)
 # @jit  (jit broken with numba version update 0.28.1, np111py35_0)
-def age_correction(month_nums_array, ages_array, retage):
+def age_correction(month_nums_array,
+                   ages_array,
+                   retage):
     '''Long_Form
 
     Returns a long_form (all months) array of employee ages by
@@ -285,7 +294,8 @@ def age_correction(month_nums_array, ages_array, retage):
 
 # FIND CONTRACT PAY YEAR AND RAISE (contract pay year
 # and optional raise multiplier)
-def contract_pay_year_and_raise(date_list, future_raise,
+def contract_pay_year_and_raise(date_list,
+                                future_raise,
                                 date_exception_start,
                                 date_exception_end,
                                 exception_year,
@@ -304,11 +314,11 @@ def contract_pay_year_and_raise(date_list, future_raise,
 
     Usage example:
 
-        ::
+    .. code:: python
 
-            year_scale = find_scale(series_years,
-                                    future_raise = True,
-                                    annual_raise = .02)
+      year_scale = find_scale(series_years,
+                              future_raise = True,
+                              annual_raise = .02)
 
     NOTE: **(this function can accept a pay exception time period...)**
 
@@ -366,7 +376,8 @@ def contract_pay_year_and_raise(date_list, future_raise,
 
 
 # MAKE eg INITIAL JOB LIST from job_count_array (Stovepipe)
-def make_stovepipe_jobs_from_jobs_arr(jobs_arr, total_emp_count=0):
+def make_stovepipe_jobs_from_jobs_arr(jobs_arr,
+                                      total_emp_count=0):
     '''Month_Form
 
     Compute a stovepipe job list derived from the total
@@ -407,9 +418,12 @@ def make_stovepipe_jobs_from_jobs_arr(jobs_arr, total_emp_count=0):
 
 
 # MAKE integrated INITIAL JOB LIST from eg stovepipe job arrays
-def make_intgrtd_from_sep_stove_lists(job_lists_arr, eg_arr,
-                                      fur_arr, eg_total_jobs,
-                                      num_levels, skip_fur=True):
+def make_intgrtd_from_sep_stove_lists(job_lists_arr,
+                                      eg_arr,
+                                      fur_arr,
+                                      eg_total_jobs,
+                                      num_levels,
+                                      skip_fur=True):
     '''Month_Form
 
     Compute an integrated job list built from multiple
@@ -489,8 +503,10 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr, eg_arr,
 
 # MAKE_STOVEPIPE_JOBS_WITH_PRE=EXISTING CONDITION
 # (Stovepipe with internal condition stovepiped, SHORT_FORM)
-def make_stovepipe_prex_shortform(job_list, sg_codes,
-                                  sg_rights, fur_codes):
+def make_stovepipe_prex_shortform(job_list,
+                                  sg_codes,
+                                  sg_rights,
+                                  fur_codes):
     '''Short_Form
 
     Creates a 'stovepipe' job assignment within a single eg including a
@@ -565,8 +581,10 @@ def make_stovepipe_prex_shortform(job_list, sg_codes,
 
 
 # MAKE LIST OF ORIGINAL JOBS
-def make_original_jobs_from_counts(jobs_arr_arr, eg_array,
-                                   fur_array, num_levels):
+def make_original_jobs_from_counts(jobs_arr_arr,
+                                   eg_array,
+                                   fur_array,
+                                   num_levels):
     '''Short_Form
 
     This function grabs jobs from standalone job count
@@ -629,7 +647,9 @@ def make_original_jobs_from_counts(jobs_arr_arr, eg_array,
 
 
 # ASSIGN JOBS FULL FLUSH
-def assign_jobs_full_flush(monthly_nonret_counts, job_list, job_level_count):
+def assign_jobs_full_flush(monthly_nonret_counts,
+                           job_list,
+                           job_level_count):
     '''Long_Form
 
     Uses the nonret counts for each month to:
@@ -1070,7 +1090,8 @@ def assign_jobs_nbnf_job_changes(df,
 
 
 # PUT-MAP function
-def put_map(jobs_array, job_cnts):
+def put_map(jobs_array,
+            job_cnts):
     '''Any_Form (Practical application is Long_Form)
 
     Best use when values array is limited set of integers.
@@ -1089,15 +1110,15 @@ def put_map(jobs_array, job_cnts):
 
         function call:
 
-            ::
+        .. code:: python
 
-                map_jobs = put_map(no_bump_jnums, job_level_counts)
+          map_jobs = put_map(no_bump_jnums, job_level_counts)
 
         assigned to df:
 
-            ::
+        .. code:: python
 
-                df['nbnf_job_count'] = map_jobs.astype(int)
+          df['nbnf_job_count'] = map_jobs.astype(int)
 
 
     length of set(jobs_array) must equal length of job_cnts.
@@ -1157,8 +1178,12 @@ def make_lower_and_upper_slice_limits(mnum_arr):
     return lower, upper
 
 
-def snum_and_spcnt(jnum_arr, job_levels, low_limits, high_limits,
-                   table_counts, all_mths):
+def snum_and_spcnt(jnum_arr,
+                   job_levels,
+                   low_limits,
+                   high_limits,
+                   table_counts,
+                   all_mths):
     '''Calculates:
 
     long_form seniority number ('snum', only active employees),
@@ -1220,7 +1245,8 @@ def snum_and_spcnt(jnum_arr, job_levels, low_limits, high_limits,
 
 
 # SNUMS
-def create_snum_array(jobs_held, monthly_population_counts):
+def create_snum_array(jobs_held,
+                      monthly_population_counts):
     '''Create an array of seniority numbers repeating for each month.
 
     Much faster than groupby cumcount...
@@ -1260,7 +1286,8 @@ def create_snum_array(jobs_held, monthly_population_counts):
 
 
 # SNUM, SPCNT, LNUM, LSPCNT with JOB CHANGES
-def create_snum_and_spcnt_arrays(jnums, job_level_count,
+def create_snum_and_spcnt_arrays(jnums,
+                                 job_level_count,
                                  monthly_population_counts,
                                  monthly_job_counts,
                                  lspcnt_remaining_only):
@@ -1358,7 +1385,8 @@ def create_snum_and_spcnt_arrays(jnums, job_level_count,
 
 
 # MAKE JOB COUNTS
-def make_job_counts(furlough_list, *job_count_lists):
+def make_job_counts(furlough_list,
+                    *job_count_lists):
     '''Make two arrays:
 
     1. array of n lists of job counts for n number
@@ -1452,21 +1480,21 @@ def make_jcnts(job_count_lists):
 
     Example return:
 
-        ::
+    .. code:: python
 
-            (array([
-            [ 237,  158,  587, 1373,  352,  739,  495,  330,  784,
-             1457,    0,  471,  785,    0,    0,    0],
+      (array([
+      [ 237,  158,  587, 1373,  352,  739,  495,  330,  784,
+       1457,    0,  471,  785,    0,    0,    0],
 
-            [  97,   64,  106,  575,   64,  310,  196,  130,  120,
-             603,    71,   72,  325,   38,   86,   46],
+      [  97,   64,  106,  575,   64,  310,  196,  130,  120,
+       603,    71,   72,  325,   38,   86,   46],
 
-            [  0,     0,   33,  414,   20,  223,    0,    0,   46,
-             395,     0,   28,  213,    0,    0,    0]]),
+      [  0,     0,   33,  414,   20,  223,    0,    0,   46,
+       395,     0,   28,  213,    0,    0,    0]]),
 
-            array(
-            [ 334,  222,  726, 2362,  436, 1272,  691,  460,  950,
-             2455,   71,  571, 1323,   38,   86,   46]))
+      array(
+      [ 334,  222,  726, 2362,  436, 1272,  691,  460,  950,
+       2455,   71,  571, 1323,   38,   86,   46]))
 
     '''
     eg_job_counts = []
@@ -1482,7 +1510,11 @@ def make_jcnts(job_count_lists):
 
 
 # SQUEEZE
-def squeeze_increment(data, eg, senior_num, junior_num, increment):
+def squeeze_increment(data,
+                      eg,
+                      senior_num,
+                      junior_num,
+                      increment):
     '''Move members of a selected eg (employee group) within
     a list according to an increment input (positive or negative)
     while retaining relative ordering within all eg groups.
@@ -1526,7 +1558,10 @@ def squeeze_increment(data, eg, senior_num, junior_num, increment):
 
 
 # SQUEEZE_LOGRITHMIC
-def squeeze_logrithmic(data, eg, senior_num, junior_num,
+def squeeze_logrithmic(data,
+                       eg,
+                       senior_num,
+                       junior_num,
                        log_factor=1.5,
                        put_segment=1,
                        direction='d'):
@@ -1651,7 +1686,8 @@ def get_indexes_down(list_of_positions):
 
 
 # MAKE_DECILE_BANDS
-def make_decile_bands(num_bands=40, num_returned_bands=10):
+def make_decile_bands(num_bands=40,
+                      num_returned_bands=10):
     '''creates an array of lower and upper percentile values surrounding
     a consistent schedule of percentile markers.  If the user desires to
     sample data at every 10th percentile, this function provides selectiable
@@ -1763,7 +1799,9 @@ def get_month_slice(df, l, h):
 # PRECALCULATE FURLOUGHS
 def precalculate_fur_without_recalls(monthly_job_totals,
                                      head_counts,
-                                     fur_data, lows, highs):
+                                     fur_data,
+                                     lows,
+                                     highs):
     '''add monthly fur data to existing fur data if total job count
     is less than headcount for future months
 
@@ -1862,7 +1900,9 @@ def get_job_reduction_months(job_changes):
 
 
 # SET SNAPSHOT RATIO WEIGHTINGS
-def set_snapshot_weights(ratio_dict, orig_rng, eg_range):
+def set_snapshot_weights(ratio_dict,
+                         orig_rng,
+                         eg_range):
     '''Determine the job distribution ratios to carry forward during
     the ratio condition application period using actual jobs held ratios.
 
@@ -1894,9 +1934,13 @@ def set_snapshot_weights(ratio_dict, orig_rng, eg_range):
 
 
 # ASSIGN JOBS BY RATIO CONDITION
-def assign_cond_ratio(job, this_job_count,
-                      ratio_dict, orig_range, assign_range,
-                      eg_range, fur_range):
+def assign_cond_ratio(job,
+                      this_job_count,
+                      ratio_dict,
+                      orig_range,
+                      assign_range,
+                      eg_range,
+                      fur_range):
     ''' Apply a job ratio condition
 
     Main job assignment function calls this function at the appropriate month
@@ -1963,10 +2007,15 @@ def assign_cond_ratio(job, this_job_count,
 
 
 # ASSIGN JOBS BY RATIO for FIRST n JOBS
-def assign_cond_ratio_capped(job, this_job_count,
-                             ratio_groups, weights, cap,
-                             orig_range, assign_range,
-                             eg_range, fur_range):
+def assign_cond_ratio_capped(job,
+                             this_job_count,
+                             ratio_groups,
+                             weights,
+                             cap,
+                             orig_range,
+                             assign_range,
+                             eg_range,
+                             fur_range):
     '''distribute job assignments to employee groups by ratio for the first
     n jobs specified. Any jobs remaining are not distributed with
     this function.
@@ -1984,9 +2033,9 @@ def assign_cond_ratio_capped(job, this_job_count,
             For example a "1" in the "group1" column and a "2,3" in the
             group2 column would produce the following tuple:
 
-                ::
+            .. code:: python
 
-                    ([1], [2, 3])
+              ([1], [2, 3])
 
             Conditional job assignments would be ratioed between employees
             from group 1 and employees in group 2 or group 3 combined.
@@ -1996,9 +2045,9 @@ def assign_cond_ratio_capped(job, this_job_count,
 
             Example:
 
-                ::
+            .. code:: python
 
-                    (2.48, 1.0)
+              (2.48, 1.0)
 
         cap (integer)
             The maximum number of jobs to which the conditional assignments
@@ -2036,11 +2085,16 @@ def assign_cond_ratio_capped(job, this_job_count,
 
 
 # RECALL
-def mark_for_recall(orig_range, num_of_job_levels,
-                    fur_range, month, recall_sched,
-                    jobs_avail, standalone=True,
+def mark_for_recall(orig_range,
+                    num_of_job_levels,
+                    fur_range,
+                    month,
+                    recall_sched,
+                    jobs_avail,
+                    standalone=True,
                     eg_index=0,
-                    method='sen_order', stride=2):
+                    method='sen_order',
+                    stride=2):
     '''change fur code to non-fur code for returning employees
     according to selected method (seniority order,
     every nth furloughee, or random)
@@ -2145,8 +2199,11 @@ def mark_for_recall(orig_range, num_of_job_levels,
 
 
 # RECALL
-def mark_for_furlough(orig_range, fur_range, month,
-                      jobs_avail, num_of_job_levels):
+def mark_for_furlough(orig_range,
+                      fur_range,
+                      month,
+                      jobs_avail,
+                      num_of_job_levels):
     '''Assign fur code to employees when count of jobs is
     less than count of active employees in inverse seniority
     order and assign furloughed job level number.
@@ -2188,7 +2245,9 @@ def mark_for_furlough(orig_range, fur_range, month,
 
 
 # MARK_FUR_RANGE
-def mark_fur_range(assign_range, fur_range, job_levels):
+def mark_fur_range(assign_range,
+                   fur_range,
+                   job_levels):
     '''apply fur code to current month fur_range based on job assignment status
 
     inputs
@@ -2207,7 +2266,9 @@ def mark_fur_range(assign_range, fur_range, job_levels):
 
 
 # ALIGN FILL DOWN (all future months)
-def align_fill_down(l, u, long_indexed_df, long_array):
+def align_fill_down(l, u,
+                    long_indexed_df,
+                    long_array):
     '''data align current values to all future months
     (short array segment aligned to long array)
 
@@ -2251,7 +2312,9 @@ def align_fill_down(l, u, long_indexed_df, long_array):
 
 
 # ALIGN NEXT (month)
-def align_next(long_index_arr, short_index_arr, arr):
+def align_next(long_index_arr,
+               short_index_arr,
+               arr):
     '''"carry forward" data from one month to the next.
 
     Use the numpy in1d function to compare indexes (empkeys) from one month
@@ -2278,20 +2341,22 @@ def align_next(long_index_arr, short_index_arr, arr):
 
 
 # DISTRIBUTE (simple)
-def distribute(available, weights, cap=None):
+def distribute(available,
+               weights,
+               cap=None):
     '''proportionally distribute 'available' according to 'weights'
 
     usage example:
 
-        ::
+    .. code:: python
 
-            distribute(334, [2.48, 1])
+      distribute(334, [2.48, 1])
 
     returns distribution as a list, rounded as integers:
 
-        ::
+    .. code:: python
 
-            [238, 96]
+      [238, 96]
 
     inputs
         available (integer)
@@ -2321,7 +2386,10 @@ def distribute(available, weights, cap=None):
 
 
 # DISTRIBUTE VACANCIES BY WEIGHTS (CONTRACTUAL RATIOS)
-def distribute_vacancies_by_weights(available, eg_counts, weights, cap=None):
+def distribute_vacancies_by_weights(available,
+                                    eg_counts,
+                                    weights,
+                                    cap=None):
     '''Determine how vacancies are assigned to employee groups
     with a given distribution ratio, total count of jobs, and a
     pre-existing and likely uneven initial job distribution.
@@ -2330,14 +2398,15 @@ def distribute_vacancies_by_weights(available, eg_counts, weights, cap=None):
         available (integer)
             total count of jobs in distribution pool
             includes count of jobs already held by affected employee groups
-    eg_counts (list of ints)
+        eg_counts (list of ints)
             count of jobs already assigned to each affected employee group
-    weights (list (ints or floats))
+        weights (list (ints or floats))
             relative weighting between the employee groups
             examples:
 
-                ::
-                    [2.5, 3, 1.1]
+        .. code:: python
+
+          [2.5, 3, 1.1]
 
         The length of the eg_counts list and the weights list must be the
         same.
@@ -2378,8 +2447,10 @@ def distribute_vacancies_by_weights(available, eg_counts, weights, cap=None):
 
 
 # MAKE PARTIAL JOB COUNT LIST (prior to implementation month)
-def make_delayed_job_counts(imp_month, delayed_jnums,
-                            lower, upper):
+def make_delayed_job_counts(imp_month,
+                            delayed_jnums,
+                            lower,
+                            upper):
     '''Make an array of job counts to be inserted into the long_form job counts
     array of the job assignment function.  The main assignment function calls
     this function prior to the implementation month. The array output of this
@@ -2451,31 +2522,31 @@ def delayed_monthly_sep_job_tables(job_levels,
 
             example:
 
-                ::
+            .. code:: python
 
-                    [[1.00, 0.00, 0.00],  # c4
+              [[1.00, 0.00, 0.00],  # c4
 
-                    [.50, 0.25, 0.25],   # c3
+              [.50, 0.25, 0.25],   # c3
 
-                    [.88, 0.09, 0.03],   # c2
+              [.88, 0.09, 0.03],   # c2
 
-                    [1.00, 0.00, 0.00],  # f4
+              [1.00, 0.00, 0.00],  # f4
 
-                    [.50, 0.25, 0.25],   # f3
+              [.50, 0.25, 0.25],   # f3
 
-                    [.88, 0.09, 0.03],   # f2
+              [.88, 0.09, 0.03],   # f2
 
-                    [0.00, 1.00, 0.00],  # c1
+              [0.00, 1.00, 0.00],  # c1
 
-                    [0.00, 1.00, 0.00]]  # f1
+              [0.00, 1.00, 0.00]]  # f1
 
             using the above, if there were 4 additional jobs for job
             level 2 in a given month, eg 1 would get 2 and eg 2 and 3,
             1 each.
 
-                ::
+            .. code:: python
 
-                    [.50, 0.25, 0.25]
+              [.50, 0.25, 0.25]
 
     '''
     sum_of_initial_jobs = sum(eg_job_counts)
@@ -2512,8 +2583,11 @@ def delayed_monthly_sep_job_tables(job_levels,
 
 
 # MAKE GAIN_LOSS_TABLE
-def job_gain_loss_table(months, job_levels, init_job_counts,
-                        job_changes, standalone=False):
+def job_gain_loss_table(months,
+                        job_levels,
+                        init_job_counts,
+                        job_changes,
+                        standalone=False):
     '''Make two arrays of job tally information.
 
     The first array has a row for each month in the model, and a column for
@@ -2623,7 +2697,9 @@ def job_gain_loss_table(months, job_levels, init_job_counts,
 
 
 # Convert to enhanced from basic job levels
-def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
+def convert_to_enhanced(eg_job_counts,
+                        j_changes,
+                        job_dict):
     '''Convert employee basic job counts to enhanced job counts (includes
     full-time and part-time job level counts) and convert basic job change
     schedules to enhanced job change schedules.
@@ -2638,11 +2714,11 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
             example:
 
-                ::
+            .. code:: python
 
-                    [[197, 470, 1056, 412, 628, 1121, 0, 0],
-                    [80, 85, 443, 163, 96, 464, 54, 66],
-                    [0, 26, 319, 0, 37, 304, 0, 0]]
+              [[197, 470, 1056, 412, 628, 1121, 0, 0],
+              [80, 85, 443, 163, 96, 464, 54, 66],
+              [0, 26, 319, 0, 37, 304, 0, 0]]
 
         j_changes
             input from the settings dictionary describing change of job
@@ -2650,9 +2726,9 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
             example:
 
-                ::
+            .. code:: python
 
-                    [1, [35, 64], 87, [80, 7, 0]]
+              [1, [35, 64], 87, [80, 7, 0]]
 
             [[job level, [start and end month],
             total job count change,
@@ -2667,16 +2743,16 @@ def convert_to_enhanced(eg_job_counts, j_changes, job_dict):
 
             example:
 
-                ::
+            .. code:: python
 
-                    {1: [1, 2, 0.6],
-                    2: [3, 5, 0.625],
-                    3: [4, 6, 0.65],
-                    4: [7, 8, 0.6],
-                    5: [9, 12, 0.625],
-                    6: [10, 13, 0.65],
-                    7: [11, 14, 0.65],
-                    8: [15, 16, 0.65]}
+              {1: [1, 2, 0.6],
+              2: [3, 5, 0.625],
+              3: [4, 6, 0.65],
+              4: [7, 8, 0.6],
+              5: [9, 12, 0.625],
+              6: [10, 13, 0.65],
+              7: [11, 14, 0.65],
+              8: [15, 16, 0.65]}
 
     '''
     # job changes section
@@ -3077,7 +3153,8 @@ def print_config_selections():
     return df
 
 
-def max_of_nested_lists(nested_list, return_min=False):
+def max_of_nested_lists(nested_list,
+                        return_min=False):
     '''find the maximum value within a list of lists (or tuples or arrays)
 
     return_min input will find minimum of nested containers
@@ -3101,7 +3178,10 @@ def eval_strings(args):
     return arg_list
 
 
-def clip_ret_ages(ret_age_dict, init_ret_age, dates_long_arr, ages_long_arr):
+def clip_ret_ages(ret_age_dict,
+                  init_ret_age,
+                  dates_long_arr,
+                  ages_long_arr):
     '''Clip employee ages in employee final month to proper retirement age if
     the model includes an increasing retirement age over time
 
@@ -3201,8 +3281,11 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
     return ds_dict
 
 
-def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
-                             imp_high, return_array_and_dict=False):
+def assign_preimp_standalone(ds_stand,
+                             ds_integrated,
+                             col_list,
+                             imp_high,
+                             return_array_and_dict=False):
     '''Copy standalone data to an integrated dataset up to the implementation
     date.
 
@@ -3283,8 +3366,11 @@ def assign_preimp_standalone(ds_stand, ds_integrated, col_list,
     return ds_integrated
 
 
-def make_preimp_array(ds_stand, ds_integrated, imp_high,
-                      compute_cat, compute_pay):
+def make_preimp_array(ds_stand,
+                      ds_integrated,
+                      imp_high,
+                      compute_cat,
+                      compute_pay):
     '''Create an ordered numpy array of pre-implementation data gathered from
     the pre-calculated standalone dataset and a dictionary to keep track of the
     information.  This data will be joined by post_implementation integrated
@@ -3380,7 +3466,8 @@ def make_preimp_array(ds_stand, ds_integrated, imp_high,
     return ordered_cols, delay_dict, final_array
 
 
-def make_cat_order(ds, table):
+def make_cat_order(ds,
+                   table):
     '''make a long-form "cat_order" (global job ranking) column
 
     This function assigns a global job position value to each employee,
@@ -3450,7 +3537,9 @@ def make_cat_order(ds, table):
     return cat_arr
 
 
-def make_tuples_from_columns(df, columns, return_as_list=True,
+def make_tuples_from_columns(df,
+                             columns,
+                             return_as_list=True,
                              return_dates_as_strings=False,
                              date_cols=[]):
     '''Combine row values from selected columns to form tuples.
@@ -3489,7 +3578,8 @@ def make_dict_from_columns(df, key_col, value_col):
     return dict(zip(keys, values))
 
 
-def make_lists_from_columns(df, columns,
+def make_lists_from_columns(df,
+                            columns,
                             remove_zero_values=False,
                             try_integers=False,
                             as_tuples=False):
@@ -3505,18 +3595,18 @@ def make_lists_from_columns(df, columns,
                | 8  | 4  | 5  | 3  |
                +----+----+----+----+
 
-        ::
+        .. code:: python
 
-            make_lists_from_columns(df, ["A", "B", "C"])
+          make_lists_from_columns(df, ["A", "B", "C"])
 
-            [[1, 6, 0], [8, 4, 5]]
+          [[1, 6, 0], [8, 4, 5]]
 
 
-            make_lists_from_columns(df, ["A", "B", "C"],
-                                    remove_zero_values=True,
-                                    as_tuples=True)
+          make_lists_from_columns(df, ["A", "B", "C"],
+                                  remove_zero_values=True,
+                                  as_tuples=True)
 
-            [(1, 6), (8, 4, 5)]
+          [(1, 6), (8, 4, 5)]
 
     inputs
         df (dataframe)
@@ -3554,7 +3644,8 @@ def make_lists_from_columns(df, columns,
     return column_list
 
 
-def make_group_lists(df, column_name):
+def make_group_lists(df,
+                     column_name):
     '''this function is used with Excel input to convert string objects and
     integers into Python lists containing integers.  This function is used
     with the count_ratio_dict dictionary construction.
@@ -3574,11 +3665,11 @@ def make_group_lists(df, column_name):
                | 8  | 4  | 5  |  "5"  |
                +----+----+----+-------+
 
-            ::
+        .. code:: python
 
-                make_group_lists(df, ["D"])
+          make_group_lists(df, ["D"])
 
-                [[2, 3], [5]]
+          [[2, 3], [5]]
 
     This function allows the user to type the string 2,3 into an Excel
     worksheet cell and have it interpreted by seniority_list as [2, 3]
@@ -3615,9 +3706,9 @@ def make_eg_pcnt_column(df):
 
     assign to long-form dataframe:
 
-        ::
+    .. code:: python
 
-            df['eg_start_pcnt'] = make_eg_pcnt_column(df)
+      df['eg_start_pcnt'] = make_eg_pcnt_column(df)
 
     input
         df (dataframe)
@@ -3639,7 +3730,8 @@ def make_eg_pcnt_column(df):
     return df.eg_start_pcnt.values
 
 
-def make_starting_val_column(df, attr):
+def make_starting_val_column(df,
+                             attr):
     '''make an array of values derived from the input dataframe which will
     reflect the starting value (month zero) of a selected attribute.  Each
     employee will be assigned the zero-month attribute value specific to
@@ -3651,9 +3743,9 @@ def make_starting_val_column(df, attr):
 
     assign to long-form dataframe:
 
-        ::
+    .. code:: python
 
-            df['start_attr'] = make_starting_val_column(df, attr)
+      df['start_attr'] = make_starting_val_column(df, attr)
 
     input
         df (dataframe)
@@ -3710,9 +3802,9 @@ def save_and_load_dill_folder(save_as=None,
             Example with the save_as variable set to "test1".  The existing
             dill folder would be saved as:
 
-                ::
+            .. code:: python
 
-                    saved_dill_folders/test1_dill_folder
+              saved_dill_folders/test1_dill_folder
 
         load_case (string)
             The name of a case study.  If None, the only action performed will
@@ -3731,7 +3823,8 @@ def save_and_load_dill_folder(save_as=None,
             quick check of the folders available to be loaded.  No other action
             will take place with this option set to True.
     '''
-    os.makedirs('saved_dill_folders/', exist_ok=True)
+    os.makedirs('saved_dill_folders/',
+                exist_ok=True)
 
     if print_saved:
         # get all saved folder prefixes and print
@@ -3811,23 +3904,23 @@ def add_zero_col(arr):
 
         input array:
 
-            ::
+        .. code:: python
 
-                array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
-                       [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-                       [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
-                       [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
-                       [40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
+          array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+                 [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+                 [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+                 [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+                 [40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
 
         output array:
 
-            ::
+        .. code:: python
 
-                array([[ 0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
-                       [ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
-                       [ 0, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
-                       [ 0, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
-                       [ 0, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
+          array([[ 0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+                 [ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+                 [ 0, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+                 [ 0, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+                 [ 0, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
 
     input
         arr (array)
@@ -3839,7 +3932,10 @@ def add_zero_col(arr):
     return arr.astype(int)
 
 
-def update_excel(case, file, ws_dict={}, sheets_to_remove=None):
+def update_excel(case,
+                 file,
+                 ws_dict={},
+                 sheets_to_remove=None):
     '''Read an excel file, modify worksheet(s), and write the excel file
     back to disk
 
@@ -3896,7 +3992,10 @@ def update_excel(case, file, ws_dict={}, sheets_to_remove=None):
             df_sheet.to_excel(writer, sheet_name=sheet_name)
 
 
-def copy_excel_file(case, file, revert=False, verbose=True):
+def copy_excel_file(case,
+                    file,
+                    revert=False,
+                    verbose=True):
     '''Copy an excel file and add '_orig' to the file name, or restore an
     excel file from the '_orig' copy.
 
@@ -3945,8 +4044,12 @@ def copy_excel_file(case, file, revert=False, verbose=True):
                 print(path + ' file not found')
 
 
-def anon_names(length=10, min_seg=3, max_seg=3, add_rev=False,
-               df=None, inplace=False):
+def anon_names(length=10,
+               min_seg=3,
+               max_seg=3,
+               add_rev=False,
+               df=None,
+               inplace=False):
     '''Generate a list of random strings
 
     Output may be used to anonymize a dataset name column
@@ -4020,7 +4123,10 @@ def anon_names(length=10, min_seg=3, max_seg=3, add_rev=False,
         df['lname'] = anon_list
 
 
-def anon_empkeys(df, seq_start=10001, frame_num=10000000, inplace=False):
+def anon_empkeys(df,
+                 seq_start=10001,
+                 frame_num=10000000,
+                 inplace=False):
     '''Produce a list of unique, randomized employee numbers, catogorized
     by employee group number code.  Output may be used to anonymize a dataset
     empkey column.
@@ -4064,8 +4170,11 @@ def anon_empkeys(df, seq_start=10001, frame_num=10000000, inplace=False):
         return emp
 
 
-def anon_dates(df, date_col_list, max_adj=5,
-               positive_only=True, inplace=False):
+def anon_dates(df,
+               date_col_list,
+               max_adj=5,
+               positive_only=True,
+               inplace=False):
     '''Add (or optionally, add or subtract) a random number of days to each
     element of a date attribute column.
 
@@ -4117,7 +4226,10 @@ def anon_dates(df, date_col_list, max_adj=5,
         return df0[date_col_list]
 
 
-def anon_pay(df, inplace=False):
+def anon_pay(df,
+             proportional=True,
+             mult=1.0,
+             inplace=False):
     '''Change the pay table baseline information with a non-linear,
     non-proportional method.
 
@@ -4135,8 +4247,12 @@ def anon_pay(df, inplace=False):
     all_cols = df.columns.values.tolist()
     val_cols = [col for col in all_cols if type(col) == int]
     data = df0[val_cols].values
-    arr_mod = np.where(data > 0,
-                       (((((data - 17) / 1.4) + 20) / 1.3) - 5) * 1.1, 0)
+
+    if proportional:
+        arr_mod = data * mult
+    else:
+        arr_mod = np.where(data > 0,
+                           (((((data - 17) / 1.4) + 20) / 1.3) - 5) * 1.1, 0)
 
     if inplace:
         df[val_cols] = arr_mod
@@ -4147,7 +4263,10 @@ def anon_pay(df, inplace=False):
         return df0[val_cols]
 
 
-def sample_dataframe(df, n=None, frac=None, reset_index=False):
+def sample_dataframe(df,
+                     n=None,
+                     frac=None,
+                     reset_index=False):
     '''Get a random sample of a dataframe by rows, with the number of rows
     in the returned sample defined by a count or fraction input.
 
