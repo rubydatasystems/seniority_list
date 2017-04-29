@@ -42,78 +42,87 @@ import numpy as np
 import os
 from sys import argv, exit
 
-script, proposed_order_df, fill_style = argv
 
-try:
-    case = pd.read_pickle('dill/case_dill.pkl').case.value
-except OSError:
-    print('case variable not found, tried to find it in "dill/case_dill.pkl"',
-          'without success\n')
-    exit()
+def main():
 
-dill_pre, pkl_suf = 'dill/', '.pkl'
-out_name = 'final'
+    script, proposed_order_df, fill_style = argv
 
-# name of this case-specific folder within 'reports' folder
-file_path = 'reports/' + case + '/'
-# create the folder if it doesn't already exist
-os.makedirs(file_path, exist_ok=True)
+    try:
+        case = pd.read_pickle('dill/case_dill.pkl').case.value
+    except OSError:
+        print('case variable not found, ',
+              'tried to find it in "dill/case_dill.pkl"',
+              'without success\n')
+        exit()
 
-master_path_string = (dill_pre + 'master' + pkl_suf)
-order_path_string = (dill_pre + 'p_' + proposed_order_df + pkl_suf)
+    dill_pre, pkl_suf = 'dill/', '.pkl'
+    out_name = 'final'
 
-excel_file_name = out_name + '.xlsx'
-write_xl_path = (file_path + excel_file_name)
+    # name of this case-specific folder within 'reports' folder
+    file_path = 'reports/' + case + '/'
+    # create the folder if it doesn't already exist
+    os.makedirs(file_path, exist_ok=True)
 
-df_master = pd.read_pickle(master_path_string)
+    master_path_string = (dill_pre + 'master' + pkl_suf)
+    order_path_string = (dill_pre + 'p_' + proposed_order_df + pkl_suf)
 
-try:
-    df_order = pd.read_pickle(order_path_string)
-except OSError:
-    print('\nfailed trying to read "' + order_path_string + '" \n' +
-          '  check proposal name?\n')
-    exit()
+    excel_file_name = out_name + '.xlsx'
+    write_xl_path = (file_path + excel_file_name)
 
-# set the idx column equal to the "new_order" column if it exists.
-# this would be the case if df_order is the output from the editor tool
-if 'new_order' in df_order.columns.values.tolist():
-    idx = 'new_order'
-else:
-    idx = 'idx'
+    df_master = pd.read_pickle(master_path_string)
 
-joined = df_master.join(df_order, how='outer')
+    try:
+        df_order = pd.read_pickle(order_path_string)
+    except OSError:
+        print('\nfailed trying to read "' + order_path_string + '" \n' +
+              '  check proposal name?\n')
+        exit()
 
-eg_set = pd.unique(joined.eg)
+    # set the idx column equal to the "new_order" column if it exists.
+    # this would be the case if df_order is the output from the editor tool
+    if 'new_order' in df_order.columns.values.tolist():
+        idx = 'new_order'
+    else:
+        idx = 'idx'
 
-final = pd.DataFrame()
+    joined = df_master.join(df_order, how='outer')
 
-for eg in eg_set:
+    eg_set = pd.unique(joined.eg)
 
-    eg_df = joined[joined.eg == eg].copy()
-    eg_df.sort_values('eg_order', inplace=True)
+    final = pd.DataFrame()
 
-    if fill_style == 'ffill':
-        eg_df.iloc[0, eg_df.columns.get_loc(idx)] = eg_df[idx].min()
-        eg_df[idx].fillna(method='ffill', inplace=True)
+    for eg in eg_set:
 
-    if fill_style == 'bfill':
-        eg_df.iloc[-1, eg_df.columns.get_loc(idx)] = eg_df[idx].max()
-        eg_df[idx].fillna(method='bfill', inplace=True)
+        eg_df = joined[joined.eg == eg].copy()
+        eg_df.sort_values('eg_order', inplace=True)
 
-    final = pd.concat([final, eg_df])
+        if fill_style == 'ffill':
+            eg_df.iloc[0, eg_df.columns.get_loc(idx)] = eg_df[idx].min()
+            eg_df[idx].fillna(method='ffill', inplace=True)
 
-final = final.sort_values([idx, 'eg_order'])
-final['snum'] = np.arange(len(final)).astype(int) + 1
-final.pop(idx)
+        if fill_style == 'bfill':
+            eg_df.iloc[-1, eg_df.columns.get_loc(idx)] = eg_df[idx].max()
+            eg_df[idx].fillna(method='bfill', inplace=True)
 
-final.to_pickle(dill_pre + out_name + pkl_suf)
+        final = pd.concat([final, eg_df])
 
-final.set_index('snum', drop=True, inplace=True)
+    final = final.sort_values([idx, 'eg_order'])
+    final['snum'] = np.arange(len(final)).astype(int) + 1
+    final.pop(idx)
 
-writer = pd.ExcelWriter(write_xl_path,
-                        engine='xlsxwriter',
-                        datetime_format='yyyy-mm-dd',
-                        date_format='yyyy-mm-dd')
+    final.to_pickle(dill_pre + out_name + pkl_suf)
 
-final.to_excel(writer, sheet_name=out_name)
-writer.save()
+    final.set_index('snum', drop=True, inplace=True)
+
+    writer = pd.ExcelWriter(write_xl_path,
+                            engine='xlsxwriter',
+                            datetime_format='yyyy-mm-dd',
+                            date_format='yyyy-mm-dd')
+
+    final.to_excel(writer, sheet_name=out_name)
+    writer.save()
+
+
+if __name__ == "__main__":
+    main()
+
