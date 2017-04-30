@@ -54,7 +54,7 @@ def career_months_list_in(ret_list, start_date):
 
 
 # CAREER MONTHS
-def career_months_df_in(df, startdate):
+def career_months_df_in(df, start_date):
     '''Short_Form
 
     Determine how many months each employee will work
@@ -70,7 +70,7 @@ def career_months_df_in(df, startdate):
             comparative date for retirement dates, starting date for the
             data model
     '''
-    start_date = pd.to_datetime(startdate)
+    start_date = pd.to_datetime(start_date)
     rets = list(df.retdate)
     cmths = []
     s_year = start_date.year
@@ -646,94 +646,6 @@ def make_original_jobs_from_counts(jobs_arr_arr,
     return result_jobs_arr.astype(int)
 
 
-# ASSIGN JOBS FULL FLUSH
-def assign_jobs_full_flush(monthly_nonret_counts,
-                           job_list,
-                           job_level_count):
-    '''Long_Form
-
-    Uses the nonret counts for each month to:
-      a. determine the long form monthly slice for assignment, and
-      b. slice the jobs list from the top for assignment
-
-    The job_list input is the output from the make_stovepipe_jobs function
-    using the totals of all eg job categories as input
-
-    monthly_nonret_counts input is the monthly list of job counts from the
-    count_per_month function
-
-    This is the full bump and full flush version
-    Extremely fast...
-
-    Note:  this function has no adjustment for job changes over time
-
-    inputs
-        monthly_nonret_counts
-            count of active, non-retired employees for each month
-        job_list (numpy array)
-            list of job level codes derived from the job counts, each job code
-            is repeated for its respective count, and stacked with the other
-            job codes - result is monotonic
-        job_level_count
-            number of active job levels in the model (do not count the
-            furlough level)
-    '''
-    long_job_array = np.zeros(sum(monthly_nonret_counts))
-    tcount = 0
-    for i in np.arange(0, len(monthly_nonret_counts)):
-        long_job_array[tcount:monthly_nonret_counts[i] + tcount] = \
-            job_list[0:monthly_nonret_counts[i]]
-        tcount += monthly_nonret_counts[i]
-
-    long_job_array[long_job_array == 0] = job_level_count + 1
-    return long_job_array.astype(int)
-
-
-# ASSIGN JOBS FULL FLUSH - SKIP FUROUGHED EMPS
-def assign_jobs_full_flush_skip_furs(monthly_nonret_counts,
-                                     job_list,
-                                     fur_arr,
-                                     job_level_count):
-    '''Long_Form
-
-    Using the nonret counts for each month:
-
-        a. determine the long form monthly slice for assignment
-        b. slice the jobs list from the top for assignment,
-           skipping furloughees
-
-    This function is used within the standalone computation
-
-    inputs
-        monthly_nonret_counts
-            monthly list of job counts from the count_per_month function
-        job_list
-            output from the make_stovepipe_jobs_from_jobs_arr function
-        fur_arr
-            long_form furlough codes (same size as long_job_array)
-        job_level_count
-            num_of_job_levels (ultimately from settings.xlsx)
-
-    This is bump and flush (skipping furloughed employees)
-    '''
-    long_job_array = np.zeros(sum(monthly_nonret_counts))
-    tcount = 0
-
-    for i in np.arange(0, len(monthly_nonret_counts)):
-
-        target_slice = long_job_array[tcount:monthly_nonret_counts[i] + tcount]
-        fur_slice = fur_arr[tcount:monthly_nonret_counts[i] + tcount]
-        jobs_segment = job_list[0:monthly_nonret_counts[i]]
-
-        np.put(target_slice, np.where(fur_slice == 0)[0], jobs_segment)
-
-        tcount += monthly_nonret_counts[i]
-
-    long_job_array[long_job_array == 0] = job_level_count + 1
-
-    return long_job_array.astype(int)
-
-
 # ASSIGN JOBS FULL FLUSH with JOB COUNT CHANGES
 def assign_jobs_full_flush_job_changes(monthly_nonret_counts,
                                        job_counts_each_month,
@@ -1089,56 +1001,6 @@ def assign_jobs_nbnf_job_changes(df,
         orig.astype(int), fur_data.astype(int)
 
 
-# PUT-MAP function
-def put_map(jobs_array,
-            job_cnts):
-    '''Any_Form (Practical application is Long_Form)
-
-    Best use when values array is limited set of integers.
-
-    10x faster than lambda function.
-    dictionary-like value-key lookup using np.put and np.where
-
-    inputs
-        jobs_array
-            long_form jnums
-        jobs_cnts
-            array of job counts from settings dictionary
-            example: with 3 egs, array of 3 lists of counts
-
-    Example:
-
-        function call:
-
-        .. code:: python
-
-          map_jobs = put_map(no_bump_jnums, job_level_counts)
-
-        assigned to df:
-
-        .. code:: python
-
-          df['nbnf_job_count'] = map_jobs.astype(int)
-
-
-    length of set(jobs_array) must equal length of job_cnts.
-    '''
-    target_array = np.zeros(jobs_array.size)
-
-    job_cnts = np.take(job_cnts, np.where(job_cnts != 0))[0]
-
-    i = 0
-
-    for job in sorted(list(set(jobs_array))):
-        np.put(target_array,
-               np.where(jobs_array == job),
-               job_cnts[i])
-
-        i += 1
-
-    return target_array
-
-
 # MAKE LOWER SLICE LIMITS
 def make_lower_slice_limits(month_counts_cumsum):
     '''for use when working with unique month data
@@ -1159,23 +1021,6 @@ def make_lower_slice_limits(month_counts_cumsum):
     lower_list.sort()
     lower_list.pop()
     return np.array(lower_list).astype(int)
-
-
-def make_lower_and_upper_slice_limits(mnum_arr):
-    '''calculate the monthly slice indexes for a
-    long_form dataset.  Result is used to perform
-    operations within month ranges of the dataset.
-
-    Returns tuple (lower, upper)
-
-    input
-        mnum_arr
-            nd.array of a long_form df mnum (month number) column
-    '''
-    mnum_data = np.unique(mnum_arr, return_counts=True)[1]
-    lower = make_lower_slice_limits(mnum_data)
-    upper = mnum_data.cumsum()
-    return lower, upper
 
 
 def snum_and_spcnt(jnum_arr,
@@ -1382,76 +1227,6 @@ def create_snum_and_spcnt_arrays(jnums,
 
     return long_snum_array, long_spcnt_array, \
         long_list_array.astype(int), long_lspcnt_array
-
-
-# MAKE JOB COUNTS
-def make_job_counts(furlough_list,
-                    *job_count_lists):
-    '''Make two arrays:
-
-    1. array of n lists of job counts for n number
-    of eg job count input lists
-
-    2. array of one summation list of first array
-    (total count of all eg jobs)
-
-    The last element of each array above will be a furlough count.
-
-    Returns tuple (eg_job_counts, combined_job_count)
-
-    inputs
-        furlough_list
-            a list of integers holding any furlough count for each eg
-        job_count_lists
-            the eg job count list(s)
-    '''
-    eg_job_counts = []
-    i = 0
-
-    for job_list in job_count_lists:
-
-        j = list(job_list)
-        j.append(furlough_list[i])
-        i += 1
-
-        eg_job_counts.append(j)
-
-    eg_job_counts = np.array(eg_job_counts)
-    combined_job_count = sum(np.array(eg_job_counts))
-
-    return eg_job_counts.astype(int), combined_job_count.astype(int)
-
-
-# MAKE JOB COUNTS (without furlough counts)
-def make_array_of_job_lists(*job_count_lists):
-    '''Make two arrays:
-
-    1. array of n lists of job counts for n number
-    of eg job count input lists
-
-    2. array of one summation list of first array
-    (total count of all eg jobs)
-
-    (old function name: make_job_counts_without_fur)
-
-    The arrays above will not contain a furlough count.
-
-    Returns tuple (eg_job_counts, combined_job_count)
-
-    inputs
-        job_count_lists
-            the eg job count list(s)
-    '''
-    eg_job_counts = []
-
-    for job_list in job_count_lists:
-        j = list(job_list)
-        eg_job_counts.append(j)
-
-    eg_job_counts = np.array(eg_job_counts)
-    combined_job_count = sum(np.array(eg_job_counts))
-
-    return eg_job_counts.astype(int), combined_job_count.astype(int)
 
 
 # MAKE JOB COUNTS (without furlough counts)
@@ -1794,51 +1569,6 @@ def get_month_slice(df, l, h):
     '''
     segment = df[l:h]
     return segment
-
-
-# PRECALCULATE FURLOUGHS
-def precalculate_fur_without_recalls(monthly_job_totals,
-                                     head_counts,
-                                     fur_data,
-                                     lows,
-                                     highs):
-    '''add monthly fur data to existing fur data if total job count
-    is less than headcount for future months
-
-    initial future furloughs may be precalculated
-    based on monthly job changes and non_ret employee counts.
-
-    This data is used to populate the furlough data and will
-    be modified during the job assignment function if the recall
-    option is incorporated.
-
-    inputs
-        monthly_job_totals
-            job_gain_loss_table function output[1]
-            short_form, job counts for each job level
-            one row of counts for each month
-        head_counts
-            count_per_month function output
-            short_form, one total for each month
-        fur data
-            array of initial furlough data from long_form df
-        lows
-            array of starting indexes for each month within long_form
-            make_lower_slice_limits(head_counts)
-        highs
-            array of ending indexes for each month within long_form
-            (cumsum of head_counts)
-    '''
-    for i in np.arange(head_counts.size):
-        L = lows[i]
-        U = highs[i]
-        surplus = monthly_job_totals[i] - head_counts[i]
-        if surplus < 0:
-            np.put(fur_data[L:U],
-                   np.where(fur_data[L:U] == 0)[0]
-                   [monthly_job_totals[i] - head_counts[i]:],
-                   1)
-    return fur_data
 
 
 # GET_RECALL_MONTHS (refactor to provide for no recall list)
@@ -2385,67 +2115,6 @@ def distribute(available,
     return bin_counts
 
 
-# DISTRIBUTE VACANCIES BY WEIGHTS (CONTRACTUAL RATIOS)
-def distribute_vacancies_by_weights(available,
-                                    eg_counts,
-                                    weights,
-                                    cap=None):
-    '''Determine how vacancies are assigned to employee groups
-    with a given distribution ratio, total count of jobs, and a
-    pre-existing and likely uneven initial job distribution.
-
-    inputs
-        available (integer)
-            total count of jobs in distribution pool
-            includes count of jobs already held by affected employee groups
-        eg_counts (list of ints)
-            count of jobs already assigned to each affected employee group
-        weights (list (ints or floats))
-            relative weighting between the employee groups
-            examples:
-
-        .. code:: python
-
-          [2.5, 3, 1.1]
-
-        The length of the eg_counts list and the weights list must be the
-        same.
-        If there are zero or less vacancies, the function will
-        return an array of zeros with a length equal to the eg_counts
-
-        ...no displacements if no vacancies
-
-        If any group(s) is already over their quota, the remaining
-        vacancies will be distributed to the remaining group(s) according
-        to the weightings (up to the quota for each group)
-    '''
-
-    if cap:
-        max_allocations = distribute(cap, weights)
-        add_limits = np.array(max_allocations) - np.array(eg_counts)
-        add_limits[add_limits < 0] = 0
-        available = min(sum(add_limits), available)
-        variance = add_limits
-    else:
-        current_count = sum(eg_counts)
-        balanced_distribution = distribute(current_count + available, weights)
-        variance = balanced_distribution - np.array(eg_counts)
-        variance[variance < 0.] = 0.
-        variance = variance / balanced_distribution
-
-    if min(variance) <= 0:
-        i = 0
-        list_loc = []
-        for num in variance:
-            if num > 0:
-                list_loc.append(i)
-            i += 1
-
-        variance[list_loc] = distribute(available, variance[list_loc])
-
-    return variance.astype(int)
-
-
 # MAKE PARTIAL JOB COUNT LIST (prior to implementation month)
 def make_delayed_job_counts(imp_month,
                             delayed_jnums,
@@ -2489,97 +2158,6 @@ def make_delayed_job_counts(imp_month,
                    job_indexes.size)
 
     return stand_job_counts
-
-
-# GEN_DELAYED_JOB_CHANGES_PER_MONTH
-def delayed_monthly_sep_job_tables(job_levels,
-                                   eg_job_counts,
-                                   imp_job_counts,
-                                   imp_month,
-                                   allocation):
-    '''make a job count table for each eg prior to a delayed
-    implementation date. (eg = employee group).
-
-    The difference between the initial total job counts and the job counts
-    at the implementation date is proportionally spread out over the months
-    between the starting date and the implementation date.
-    A job dict determines the allocation of jobs amoung egs.
-
-    inputs
-        job_levels
-            the number of job levels in the model
-            (from the settings dictionary)
-        eg_job_counts
-            numpy array of the job count lists for the egs
-        imp_job_counts
-            the total of the jobs available within each job level on the
-            implementation date (array)
-        allocation
-            array of job levels to eg weighting lists.  Key to determine
-            the job allocation per level and month until implementation
-            date.
-            Total of each list must equal 1.
-
-            example:
-
-            .. code:: python
-
-              [[1.00, 0.00, 0.00],  # c4
-
-              [.50, 0.25, 0.25],   # c3
-
-              [.88, 0.09, 0.03],   # c2
-
-              [1.00, 0.00, 0.00],  # f4
-
-              [.50, 0.25, 0.25],   # f3
-
-              [.88, 0.09, 0.03],   # f2
-
-              [0.00, 1.00, 0.00],  # c1
-
-              [0.00, 1.00, 0.00]]  # f1
-
-            using the above, if there were 4 additional jobs for job
-            level 2 in a given month, eg 1 would get 2 and eg 2 and 3,
-            1 each.
-
-            .. code:: python
-
-              [.50, 0.25, 0.25]
-
-    '''
-    sum_of_initial_jobs = sum(eg_job_counts)
-    job_change_totals = imp_job_counts - sum_of_initial_jobs
-
-    monthly_job_changes = job_change_totals / imp_month
-
-    # first number is imp month, second is num of job levels
-    temp_tables = np.zeros(imp_month * job_levels).reshape(imp_month,
-                                                           job_levels)
-
-    temp_changes = np.zeros(imp_month * job_levels).reshape(imp_month,
-                                                            job_levels)
-
-    sep_tables = np.array((temp_tables, temp_tables, temp_tables))
-
-    sep_changes = np.array((temp_changes, temp_changes, temp_changes))
-
-    result_list = []
-    # create initial sep job tables
-    # create cumulative additives for each sep_table
-    for i in np.arange(eg_job_counts.shape[0]):
-        sep_tables[i][:] = eg_job_counts[i]
-        sep_changes[i][:] = monthly_job_changes * allocation.T[i]
-        sep_changes[i] = np.cumsum(sep_changes[i], axis=0)
-        sep_tables[i] = sep_tables[i] + sep_changes[i]
-        result_list.append(list(sep_tables[i]))
-        print('start', int(np.sum(sep_tables[i][0])),
-              'final', int(np.sum(sep_tables[i][-1:])))
-    result_array = np.around(np.array(result_list), decimals=0).astype(int)
-    result_array = np.clip(result_array, 0, 1000000)
-
-    return result_array.astype(int)
 
 
 # MAKE GAIN_LOSS_TABLE
@@ -3279,91 +2857,6 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
     print('datasets loaded (dictionary keys):', list(ds_dict.keys()), '\n')
 
     return ds_dict
-
-
-def assign_preimp_standalone(ds_stand,
-                             ds_integrated,
-                             col_list,
-                             imp_high,
-                             return_array_and_dict=False):
-    '''Copy standalone data to an integrated dataset up to the implementation
-    date.
-
-    inputs
-        ds_stand (dataframe)
-            standalone dataset
-        ds_integrated (dataframe)
-            integrated dataset
-        col_list
-            common columns in standalone and integrated datasets.  These
-            are calculated columns and have different results in each dataset.
-        imp_high
-            highest index (row number) from implementation month data
-            (from long-form dataset)
-        return_array_and_dict
-            if True, return the standalone data array and column-name to numpy
-            array index dictionary
-    '''
-
-    # only include columns from col_list which exist in both datasets
-    col_list = list(set(col_list).intersection(ds_stand.columns))
-    col_list = list(set(col_list).intersection(ds_integrated.columns))
-    key_cols = ['mnum', 'empkey']
-
-    # grab appropriate columns from standalone dataset up to end of
-    # implementation month initiate a 'key' column to save assignment
-    # time below
-    ds_stand = ds_stand[col_list][:imp_high].copy()
-
-    # grab the 'mnum' and 'empkey' columns from the ordered dataset to
-    # form a 'key' column with unique values
-    ds_temp = ds_integrated[key_cols][:imp_high].copy()
-
-    # make numpy arrays out of column values for fast 'key' column generation
-    stand_emp = np.array(ds_stand.empkey) * 1000
-    stand_mnum = np.array(ds_stand.mnum)
-    temp_emp = np.array(ds_temp.empkey) * 1000
-    temp_mnum = np.array(ds_temp.mnum)
-    # make the 'key' columns
-    stand_key = stand_emp + stand_mnum
-    temp_key = temp_emp + temp_mnum
-    # assign to 'key' columns
-    ds_stand['key'] = stand_key
-    ds_temp['key'] = temp_key
-    # now that the 'key' columns are in place, we don't need or
-    # want the key making columns.
-    # get ds_stand columns except for key making columns ('mnum', 'empkey')
-    stand_cols = list(set(ds_stand.columns).difference(key_cols))
-    # redefine ds_stand to include original columns less key making columns
-    ds_stand = ds_stand[stand_cols]
-    # redefine ds_temp to only include 'key' column (retains index)
-    ds_temp = ds_temp[['key']]
-    # merge standalone data to integrated list ordered ds_temp df,
-    # using the unique 'key' column values.
-    # this will generate standalone data ordered to match the employee order
-    # from the integrated dataset
-    ds_temp = pd.merge(ds_temp, ds_stand, on='key')
-    # now get rid of the 'key' column
-    temp_cols = list(set(ds_temp.columns).difference(['key']))
-    ds_temp = ds_temp[temp_cols]
-    # convert the ds_temp dataframe to a 2d numpy array for fast
-    # indexing and retrieval
-    stand_array = ds_temp.values.T
-
-    # construct a dictionary of columns to numpy row indexes
-    keys = ds_temp.columns
-    values = np.arange(len(ds_temp.columns))
-    stand_dict = od(zip(keys, values))
-
-    if return_array_and_dict:
-        return stand_array, stand_dict
-    else:
-        for col in keys:
-            col_arr = np.array(ds_integrated[col])
-            col_arr[:imp_high] = stand_array[stand_dict[col]]
-            ds_integrated[col] = col_arr
-
-    return ds_integrated
 
 
 def make_preimp_array(ds_stand,

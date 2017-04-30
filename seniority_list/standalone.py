@@ -57,17 +57,7 @@ def main():
     # (for input to assign_standalone_job_changes function)
     prex = 'prex' in conditions
 
-    # if sdict['enhanced_jobs']:
-    #     # use job dictionary(jd) from settings dictionary for conversion
-    #     eg_counts, j_changes = f.convert_to_enhanced(sdict['eg_counts'],
-    #                                                  sdict['j_changes'],
-    #                                                  sdict['jd'])
-    # else:
-    #     eg_counts = sdict['eg_counts']
-    #     j_changes = sdict['j_changes']
-
     table = tdict['s_table']
-    # jcnts_arr = f.make_jcnts(eg_counts)
     jcnts_arr = tdict['jcnts_arr']
     j_changes = tdict['j_changes']
 

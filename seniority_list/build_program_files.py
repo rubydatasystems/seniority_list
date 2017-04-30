@@ -407,9 +407,7 @@ def main():
 
     settings['ret_age'] = ret_age
 
-    # ## start
-
-    settings['start'] = pd.to_datetime(settings['starting_date'])
+    start_date = pd.to_datetime(settings['starting_date'])
 
     # ## imp_date
 
@@ -421,8 +419,8 @@ def main():
     imp_date = settings['imp_date']
     start = settings['start']
 
-    settings['imp_month'] = ((imp_date.year - start.year) * 12) - \
-        (start.month - imp_date.month)
+    settings['imp_month'] = ((imp_date.year - start_date.year) * 12) - \
+        (start_date.month - imp_date.month)
 
     # ## num_of_job_levels
 
@@ -608,7 +606,6 @@ def main():
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     # OLD CODE STARTS HERE:  (making pickle files...) *********************
-    start_date = pd.to_datetime(settings['starting_date'])
 
     # MASTER FILE:
     master = pd.read_excel('excel/' + case + '/master.xlsx')
