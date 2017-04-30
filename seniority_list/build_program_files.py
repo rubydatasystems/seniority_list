@@ -133,6 +133,8 @@ def main():
 
     # numpy unique returns a SORTED array of unique elements
     contract_years = np.unique(pay_rates.year)
+    settings['contract_end'] = max(contract_years)
+    settings['contract_years'] = contract_years
 
     # extract integer column names (represents years of pay longevity)
     longevity_cols = []
@@ -380,6 +382,12 @@ def main():
 
     # ADD MORE ITEMS TO SETTINGS DICTIONARY //////////////////////////////////
 
+    pay_ex = xl['pay_exceptions']
+    settings['pay_exceptions'] = dict([(i, [a, b]) for i, a, b
+                                       in zip(pay_ex.year_code,
+                                              pay_ex.start_date,
+                                              pay_ex.end_date)])
+
     settings['ret_incr'] = \
         f.make_tuples_from_columns(xl['ret_incr'],
                                    ['month_start', 'month_increase'],
@@ -409,15 +417,9 @@ def main():
 
     start_date = pd.to_datetime(settings['starting_date'])
 
-    # ## imp_date
-
-    settings['imp_date'] = \
-        pd.to_datetime(settings['implementation_date'])
-
     # ## imp_month
 
-    imp_date = settings['imp_date']
-    start = settings['start']
+    imp_date = settings['implementation_date']
 
     settings['imp_month'] = ((imp_date.year - start_date.year) * 12) - \
         (start_date.month - imp_date.month)
@@ -557,9 +559,9 @@ def main():
         count_dict = settings['count_ratio_dict']
         ratio_dict = settings['ratio_dict']
 
-        dist_sg = settings['sg_dist']
-        dist_ratio = settings['ratio_dist']
-        dist_count = settings['count_dist']
+        dist_sg = settings['dist_sg']
+        dist_ratio = settings['dist_ratio']
+        dist_count = settings['dist_count']
 
         sg_rights, count_dict, ratio_dict = cnv(job_dict=jd,
                                                 sg_list=sg_rights,

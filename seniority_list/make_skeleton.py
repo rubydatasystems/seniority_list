@@ -126,7 +126,7 @@ def main():
 
     # This is an input for the contract_pay_and_year_and_raise function
 
-    date_series = pd.to_datetime(list(df_dates['date']))
+    # date_series = pd.to_datetime(list(df_dates['date']))
 
     # this function produces a 2-column array.
     # First column is the year value of the date list passed as an input.
@@ -134,17 +134,7 @@ def main():
     # a calculated percentage pay raise after the last contract year.
 
     if sdict['compute_pay_measures']:
-        year_and_scale = \
-            f.contract_pay_year_and_raise(date_series, sdict['future_raise'],
-                                          sdict['date_exception_start'],
-                                          sdict['date_exception_end'],
-                                          sdict['pay_table_exception_year'],
-                                          sdict['annual_pcnt_raise'],
-                                          sdict['last_contract_year'])
-
-        df_dates['year'] = year_and_scale[0]
-
-        df_dates['pay_raise'] = year_and_scale[1]
+        df_dates = f.contract_year_and_raise(df_dates, sdict)
 
     # the merge below brings in 3 columns - date, year, and pay_raise
     # - from month_form to long_form
