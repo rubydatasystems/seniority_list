@@ -297,7 +297,7 @@ def main():
 
     nbnf = jobs_and_counts[0]
 
-    job_col = f.assign_jobs_full_flush_with_job_changes(
+    job_col = f.assign_jobs_full_flush_job_changes(
         nonret_each_month, table[1], num_of_job_levels)
 
     if sdict['no_bump']:

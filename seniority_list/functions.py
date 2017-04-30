@@ -735,9 +735,9 @@ def assign_jobs_full_flush_skip_furs(monthly_nonret_counts,
 
 
 # ASSIGN JOBS FULL FLUSH with JOB COUNT CHANGES
-def assign_jobs_full_flush_with_job_changes(monthly_nonret_counts,
-                                            job_counts_each_month,
-                                            job_level_count):
+def assign_jobs_full_flush_job_changes(monthly_nonret_counts,
+                                       job_counts_each_month,
+                                       job_level_count):
     '''Long_Form
 
     Using the nonret counts for each month:
@@ -3936,8 +3936,9 @@ def update_excel(case,
                  file,
                  ws_dict={},
                  sheets_to_remove=None):
-    '''Read an excel file, modify worksheet(s), and write the excel file
-    back to disk
+    '''Read an excel file, optionally remove worksheet(s), add worksheets
+    or overwrite worksheets with a dictionary of ws_name, dataframe key, value
+    pairs, and write the excel file back to disk
 
     inputs
         case (string)
@@ -3994,6 +3995,7 @@ def update_excel(case,
 
 def copy_excel_file(case,
                     file,
+                    return_path_and_df=False,
                     revert=False,
                     verbose=True):
     '''Copy an excel file and add '_orig' to the file name, or restore an
@@ -4004,6 +4006,9 @@ def copy_excel_file(case,
             the data model case name
         file (string)
             the excel file name without the .xlsx extension
+        return_path_and_df (boolean)
+            if True, return a tuple containing the file path as a string and
+            the worksheet designated by the "file" input as a dataframe
         revert (boolean)
             if False, copy the excel file and add '_orig' to the file name.
             if True, restore the copied file and drop the '_orig' suffix
@@ -4019,13 +4024,20 @@ def copy_excel_file(case,
             if not os.path.isfile(path_orig):
                 shutil.copyfile(path, path_orig)
                 if verbose:
-                    print('"' + path + '" *copied* as "' + path_orig + '"')
+                    print('\n"' + path + '" *copied* as "' + path_orig + '"')
             else:
                 if verbose:
-                    print('"' + path_orig + '" file *already exists*')
+                    print('\n"' + path_orig +
+                          '" file already exists (nothing copied)')
         except OSError:
             if verbose:
-                print('"' + path + '" file *not found*')
+                print('\n"' + path + '" file *not found*')
+
+        if return_path_and_df:
+            try:
+                return path, pd.read_excel(path, sheetname=None)
+            except OSError:
+                print('\nproblem reading/returning ' + path + '"')
         return
 
     # restore <file>_orig.xlsx as <file>.xlsx
@@ -4035,13 +4047,13 @@ def copy_excel_file(case,
                 os.remove(path)
                 os.rename(path_orig, path)
                 if verbose:
-                    print('"' + path_orig + '" *restored* as "' + path + '"')
+                    print('\n"' + path_orig + '" *restored* as "' + path + '"')
             else:
                 if verbose:
-                    print('"' + path_orig + '" file *not found*')
+                    print('\n"' + path_orig + '" file *not found*')
         except OSError:
             if verbose:
-                print(path + ' file not found')
+                print('\n' + path + ' file not found')
 
 
 def anon_names(length=10,
@@ -4285,15 +4297,20 @@ def sample_dataframe(df,
             Will be clipped between 0.0 and 1.0 if input exceeds these
             boundries.  An input of .3 would randomly select 30% of the rows
             from the input dataframe.
-        sort_index (boolean)
-            If True, sort the sample dataframe by the original index and then
-            reset the index
+        reset_index (boolean)
+            If True, reset the output dataframe index
 
     If both the "n" and "frac" inputs are None, a random single row will be
     returned.
+
+    The rows in the output dataframe will be sorted according to original
+    order.
     '''
     # set "frac" input to None if "n" input is not None (cannot use both
     # inputs at once)
+    if (frac is None) and (n is None):
+        return df
+
     if (frac is not None) and (n is not None):
         frac = None
 
@@ -4325,3 +4342,96 @@ def sample_dataframe(df,
 
     return df
 
+
+def anon_master(case,
+                empkey=True,
+                name=True,
+                date=False,
+                sample=False,
+                # empkey
+                seq_start=10001, frame_num=10000000,
+                # name
+                min_seg=3, max_seg=3, add_rev=False,
+                # date
+                date_col_list=['ldate', 'doh'],
+                max_adj=5, positive_only=True,
+                date_col_list_sec=['dob'],
+                max_adj_sec=5, positive_only_sec=True,
+                # sample
+                n=None, frac=None, reset_index=False):
+
+    inplace = True
+    anon_cols = []
+    attributes = [empkey, name, date]
+
+    if any(attributes):
+        path, d = copy_excel_file(case, 'master', return_path_and_df=True)
+        df = d['master']
+
+        if sample:
+            df = sample_dataframe(df, n=n, frac=frac,
+                                  reset_index=reset_index).copy()
+            print('\n  input master length:', len(d['master']))
+            print('sampled master length:', len(df))
+
+        if empkey:
+            anon_empkeys(df, seq_start=seq_start,
+                         frame_num=frame_num,
+                         inplace=inplace)
+            anon_cols.append('empkey')
+
+        if name:
+            anon_names(min_seg=min_seg,
+                       max_seg=max_seg,
+                       add_rev=add_rev,
+                       df=df,
+                       inplace=inplace)
+            anon_cols.append('name')
+
+        if date:
+            if date_col_list:
+                anon_dates(df,
+                           date_col_list,
+                           max_adj=max_adj,
+                           positive_only=positive_only,
+                           inplace=inplace)
+                anon_cols.extend(date_col_list)
+
+            if date_col_list_sec:
+                anon_dates(df,
+                           date_col_list_sec,
+                           max_adj=max_adj_sec,
+                           positive_only=positive_only_sec,
+                           inplace=inplace)
+                anon_cols.extend(date_col_list_sec)
+
+        d['master'] = df
+        with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
+
+            for ws_name, df_sheet in d.items():
+                df_sheet.to_excel(writer, sheet_name=ws_name)
+
+        print('\n"' + path + '" anonymized!\n', '   columns: ',
+              anon_cols, '\n')
+
+
+def anon_pay_table(case,
+                   proportional=True,
+                   mult=1.0,):
+
+    inplace = True
+
+    path, d = copy_excel_file(case, 'pay_tables', return_path_and_df=True)
+    df = d['rates']
+    anon_pay(df,
+             proportional=proportional,
+             mult=mult,
+             inplace=inplace)
+    d['rates'] = df
+
+    with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
+
+        for ws_name, df_sheet in d.items():
+            df_sheet.to_excel(writer, sheet_name=ws_name)
+
+    print('\nanon_pay_table routine complete')
