@@ -29,17 +29,29 @@ import functions as f
 
 
 # TO_PERCENT (matplotlib percentage axis)
-def to_percent(y, position):
-    '''matplotlib axis as a percentage...
-    Ignores the passed in position variable.
-    This has the effect of scaling the default
-    tick locations.
+def to_percent(decimal, position, precision=0):
+    '''Custom format for matplotlib axis as a percentage.
+
+    Ignores the passed in position variable.  This has the effect of scaling
+    the default tick locations.
+
+    inputs
+        decimal (axis values)
+            no user input
+        position
+            ignored
+        precision (integer)
+            number of decimals in output percentage labels
     '''
-    s = str(np.round(100 * y, 0).astype(int))
-    return s + '%'
+    fmt_str = '{0:.' + str(precision) + 'f}%'
+    pcnt_format = fmt_str.format(decimal * 100)
+    return pcnt_format
 
 
-pct_format = FuncFormatter(to_percent)
+def pct_format():
+    '''Apply "to_percent" custom format for chart tick labels
+    '''
+    return FuncFormatter(to_percent)
 
 
 def quartile_years_in_position(dfc, dfb,
@@ -432,8 +444,9 @@ def quartile_years_in_position(dfc, dfb,
                loc='center left',
                bbox_to_anchor=(1.01, 0.5),
                fontsize=legend_size)
-    func_name = sys._getframe().f_code.co_name
+
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -528,7 +541,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
 
     ax.set_ylim(1, 0)
     ax.set_xlim(25, ret_age)
-    ax.yaxis.set_major_formatter(pct_format)
+    ax.yaxis.set_major_formatter(pct_format())
     ax.set_yticks(np.arange(0, 1.05, .05))
     fig.suptitle(df_label +
                  ' - age vs seniority percentage' +
@@ -540,8 +553,8 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
     ax.set_ylabel('seniority list percentage')
     ax.set_xlabel('age')
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format,
@@ -709,7 +722,7 @@ def multiline_plot_by_emp(df, measure, xax,
             ax.set_ylim(ymax=pcnt_ylimit)
         else:
             ax.set_yticks(np.arange(0, 1.05, .05))
-        ax.yaxis.set_major_formatter(pct_format)
+        ax.yaxis.set_major_formatter(pct_format())
 
     if measure in ['snum', 'spcnt', 'lspcnt', 'jnum',
                    'lnum', 'jobp', 'fbff', 'cat_order']:
@@ -729,13 +742,16 @@ def multiline_plot_by_emp(df, measure, xax,
         ax.set_ylim(job_levels + 1.5, 0.5)
 
     if xax in ['spcnt', 'lspcnt']:
-        ax.xaxis.set_major_formatter(pct_format)
+        ax.xaxis.set_major_formatter(pct_format())
         ax.set_xticks(np.arange(0, 1.1, .1))
         ax.set_xlim(1, 0)
 
     if show_implementation_date:
-        if sdict['delayed_implementation'] and xax == 'date':
-            ax.axvline(sdict['imp_date'], c='g', ls='--', alpha=1, lw=1)
+        if (sdict['delayed_implementation'] and
+                sdict['implementation_date'] and
+                xax == 'date'):
+                    ax.axvline(sdict['implementation_date'],
+                               c='g', ls='--', alpha=1, lw=1)
 
     ax.set_title(attr_dict[measure] + ' - proposal ' + df_label,
                  y=1.02, fontsize=title_size)
@@ -747,8 +763,8 @@ def multiline_plot_by_emp(df, measure, xax,
     ax.grid(ls=grid_linestyle, alpha=grid_alpha)
     ax.legend(loc=4, markerscale=1.5, fontsize=legend_size)
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -902,7 +918,7 @@ def multiline_plot_by_eg(df, measure, xax,
                                                         alpha=marker_alpha)
 
     if measure in ['spcnt', 'lspcnt']:
-        ax.yaxis.set_major_formatter(pct_format)
+        ax.yaxis.set_major_formatter(pct_format())
         if full_pcnt_yscale:
             ax.set_yticks(np.arange(0, 1.05, .05))
             ax.set_ylim(ymin=-0.01, ymax=1.01)
@@ -937,7 +953,7 @@ def multiline_plot_by_eg(df, measure, xax,
         ax.set_xlim(xmin=limit_dict[xax])
 
     if xax in ['spcnt', 'lspcnt']:
-        ax.xaxis.set_major_formatter(pct_format)
+        ax.xaxis.set_major_formatter(pct_format())
         if full_pcnt_xscale:
             ax.set_xticks(np.arange(0, 1.1, .1))
             ax.set_xlim(xmin=-0.01, xmax=1.01)
@@ -1001,8 +1017,8 @@ def multiline_plot_by_eg(df, measure, xax,
     ax.set_ylabel(attr_dict[measure])
     ax.set_xlabel(attr_dict[xax])
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -1124,15 +1140,15 @@ def violinplot_by_eg(df, measure, ret_age,
         ax.invert_yaxis()
 
         if measure in ['spcnt', 'lspcnt']:
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
             ax.set_yticks(np.arange(0, 1.05, .05))
             ax.set_ylim(1.04, -.04)
 
     ax.set_xlabel('employee group')
     ax.set_ylabel(attr_dict[measure])
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -1203,8 +1219,8 @@ def age_kde_dist(df, color_list,
     ax.set_title('Age Distribution Comparison - Month ' + str(mnum), y=1.02,
                  fontsize=title_size)
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -1491,7 +1507,7 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
         # ax.set_ylim(-ylimit, ylimit)
         if measure in ['spcnt', 'lspcnt']:
             # format percentage y axis scale
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
         if measure in ['jnum', 'jobp']:
             # if job level measure, set scaling and limit y range
             ax.set_yticks(np.arange(int(-ylimit - 1), int(ylimit + 2)))
@@ -1505,8 +1521,8 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
         ax.xaxis.label.set_size(label_size)
         fig.suptitle(yval_dict[yval], fontsize=suptitle_size)
 
-        func_name = sys._getframe().f_code.co_name
         if image_dir:
+            func_name = sys._getframe().f_code.co_name
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + yval +
@@ -1713,7 +1729,7 @@ def eg_boxplot(df_list, eg_list,
         ax.set_ylim(0, ylimit)
         if measure in ['spcnt', 'lspcnt']:
             # format percentage y axis scale
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
             ax.set_ylim(ylimit, 0)
         if measure in ['jnum', 'jobp']:
             # if job level measure, set scaling and limit y range
@@ -1737,8 +1753,9 @@ def eg_boxplot(df_list, eg_list,
             ax.xaxis.grid(alpha=grid_alpha, ls=grid_linestyle)
         if show_ygrid:
             ax.yaxis.grid(alpha=grid_alpha, ls=grid_linestyle)
-        func_name = sys._getframe().f_code.co_name
+
         if image_dir:
+            func_name = sys._getframe().f_code.co_name
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + yval +
@@ -1935,8 +1952,8 @@ def stripplot_dist_in_category(df, job_levels,
     ax1.set_ylabel(attr_dict[rank_metric])
     ax1.set_xlabel(attr_dict['eg'])
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         fig.set_size_inches(xsize + 1, ysize)
@@ -2127,10 +2144,12 @@ def job_level_progression(df, emp_list,
     if len(emp_list) <= max_plots_for_legend:
         ax1.legend(title='')
 
-    if settings_dict['delayed_implementation']:
-        if show_implementation_date:
-            ax1.axvline(settings_dict['imp_date'], c='g',
-                        ls='--', alpha=1, lw=1)
+    if (settings_dict['delayed_implementation'] and
+            show_implementation_date and
+            settings_dict['implementation_date']):
+
+                ax1.axvline(settings_dict['implementation_date'],
+                            c='g', ls='--', alpha=1, lw=1)
 
     jobs_table.plot.area(stacked=True,
                          figsize=(xsize, ysize),
@@ -2168,8 +2187,9 @@ def job_level_progression(df, emp_list,
     ax1.set_ylabel('global job ranking', fontsize=label_size)
     ax1.set_xlabel('year', fontsize=label_size)
     ax1.tick_params(axis='both', which='major', labelsize=tick_size)
-    func_name = sys._getframe().f_code.co_name
+
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -2438,10 +2458,10 @@ def differential_scatter(df_list, dfb,
         ax.set_xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
 
         if xax == 'separate_eg_percentage':
-            ax.xaxis.set_major_formatter(pct_format)
+            ax.xaxis.set_major_formatter(pct_format())
             ax.set_xticks(np.arange(0, 1.1, .1))
             ax.set_xlim(xmax=1)
 
@@ -2453,8 +2473,9 @@ def differential_scatter(df_list, dfb,
         ax.tick_params(axis='both', which='major', labelsize=tick_size)
         ax.xaxis.label.set_size(label_size)
         ax.legend(markerscale=1.5, fontsize=legend_size)
-        func_name = sys._getframe().f_code.co_name
+
         if image_dir:
+            func_name = sys._getframe().f_code.co_name
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + p_label +
@@ -2616,7 +2637,7 @@ def job_grouping_over_time(df, eg_list, jobs,
 
         if rets_only:
             ax.set_yticks(np.arange(.08, 0, -.01))
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
 
         ax.invert_yaxis()
         if plt_kind == 'bar':
@@ -2636,8 +2657,8 @@ def job_grouping_over_time(df, eg_list, jobs,
         ax.tick_params(axis='both', which='major', labelsize=tick_size)
         ax.xaxis.label.set_size(label_size)
 
-        func_name = sys._getframe().f_code.co_name
         if image_dir:
+            func_name = sys._getframe().f_code.co_name
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + 'group' +
@@ -2833,7 +2854,7 @@ def parallel(df_list, dfb,
         if measure in ['spcnt', 'lspcnt']:
             ax.set_yticks(np.arange(1, -0.05, -.05))
             ax.invert_yaxis()
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
 
         if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
 
@@ -2854,8 +2875,8 @@ def parallel(df_list, dfb,
     fig.suptitle(tb_string, fontsize=title_size, y=1.01)
     plt.tight_layout()
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -3141,8 +3162,8 @@ def rows_of_color(df, mnum, measure_list,
               bbox_to_anchor=(1.01, 0.5),
               fontsize=legend_size)
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -3308,7 +3329,7 @@ def quartile_bands_over_time(df, eg,
     clipped_yticks = np.clip(raw_yticks, 0, 1)
     ax.set_yticks(clipped_yticks)
 
-    ax.yaxis.set_major_formatter(pct_format)
+    ax.yaxis.set_major_formatter(pct_format())
     ax.invert_yaxis()
     if kind == 'area':
         ax.set_xticks(year_labels)
@@ -3388,8 +3409,9 @@ def quartile_bands_over_time(df, eg,
         ax.legend(recs, legend_labels, loc='center left',
                   bbox_to_anchor=(1.08, 0.5), ncol=legend_cols,
                   fontsize=legend_size, title=legend_title)
-    func_name = sys._getframe().f_code.co_name
+
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -3641,8 +3663,8 @@ def job_transfer(dfc, dfb, eg,
     except (NameError, LookupError):
         print('error, problem creating title text')
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '_g' + str(eg) +
@@ -3960,11 +3982,11 @@ def editor(settings_dict,
         ax.set_xlim(xmin=0)
 
         if measure in ['spcnt', 'lspcnt']:
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
 
         if xval == 'separate_eg_percentage':
             ax.set_xlim(xmax=1)
-            ax.xaxis.set_major_formatter(pct_format)
+            ax.xaxis.set_major_formatter(pct_format())
             ax.set_xticks(np.arange(0, 1.05, .05))
 
         ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
@@ -4397,7 +4419,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
 
         if measure in ['spcnt', 'lspcnt']:
             ax1.set_yticks(np.arange(1, -.05, -.05))
-            ax1.yaxis.set_major_formatter(pct_format)
+            ax1.yaxis.set_major_formatter(pct_format())
             ax1.set_ylim(1, 0)
         else:
             ax1.set_yticks(np.arange(0, max_count, 1000))
@@ -4456,7 +4478,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
         ax1.set_xlim(max_count, 0)
 
     if xax in ['spcnt', 'lspcnt']:
-        ax1.xaxis.set_major_formatter(pct_format)
+        ax1.xaxis.set_major_formatter(pct_format())
         ax1.set_xticks(np.arange(0, 1.1, .1))
         ax1.set_xlim(1, 0)
 
@@ -4491,8 +4513,8 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
     ax1.set_ylabel(attr_dict[measure])
     ax1.set_xlabel(attr_dict[xax])
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -4683,7 +4705,7 @@ def diff_range(df_list, dfb,
 
         ax.axhline(c='m', lw=2, ls='--')
         if measure in ['spcnt', 'lspcnt']:
-            ax.yaxis.set_major_formatter(pct_format)
+            ax.yaxis.set_major_formatter(pct_format())
             if normalize_y:
                 ax.set_ylim(.5, -.5)
             ax.set_yticks = np.arange(.5, -.55, .05)
@@ -4709,8 +4731,9 @@ def diff_range(df_list, dfb,
         ax.tick_params(axis='y', labelsize=tick_size)
         ax.tick_params(axis='x', labelsize=tick_size)
         ax.xaxis.label.set_size(label_size)
-        func_name = sys._getframe().f_code.co_name
+
         if image_dir:
+            func_name = sys._getframe().f_code.co_name
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - group' + str(eg) +
@@ -4953,8 +4976,9 @@ def job_count_charts(dfc, dfb,
     fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
     fig.suptitle(suptitle, fontsize=suptitle_size, y=1.005)
     fig.tight_layout()
-    func_name = sys._getframe().f_code.co_name
+
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -5061,8 +5085,9 @@ def emp_quick_glance(empkey, df,
     one_emp = ()
     plt.tight_layout()
     fig.subplots_adjust(hspace=0.075, wspace=0)
-    func_name = sys._getframe().f_code.co_name
+
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -5344,8 +5369,9 @@ def cond_test(df, grp_sel,
               fontsize=legend_size)
     fig.set_size_inches(xsize, ysize)
     ax.set_title(title, fontsize=title_size)
-    func_name = sys._getframe().f_code.co_name
+
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -5390,8 +5416,8 @@ def cond_test(df, grp_sel,
         ax.set_title(title, fontsize=title_size)
         ax.grid(linestyle='dotted', lw=1.5)
 
-        func_name = sys._getframe().f_code.co_name
         if image_dir:
+            func_name = sys._getframe().f_code.co_name
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + 'job_bands' +
@@ -5511,7 +5537,7 @@ def single_emp_compare(emp, measure,
         ax.invert_yaxis()
 
     if measure in ['spcnt', 'lspcnt']:
-        ax.yaxis.set_major_formatter(pct_format)
+        ax.yaxis.set_major_formatter(pct_format())
         ax.axhline(y=1, c='.8', alpha=.8, lw=3)
 
     if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
@@ -5532,8 +5558,8 @@ def single_emp_compare(emp, measure,
     ax.set_ylabel(attr_dict[measure], fontsize=label_size)
     ax.legend(loc='best', markerscale=1.5, fontsize=legend_size)
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -5749,7 +5775,7 @@ def job_time_change(ds_list, ds_base,
 
             if xax in ['spcnt', 'lspcnt']:
                 ax.set_xlim(xmin=0, xmax=1.02)
-                ax.xaxis.set_major_formatter(pct_format)
+                ax.xaxis.set_major_formatter(pct_format())
                 ax.set_xticks(np.arange(0, 1.05, .05))
             if xax in ['cat_order']:
                 ax.set_xlim(xmin=0)
@@ -5809,8 +5835,8 @@ def job_time_change(ds_list, ds_base,
             for mark in lgnd.legendHandles:
                 mark._sizes = [legend_marker_size]
 
-            func_name = sys._getframe().f_code.co_name
             if image_dir:
+                func_name = sys._getframe().f_code.co_name
                 if not path.exists(image_dir):
                     makedirs(image_dir)
                 plt.savefig(image_dir + '/' + func_name + ' - ' + str(jk) +
@@ -6069,10 +6095,11 @@ def group_average_and_median(dfc, dfb,
             ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
 
     if settings_dict['delayed_implementation']:
-        # plot vertical line at implementation date
-        ax.axvline(settings_dict['imp_date'], c='#33cc00',
-                   ls='dashed', alpha=1, lw=1,
-                   label='implementation date', zorder=1)
+        if settings_dict['implementation_date']:
+            # plot vertical line at implementation date
+            ax.axvline(settings_dict['implementation_date'], c='#33cc00',
+                       ls='dashed', alpha=1, lw=1,
+                       label='implementation date', zorder=1)
 
     if compare_to_dfb:
         suptitle_string = (dfc_label +
@@ -6097,8 +6124,8 @@ def group_average_and_median(dfc, dfb,
 
     fig.set_size_inches(xsize, ysize)
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -6208,8 +6235,8 @@ def stripplot_eg_density(df, mnum,
 
     ax.set_ylabel(attr_dict['eg'])
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -6405,8 +6432,8 @@ def job_count_bands(df_list,
             ax.tick_params(axis='x', labelsize=tick_size)
             ax.set_ylabel('job count', fontsize=10)
 
-            func_name = sys._getframe().f_code.co_name
             if image_dir:
+                func_name = sys._getframe().f_code.co_name
                 if not path.exists(image_dir):
                     makedirs(image_dir)
                 plt.savefig(image_dir + '/' + func_name + ' - ' +
@@ -7021,7 +7048,7 @@ def quartile_groupby(df, eg_list,
         ax1.set_ylim(job_levels + 1.25, 0.5)
 
     if measure in ['spcnt', 'lspcnt']:
-        ax1.yaxis.set_major_formatter(pct_format)
+        ax1.yaxis.set_major_formatter(pct_format())
         ax1.set_yticks(np.arange(0, 1.05, .05))
 
     ax1.legend_.remove()
@@ -7053,14 +7080,18 @@ def quartile_groupby(df, eg_list,
     ax1.xaxis.labelpad = 7
 
     if (settings_dict['delayed_implementation'] and
+            settings_dict['implementation_date'] and
             plot_implementation_date and xax == 'date'):
-        ax1.axvline(settings_dict['imp_date'], c='g', ls='--', alpha=1, lw=1)
+
+                ax1.axvline(settings_dict['implementation_date'],
+                            c='g', ls='--', alpha=1, lw=1)
+
     ax1.set_title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
                   ' quartile ' + attr_dict[measure] + ' by ' + groupby_method,
                   fontsize=title_size)
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
 
@@ -7694,8 +7725,9 @@ def percent_diff_bins(eg, base,
         ax1.set_facecolor(bg_color)
 
     ax1.set_title(title, fontsize=title_size)
-    func_name = sys._getframe().f_code.co_name
+
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
@@ -7968,9 +8000,258 @@ def cohort_differential(ds, base,
     if bg_color:
         ax.set_facecolor(bg_color)
 
-    func_name = sys._getframe().f_code.co_name
     if image_dir:
+        func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
     plt.show()
+
+
+def test_chart(df, x, y,
+               x_quantiles,
+               y_quantiles,
+               sdict,
+               adict,
+               cdict,
+               eg_list=None,
+               q_eglist_only=True,
+               markersize=5,
+               marker_alpha=.7,
+               grid_alpha=.25,
+               border_size=.5,
+               xquant_lines=True,
+               xl_alpha=1,
+               xl_ls='dashed',
+               xl_lw=1,
+               xl_color='.7',
+               x_bands=True,
+               xb_fc='.3',
+               xb_alpha=.09,
+               yquant_lines=True,
+               yl_alpha=1,
+               yl_ls='dashed',
+               yl_lw=1,
+               yl_color='.7',
+               y_bands=True,
+               yb_fc='#66ffb3',
+               yb_alpha=.09,
+               chart_style='ticks',
+               legend_size=14,
+               xsize=14,
+               ysize=11,
+               image_dir=None,
+               image_format='png'):
+
+    if q_eglist_only:
+        egs = np.array(df.eg)
+        df = df[np.in1d(egs, eg_list)].copy()
+
+    if x in ['snum', 'lnum', 'spcnt', 'lspcnt', 'cat_order']:
+        minx = 0
+    else:
+        minx = min(df[x])
+    if y in ['snum', 'lnum', 'spcnt', 'lspcnt', 'cat_order']:
+        miny = 0
+    else:
+        miny = min(df[y])
+    maxx = max(df[x])
+    maxy = max(df[y])
+    dflen = len(df)
+
+    num_of_job_levels = sdict['num_of_job_levels']
+
+    eg_colors = cdict['eg_colors']
+    if eg_list is None:
+        eg_list = list(set(df.eg))
+    else:
+        eg_list = list(set(eg_list).intersection(set(df.eg)))
+
+    with sns.axes_style(chart_style):
+        fig, ax1 = plt.subplots(figsize=(xsize, ysize))
+
+    if x in ['ldate', 'doh', 'retdate', 'date']:
+
+        for eg in eg_list:
+            df_eg = df[df.eg == eg]
+            ax1.plot_date(data=df_eg, x=x, y=y,
+                          color=eg_colors[eg - 1],
+                          markersize=markersize,
+                          alpha=marker_alpha,
+                          label=eg)
+
+        xlocator = mdate.YearLocator()
+        ax1.xaxis.set_major_locator(xlocator)
+        fig.autofmt_xdate()
+        plt.xticks(rotation=90, ha='center')
+
+        if len(ax1.get_xticks()) > 20:
+            for label in ax1.xaxis.get_ticklabels()[1::2]:
+                label.set_visible(False)
+
+        if y in ['ldate', 'doh', 'retdate', 'date']:
+            ylocator = mdate.YearLocator()
+            ax1.yaxis.set_major_locator(ylocator)
+
+    else:
+        for eg in eg_list:
+
+            df_eg = df[df.eg == eg]
+            df_eg.plot(kind='scatter', x=x, y=y,
+                       color=eg_colors[eg - 1],
+                       label=eg, ax=ax1)
+
+    if x in ['spcnt', 'lspcnt']:
+        ax1.set_xticks(np.arange(0, 1.05, .05))
+        ax1.xaxis.set_major_formatter(pct_format())
+    if y in ['spcnt', 'lspcnt']:
+        ax1.set_yticks(np.arange(0, 1.05, .05))
+        ax1.yaxis.set_major_formatter(pct_format())
+    if x in ['jnum', 'jobp', 'orig_job', 'fbff']:
+        ax1.set_xticks(np.arange(0, num_of_job_levels + 2).astype(int))
+    if y in ['jnum', 'jobp', 'orig_job', 'fbff']:
+        ax1.set_yticks(np.arange(0, num_of_job_levels + 2).astype(int))
+    ax1.set_xlim(minx, maxx)
+    ax1.set_ylim(miny, maxy)
+
+    if xquant_lines:
+
+        with sns.axes_style(chart_style):
+            x_ax = ax1.twiny()
+
+        if x == 'cat_order':
+            rel_val = max(df.cat_order)
+        else:
+            rel_val = dflen
+
+        xdiv_list = np.linspace(0, 1, x_quantiles + 1)
+        qx_labels = ["{0:.1f}%".format(f * 100) for f in xdiv_list]
+        xlines = np.linspace(0, rel_val, x_quantiles + 1).astype(int)
+        xlines[-1] = xlines[-1] - 1
+        sorted_xdf = df[[x]].sort_values(x, ascending=False)
+
+        x_locations = []
+        for line in xlines:
+            x_locations.append(sorted_xdf.iloc[line][x])
+        x_ax.set_xticks(x_locations)
+        x_ax.set_xlim(ax1.get_xlim())
+        x_ax.grid(ls=xl_ls, lw=xl_lw, color=xl_color)
+
+        # quantile bands
+        if x_bands:
+            x1 = x_locations[0:-1:2]
+            x2 = x_locations[1::2][:len(x1)]
+            for x1, x2 in zip(x1, x2):
+                x_ax.axvspan(x1, x2, facecolor=xb_fc, alpha=xb_alpha)
+
+    if yquant_lines:
+
+        with sns.axes_style(chart_style):
+            y_ax = ax1.twinx()
+
+        if y == 'cat_order':
+            rel_val = max(df.cat_order)
+        else:
+            rel_val = dflen
+
+        ydiv_list = np.linspace(0, 1, y_quantiles + 1)
+        qy_labels = ["{0:.1f}%".format(f * 100) for f in ydiv_list]
+        ylines = np.linspace(0, rel_val, y_quantiles + 1).astype(int)
+        ylines[-1] = ylines[-1] - 1
+        sorted_ydf = df[[y]].sort_values(y, ascending=False)
+
+        y_locations = []
+        for line in ylines:
+            y_locations.append(sorted_ydf.iloc[line][y])
+
+        y_ax.set_ylim(ax1.get_ylim())
+        y_ax.set_yticks(y_locations)
+        y_ax.grid(ls=yl_ls, lw=yl_lw, color=xl_color)
+
+        if y_bands:
+            y1 = y_locations[0:-1:2]
+            y2 = y_locations[1::2][:len(y1)]
+            for y1, y2 in zip(y1, y2):
+                y_ax.axhspan(y1, y2, facecolor=yb_fc, alpha=yb_alpha)
+
+    if y in ['cat_order', 'ldate', 'doh', 'retdate', 'date',
+             'snum', 'lnum', 'spcnt', 'lspcnt', 'jnum', 'jobp']:
+        ax1.invert_yaxis()
+        if yquant_lines:
+            y_ax.set_yticklabels(qy_labels[::-1], rotation=-4)
+            y_ax.invert_yaxis()
+        if y in ['retdate', 'ldate', 'doh', 'date']:
+            if len(ax1.get_yticks()) > 20:
+                for label in ax1.yaxis.get_ticklabels()[1::2]:
+                    label.set_visible(False)
+
+    else:
+
+        y_ax.set_yticklabels(qy_labels, rotation=-4)
+
+    if x in ['cat_order', 'ldate', 'doh', 'retdate', 'date',
+             'snum', 'lnum', 'spcnt', 'lspcnt', 'jnum', 'jobp']:
+
+        ax1.invert_xaxis()
+        if xquant_lines:
+            x_ax.set_xticklabels(qx_labels, rotation=75)
+            if x in ['retdate', 'ldate', 'doh', 'date']:
+                x_ax.invert_xaxis()
+                x_ax.set_xticklabels(qx_labels[::-1], rotation=75)
+                if len(ax1.get_xticks()) > 20:
+                    for label in ax1.xaxis.get_ticklabels()[1::2]:
+                        label.set_visible(False)
+    else:
+
+        x_ax.set_xticklabels(qx_labels, rotation=75)
+
+    ax1.grid(alpha=grid_alpha)
+    ax1.set_xlabel(adict[x])
+    ax1.set_ylabel(adict[y])
+
+    if xquant_lines:
+        y_pos = 1.1
+    else:
+        y_pos = 1.01
+
+    ax1.set_title(adict[x] + ' vs. ' + adict[y] +
+                  ', groups ' + str(eg_list),
+                  y=y_pos)
+
+    if y in ['jnum', 'jobp', 'orig_job', 'fbff']:
+        ax1.set_yticklabels(ax1.get_yticks(), va='top')
+
+    # job_labels = []
+    # for col in diff2.columns.values.tolist():
+    #     job_labels.append(job_strs[col - 1])
+
+    # LEGEND
+    legend_title = 'eg'
+    box = ax1.get_position()
+    ax1.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+    x_ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+    y_ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+    handles, labels = ax1.get_legend_handles_labels()
+    lg = ax1.legend(handles, labels, title=legend_title, loc='center left',
+                    bbox_to_anchor=(1.0, 0.5),
+                    borderaxespad=5,
+                    frameon=True,
+                    fancybox=True,
+                    # shadow=True,
+                    markerscale=2,
+                    fontsize=legend_size)
+    lg.get_frame().set_linewidth(1)
+
+    for ax in fig.axes:
+        for spine in ax.spines.values():
+            spine.set_linewidth(border_size)
+
+    if image_dir:
+        func_name = sys._getframe().f_code.co_name
+        if not path.exists(image_dir):
+            makedirs(image_dir)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+
+    plt.show()
+
+    # option to base quantiles on global indexes vs standalone indexes

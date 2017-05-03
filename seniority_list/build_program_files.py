@@ -636,7 +636,7 @@ def main():
     # ACTIVE EACH MONTH (no consideration for job changes or recall, only
     # calculated on retirements of active employees as of start date)
     emps_to_calc = master[master.line == 1].copy()
-    cmonths = f.career_months_df_in(emps_to_calc, settings['starting_date'])
+    cmonths = f.career_months(emps_to_calc, settings['starting_date'])
 
     # LIST ORDER PROPOSALS
     # Read the list ordering proposals from an Excel workbook, add an index
@@ -691,8 +691,8 @@ def main():
     df_actives = master_copy[master_copy.line == 1]
     # only furloughees...
     df_fur = master_copy[master_copy.fur == 1]
-    cmonths = f.career_months_df_in(df_actives, settings['starting_date'])
-    cmonths_fur = f.career_months_df_in(df_fur, settings['starting_date'])
+    cmonths = f.career_months(df_actives, settings['starting_date'])
+    cmonths_fur = f.career_months(df_fur, settings['starting_date'])
     active_each_month = f.count_per_month(cmonths)
     fur_left_each_month = f.count_per_month(cmonths_fur)
     num_of_months = active_each_month.size

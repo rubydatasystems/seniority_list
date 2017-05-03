@@ -27,24 +27,31 @@ from collections import OrderedDict as od
 
 
 # CAREER MONTHS
-def career_months_list_in(ret_list, start_date):
-    '''Short_Form
+def career_months(ret_input, start_date):
+    '''(Short_Form)
 
     Determine how many months each employee will work
     including retirement partial month.
 
-    This version takes a list of retirement dates
+    "ret_input" (retirement dates) may be in the form of a pandas dataframe,
+    pandas series, list, or string
+
+    Output is a list of integers containing the number of months between the
+    start_date and each date in the ret_input
 
     inputs
-        ret_list
-            list of retirement dates in datetime format
-        start_date
-            comparative date for retirement dates, starting date for the
-            data model
+        ret_input (dataframe, series, list, or string)
+            retirement dates input
+        start_date (string date)
+            comparative date for the retirement dates input, normally the
+            data model starting date
     '''
     start_date = pd.to_datetime(start_date)
     s_year = start_date.year
     s_month = start_date.month
+
+    ret_list = convert_to_datetime(ret_input, 'retdate')
+
     cmths = []
     for retdate in ret_list:
         cmths.append(((retdate.year - s_year) * 12) -
@@ -53,54 +60,26 @@ def career_months_list_in(ret_list, start_date):
     return np.array(cmths)
 
 
-# CAREER MONTHS
-def career_months_df_in(df, start_date):
-    '''Short_Form
-
-    Determine how many months each employee will work
-    including retirement partial month.
-    This version has a df as input
-    - df must have 'retdate' column of retirement dates
-
-    inputs
-        df
-            dataframe containing a column of retirement dates
-            in datetime format
-        start_date
-            comparative date for retirement dates, starting date for the
-            data model
-    '''
-    start_date = pd.to_datetime(start_date)
-    rets = list(df.retdate)
-    cmths = []
-    s_year = start_date.year
-    s_month = start_date.month
-
-    for mth in rets:
-        cmths.append(((mth.year - s_year) * 12) - (s_month - mth.month))
-
-    return np.array(cmths)
-
-
 # LONGEVITY AT STARTDATE (for pay purposes)
-def longevity_at_startdate(ldates_list,
+def longevity_at_startdate(ldate_input,
                            start_date,
                            return_months=False):
-    ''' Short_Form
+    ''' (Short_Form)
 
     - determine how much longevity (years) each employee has accrued
       as of the start date
-    - input is list of longevity dates
+    - "ldate_input" (longevity dates) may be in the form of a pandas
+    dataframe, pandas series, list, or string
     - float output is longevity in years
       (+1 added to reflect current 1-based pay year)
     - option for output in months
 
     inputs
-        ldates_list
+        ldate_input (dataframe, series, list, or string)
             list of longevity dates in datetime format
-        start_date
-            comparative date for retirement dates, starting date for the
-            data model
+        start_date (string date)
+            comparative date for longevity dates, normally the data model
+            starting date
         return_months (boolean)
             option to return result as month value instead of year value
     '''
@@ -109,14 +88,17 @@ def longevity_at_startdate(ldates_list,
     # subtract one month so pay increase begins
     # in month after anniversary month
     s_month = start_date.month - 1
+
+    ldate_list = convert_to_datetime(ldate_input, 'ldate')
+
     longevity_list = []
 
     if return_months:
-        for ldate in ldates_list:
+        for ldate in ldate_list:
             longevity_list.append((((s_year - ldate.year) * 12) -
                                    (ldate.month - s_month)) + 1)
     else:
-        for ldate in ldates_list:
+        for ldate in ldate_list:
             longevity_list.append(((((s_year - ldate.year) * 12) -
                                     (ldate.month - s_month)) / 12) + 1)
 
@@ -124,31 +106,75 @@ def longevity_at_startdate(ldates_list,
 
 
 # AGE AT START DATE
-def starting_age(dob_list, start_date):
+def starting_age(dob_input, start_date):
     '''Short_Form
 
     Returns decimal age at given date.
-    Input is list of birth dates.
+
+    "dob_input" (birth dates) may be in the form of a pandas dataframe,
+    pandas series, list, or string
 
     inputs
-        dob_list
-            list of birth dates in datetime format
+        dob_list (dataframe, series, list, or string)
+            birth dates input
         start_date
-            comparative date for retirement dates, starting date for the
-            data model
+            comparative date for the birth dates, normally the data model
+            starting date
     '''
     start_date = pd.to_datetime(start_date)
     s_year = start_date.year
     s_month = start_date.month
     s_day = start_date.day
     m_val = 1 / 12
-    ages = []
-    for dob in dob_list:
-        ages.append(m_val * (((s_year - dob.year) * 12) -
-                             (dob.month - s_month) +
-                             ((s_day - dob.day) / s_day)))
 
-    return ages
+    dob_list = convert_to_datetime(dob_input, 'dob')
+
+    age_list = []
+    for dob in dob_list:
+        age_list.append(m_val * (((s_year - dob.year) * 12) -
+                                 (dob.month - s_month) +
+                                 ((s_day - dob.day) / s_day)))
+
+    return age_list
+
+
+def convert_to_datetime(date_data, attribute):
+    '''Convert a dataframe column, series, list, or string input into a list
+    of datetimes
+
+    inputs
+        data_data (dataframe, series, list, or string)
+            pandas dataframe with a date column containing string dates or
+            datetime objects, pandas series of dates
+            (strings or datetime objects), a list of date strings or datetime
+            objects, or a single comma-separated string containing date
+            information.
+        attribute (string)
+            if the date_data type is a dataframe, the name of the column
+            containing the date information.  Otherwise, this input is
+            ignored.
+    '''
+    in_type = type(date_data)
+
+    if in_type == pd.core.frame.DataFrame:
+        date_list = pd.to_datetime(list(date_data[attribute]))
+    if in_type == pd.core.frame.Series:
+        date_list = pd.to_datetime(list(date_data))
+    if in_type == list:
+        try:
+            date_list = pd.to_datetime(date_data)
+        except:
+            print('\nError:\n\n longevity_at_startdate function\n')
+    if in_type == str:
+        try:
+            stripped = [x.strip("[]Timestamp(' '', freq='M')")
+                        for x in date_data.split(',')]
+            str_list = list(filter(None, stripped))
+            date_list = pd.to_datetime(str_list)
+        except:
+            print('\nError:\n\n longevity_at_startdate function\n')
+
+    return date_list
 
 
 # COUNT PER MONTH
@@ -165,9 +191,9 @@ def count_per_month(career_months_array):
 
     input
         career_months_array
-            output of career_months_list_in or career_months_df_in
-            functions.  This input is an array containing the number of
-            months each employee will work until retirement.
+            output of career_months function.  This input is an array
+            containing the number of months each employee will work until
+            retirement.
 
     '''
     max_career = np.max(career_months_array) + 1
@@ -224,8 +250,7 @@ def gen_skel_emp_idx(monthly_count_array,
     grab that employee index number.
     This index will be the key to merging in other data using data alignment.
     Input is the result of the count_per_month function (np.array)
-    and the result of the career_months_df_in (or ...list_in)
-    function
+    and the result of the career_months function
 
     inputs
         monthly_count_array (numpy array)
@@ -233,7 +258,7 @@ def gen_skel_emp_idx(monthly_count_array,
             the ouput from the count_per_month function.
         career_mths_array (numpy array)
             career length in months for each employee, output of
-            career_months_list_in or career_months_list_in functions.
+            career_months or career_months functions.
         empkey_source_array (numpy array)
             empkey column data as array
 
@@ -269,15 +294,19 @@ def age_correction(month_nums_array,
     Returns a long_form (all months) array of employee ages by
     incrementing starting ages according to month number.
 
+    Note:  Retirement age increases are handled by the build_program_files
+    script by incrementing retirement dates and by the clip_ret_ages
+    function within the make_skeleton script.
+
     inputs
-        month_nums_array
+        month_nums_array (array)
             gen_month_skeleton function output (ndarray)
-        ages_array
+        ages_array (array)
             starting_age function output aligned with long_form (ndarray)
             i.e. s_age is starting age (aligned to empkeys)
             repeated each month.
-        retage
-            output clip upper limit
+        retage (integer or float)
+            output clip upper limit for retirement age
 
     Output is s_age incremented by a decimal month value according to month_num
     (this is candidate for np.put refactored function)
@@ -638,7 +667,7 @@ def make_original_jobs_from_counts(jobs_arr_arr,
 def assign_jobs_full_flush_job_changes(monthly_nonret_counts,
                                        job_counts_each_month,
                                        job_level_count):
-    '''Long_Form
+    '''(Long_Form)
 
     Using the nonret counts for each month:
 
@@ -690,7 +719,7 @@ def assign_jobs_nbnf_job_changes(df,
                                  sdict,
                                  tdict,
                                  fur_return=False):
-    '''Long_Form
+    '''(Long_Form)
 
     Uses the job_gain_or_loss_table job count array for job assignments.
     Jobs counts may change up or down in any category for any time period.
@@ -711,12 +740,12 @@ def assign_jobs_nbnf_job_changes(df,
             (calculation derived from cumsum of count_per_month function)
         upper (array)
             cumsum of count_per_month function
-        total_months
+        total_months (integer or float)
             sum of count_per_month function output
-        job_reduction_months
-            months in which the number of jobs is decreased (list).
+        job_reduction_months (list)
+            months in which the number of jobs is decreased
             from the get_job_reduction_months function
-        start_month
+        start_month (integer)
             integer representing the month number to begin calculations,
             likely month of integration when there exists a delayed
             integration (from settings dictionary)
@@ -1669,23 +1698,23 @@ def assign_cond_ratio(job,
     to permit other employee group ratio combinations.
 
     inputs
-        job
+        job (integer or float)
             job level number
-        this_job_count
+        this_job_count (integer or float)
             number of jobs available
-        ratio_dict
+        ratio_dict (dictionary)
             ratio condition dictionary, output of set_ratio_cond_dict function
-        orig_range
+        orig_range (1d array)
             original job range
             Month slice of the orig_job column array (normally pertaining a
             specific month).
-        assign_range
+        assign_range (1d array)
             job assignment range
             Month slice of the assign_range column array
-        eg_range
+        eg_range (1d array)
             employee group range
             Month slice of the eg_range column array
-        fur_range
+        fur_range (1d array)
             furlough range
             Month slice of the fur_range column array
     '''
@@ -1738,10 +1767,10 @@ def assign_cond_ratio_capped(job,
     n jobs specified. Any jobs remaining are not distributed with
     this function.
 
-    inputs
+    inputs (integer or float)
         job
             job level number
-        this_job_count
+        this_job_count (integer or float)
             count of jobs at the current level available to be assigned for
             the current month
         ratio_groups (array-like)
@@ -1775,13 +1804,13 @@ def assign_cond_ratio_capped(job,
             If there are fewer jobs available than the cap amount, all jobs
             will be assigned to the ratio groups in accordance with the
             weighting (ratio) input.
-        orig_range
+        orig_range (1d array)
             current month slice of original job array
-        assign_range
+        assign_range (1d array)
             current month slice of job assignment array
-        eg_range
+        eg_range (1d array)
             current month slice of employee group codes array
-        fur_range
+        fur_range (1d array)
             current month slice of furlough data
     '''
     mask_index = []
@@ -1987,7 +2016,7 @@ def mark_fur_range(assign_range,
 def align_fill_down(l, u,
                     long_indexed_df,
                     long_array):
-    '''data align current values to all future months
+    '''Data align current values to all future months
     (short array segment aligned to long array)
 
     This function is used to set the values from the last standalone month as
@@ -1999,11 +2028,11 @@ def align_fill_down(l, u,
     TODO (for developer) - consider an all numpy solution
 
     inputs
-        l, u
+        l, u (integers)
             current month slice indexes (from long df)
-        long_indexed_df
+        long_indexed_df (dataframe)
             empty long dataframe with empkey indexes
-        long_array
+        long_array (array)
             long array of multiple month data
             (orig_job, fur_codes, etc)
 
@@ -2033,7 +2062,7 @@ def align_fill_down(l, u,
 def align_next(long_index_arr,
                short_index_arr,
                arr):
-    '''"carry forward" data from one month to the next.
+    '''"Carry forward" data from one month to the next.
 
     Use the numpy in1d function to compare indexes (empkeys) from one month
     to the next month and return a boolean mask.  Apply the mask to current
@@ -2044,13 +2073,13 @@ def align_next(long_index_arr,
     next month.
 
     inputs
-        long_index_arr
+        long_index_arr (array)
             current month index of unique employee keys
-        short_index_arr
+        short_index_arr (array)
             next month index of unique employee keys
             (a subset of long_index_arr)
-        arr
-            the data column (attribute) to carry forward
+        arr (array)
+            the data column segment (attribute) to carry forward
     '''
 
     arr = arr[np.in1d(long_index_arr, short_index_arr, assume_unique=True)]
@@ -2388,7 +2417,7 @@ def assign_standalone_job_changes(eg,
                                   sdict,
                                   tdict,
                                   apply_sg_cond=True):
-    '''Long_Form
+    '''(Long_Form)
 
     Uses the job_gain_or_loss_table job count array for job assignments.
     Jobs counts may change up or down in any category for any time period.
@@ -2410,29 +2439,29 @@ def assign_standalone_job_changes(eg,
         num_of_job_levels (integer)
             number of job levels in the data model (excluding a furlough
             level)
-        lower
+        lower (1d array)
             ndarry from make_lower_slice_limits function
             (calculation derived from cumsum of count_per_month function)
-        upper
+        upper (1d array)
             cumsum of count_per_month function
-        total_months
+        total_months (integer or float)
             sum of count_per_month function output
-        job_counts_each_month
+        job_counts_each_month (array)
             output of job_gain_loss_table function[0]
             (precalculated monthly count of jobs in each job category,
             size (months,jobs))
-        total_monthly_job_count
+        total_monthly_job_count (array)
             output of job_gain_loss_table function[1]
             (precalculated monthly total count of all job categories,
             size (months))
-        nonret_each_month
+        nonret_each_month (1d array)
             output of count_per_month function
-        job_change_months
+        job_change_months (list)
             the min start month and max ending month found within the
             array of job_counts_each_month inputs
             (find the range of months to apply consideration for
             any job changes - prevents unnecessary looping)
-        job_reduction_months
+        job_reduction_months (list)
             months in which the number of jobs is decreased (list).
             from the get_job_reduction_months function
         start_month (integer)
@@ -3366,7 +3395,7 @@ def save_and_load_dill_folder(save_as=None,
 
 # ADD COLUMN OF ZEROS TO 2D ARRAY
 def add_zero_col(arr):
-    '''add a column of zeros as the first column in a 2d array
+    '''Add a column of zeros as the first column in a 2d array.
 
     Output will be a numpy array.
 
@@ -3712,17 +3741,24 @@ def anon_pay(df,
              proportional=True,
              mult=1.0,
              inplace=False):
-    '''Change the pay table baseline information with a non-linear,
-    non-proportional method.
+    '''Substitute pay table baseline rate information a proportional method
+    or with a non-linear, non-proportional method.
 
     inputs
         df (dataframe)
             pandas dataframe containing pay rate date (dataframe
             representation of the "rates" worksheet from the pay_tables.xlsx
             workbook)
+        proportional (boolean)
+            if True, use the mult input to increase or decrease all of the
+            "rates" worksheet pay data proportionally.  If False, use a fixed
+            algorithm to disproportionally adjust the pay rates.
+        mult (integer or float)
+            if the proportional input is True, multiply all pay rate values
+            by this input value
         inplace (boolean)
             if True, replace the values within the original dataframe with
-            the "anonomized" values.  Caution: make a copy first!
+            the "anonomized" values.
     '''
     df0 = df.copy()
 
@@ -3829,7 +3865,81 @@ def anon_master(case,
                 max_adj_sec=5, positive_only_sec=True,
                 # sample
                 n=None, frac=None, reset_index=False):
+    '''Specialized function to anonymize selected columns from a master.xlsx
+    file and/or select a subset.  All operations are inplace.  The original
+    master file is copied and saved as master_orig.xlsx.
 
+    The default parameters will replace last names and employee keys with
+    substitute values.  Date columns, (doh, ldate, dob) will also be adjusted
+    if the date input is set True and the proper column names are set as
+    column list inputs.
+
+    The function reads the original excel file, copies and saves it, modifies
+    the original file as directed, and writes the results back to the original
+    file.  Subsequent dataset creation runs will use the modified data.
+
+    The output master list will be sorted according to the original master
+    list order.
+
+    inputs
+        case (string)
+            the case study name
+        empkey (boolean)
+            if True, anonymize the empkey column
+        name (boolean)
+            if True, anonymize the lname column
+        date (boolean)
+            if True, anonymize date columns as disignated with the
+            date_col_list and the date_col_list_sec inputs
+        sample (boolean)
+            if True, sample the dataframe if the n or frac inputs is/are not
+            None
+        seq_start (integer)
+            beginning anonymous employee number portion of empkey
+        frame_num (integer)
+            large frame number which will contain all generated employee
+            numbers.  This number will be adjusted to begin with the
+            appropriate employee group code
+        min_seg (integer)
+            minimum number of 2-character segments to include in the generated
+            substitute last names.
+        max_seg (integer)
+            maximum number of 2-character segments to include in the generated
+            substitute last names.
+        add_rev (boolean)
+            if True, add reversed, non-duplicated 2-character segments to the
+            pool of strings for name construction.  This is normally not
+            necessary and will construct output strings with multiple
+            consecutive consonants/vowels.
+        date_col_list (list)
+            list of date value columns to adjust.  All columns in this list
+            will be adjusted in a syncronized fashion, meaning a random day
+            adjustment for each row will be applied to each row member of all
+            columns.
+        max_adj (integer)
+            maximum random adjustment deviation, in days, from the original
+            date(s)
+        positive_only (boolean)
+            if True, only adjust dates forward in time
+        date_col_list_sec (list)
+            a secondary list of date column(s) which will be adjusted
+            independently from the date columns in the date_col_list
+        max_adj_sec (integer)
+            maximum random adjustment deviation, in days, from the original
+            date(s) in the date_col_list_sec columns
+        positive_only_sec (boolean)
+            if True, only adjust dates forward in time (for secondary cols)
+        n (integer or None)
+            number of rows to sample if the sample input is True.  This input
+            will override the frac input
+        frac (float (0.0 - 1.0) or None)
+            decimal fraction (0.0 to 1.0) of the master list to sample, if
+            the sample input is True and the n input is None
+        reset_index (boolean)
+            if True, reset the index of the output master list (zero-based
+            integer index).  Do not use this option normally because it will
+            wipe out the empkey index of the master list.
+    '''
     inplace = True
     anon_cols = []
     attributes = [empkey, name, date]
@@ -3888,7 +3998,27 @@ def anon_master(case,
 def anon_pay_table(case,
                    proportional=True,
                    mult=1.0,):
+    '''Anonymize the "rates" worksheet of the "pay_tables.xlsx" input file.
 
+    The rates may be proportionally adjusted (larger or smaller) or
+    disproportionally adjusted with a fixed algorithm.
+
+    A copy of the original excel file is copied and saved as
+    "pay_tables_orig.xlsx".
+
+    All modifications are inplace.
+
+    inputs
+        case (string)
+            the case name
+        proportional (boolean)
+            if True, use the mult input to increase or decrease all of the
+            "rates" worksheet pay data proportionally.  If False, use a fixed
+            algorithm to disproportionally adjust the pay rates.
+        mult (integer or float)
+            if the proportional input is True, multiply all pay rate values
+            by this input value
+    '''
     inplace = True
 
     path, d = copy_excel_file(case, 'pay_tables', return_path_and_df=True)

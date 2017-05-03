@@ -51,7 +51,7 @@ def main():
     # calculate the number of career months for each employee (short_form)
     # cmonths is used for mnum, idx, and mth_pcnt calculations
 
-    cmonths = f.career_months_df_in(df, sdict['starting_date'])
+    cmonths = f.career_months(df, sdict['starting_date'])
     # convert the python cmonths list to a numpy array and
     # use that array as input for the count_per_month function.
     # The count_per_month function output array is input for

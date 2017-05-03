@@ -88,7 +88,7 @@ def main():
 
         # ORIG_JOB*
         cmonths_this_ds = \
-            f.career_months_df_in(df_short, sdict['starting_date'])
+            f.career_months(df_short, sdict['starting_date'])
         this_ds_nonret_each_month = f.count_per_month(cmonths_this_ds)
         high_limits = this_ds_nonret_each_month.cumsum()
         low_limits = f.make_lower_slice_limits(high_limits)

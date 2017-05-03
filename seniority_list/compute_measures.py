@@ -171,7 +171,7 @@ def main():
 
     # cmonths - career length in months for each employee.
     #   length is equal to number of employees
-    cmonths = f.career_months_df_in(df_master, sdict['starting_date'])
+    cmonths = f.career_months(df_master, sdict['starting_date'])
 
     # nonret_each_month: count of non-retired employees remaining
     # in each month until no more remain -
