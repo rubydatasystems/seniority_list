@@ -343,7 +343,8 @@ def main():
             # flip ones and zeros...
             ds['non_fur'] = 1 - ds.fur
 
-            non_fur = np.array(ds.groupby('empkey')['non_fur'].cumsum())
+            non_fur = np.array(ds.groupby([pd.Grouper('empkey')])
+                               ['non_fur'].cumsum())
             ds.pop('non_fur')
             starting_mlong = np.array(ds.s_lmonths)
             cum_active_months = non_fur + starting_mlong

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''The functions module contains core program routines related to building and
@@ -1442,7 +1443,7 @@ def squeeze_logrithmic(data,
 # GET_INDEXES_UP
 @jit(nopython=True, cache=True)
 def get_indexes_up(list_of_positions):
-    '''"FIT" a sample array to a list of unique index positions
+    '''fit a sample array to a list of unique index positions
     by incrementing any duplicates by one
     example:
     input > [0,0,1,2,5,9]
@@ -1461,7 +1462,7 @@ def get_indexes_up(list_of_positions):
 # GET_INDEXES_DOWN
 @jit(nopython=True, cache=True)
 def get_indexes_down(list_of_positions):
-    '''"FIT" a sample array to a list of unique index positions
+    '''fit a sample array to a list of unique index positions
     by reducing any duplicates by one
     example:
     input > [0,1,2,8,9,9]
@@ -2739,9 +2740,16 @@ def print_config_selections():
 
 def max_of_nested_lists(nested_list,
                         return_min=False):
-    '''find the maximum value within a list of lists (or tuples or arrays)
+    '''Find the maximum value within a list of lists (or tuples or arrays).
 
-    return_min input will find minimum of nested containers
+    The function may optionally return the minimum value within nested
+    containers.
+
+    inputs
+        nested_list (list, tuple, or array)
+            nested container input
+        return_min (boolean)
+            if True, return minimum of nested_list input (vs. max)
     '''
     result_list = []
     if not return_min:
@@ -2752,14 +2760,6 @@ def max_of_nested_lists(nested_list,
         for lst in nested_list:
             result_list.append(min(lst))
         return min(result_list)
-
-
-def eval_strings(args):
-    arg_list = []
-    for arg in args:
-        arg_list.append(eval(arg))
-
-    return arg_list
 
 
 def clip_ret_ages(ret_age_dict,
@@ -3037,27 +3037,40 @@ def make_cat_order(ds,
 
 
 def make_tuples_from_columns(df,
-                             columns,
+                             col_list,
                              return_as_list=True,
+                             date_cols=[],
                              return_dates_as_strings=False,
-                             date_cols=[]):
+                             date_format='%Y-%m-%d'):
     '''Combine row values from selected columns to form tuples.
 
     Returns a list of tuples which may be assigned to a new column.
 
     The length of the list is equal to the length of the input dataframe.
 
+    Date columns may be first converted to strings before adding to output
+    tuples if desired.
+
     inputs
         df (dataframe)
             input dataframe
-        columns (list)
+        col_list (list)
             columns from which to create tuples
+        return_as_list (boolean)
+            if True, return a list of tuples
+        date_cols (list)
+            list of columns to treat as dates
+        return_dates_as_strings (boolean)
+            if True, for columns within the data_cols input, convert date
+            values to string format
+        date_format (string)
+            string format of converted date columns
     '''
     i = 0
-    col_list = columns[:]
-    for col in columns:
+    col_list = col_list[:]
+    for col in col_list:
         if col in date_cols and return_dates_as_strings:
-            col_list[i] = list(df[col].dt.strftime('%Y-%m-%d'))
+            col_list[i] = list(df[col].dt.strftime(date_format))
         else:
             col_list[i] = list(df[col])
         i += 1
@@ -3069,7 +3082,20 @@ def make_tuples_from_columns(df,
 
 
 def make_dict_from_columns(df, key_col, value_col):
-    '''
+    '''Make a dictionary from two dataframe columns.  One column will be the
+    keys and the other the values.
+
+    Unique key column values will be assigned dictionary values.  If the
+    key_col input contains duplicates, only the last duplicate key-value pair
+    will exist within the returned dictionary.
+
+    inputs
+        df (dataframe)
+            pandas dataframe containing the columns
+        key_col (string (or possibly integer))
+            dataframe column which will become dictionary keys
+        value_col (string (or possibly integer))
+            dataframe column which will become dictionary values
     '''
     keys = df[key_col]
     values = df[value_col]

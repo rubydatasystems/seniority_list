@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, ticker
 from matplotlib import colors as mplclrs
 from matplotlib import dates as mdate
-from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as mpatches
 
 from cycler import cycler
@@ -23,7 +22,7 @@ from ipywidgets import interactive, Button, widgets
 from IPython.display import display, Javascript
 from collections import OrderedDict as od
 
-from pandas.tools.plotting import parallel_coordinates
+from pandas.plotting import parallel_coordinates
 from openpyxl import load_workbook
 import functions as f
 
@@ -51,7 +50,7 @@ def to_percent(decimal, position, precision=0):
 def pct_format():
     '''Apply "to_percent" custom format for chart tick labels
     '''
-    return FuncFormatter(to_percent)
+    return ticker.FuncFormatter(to_percent)
 
 
 def quartile_years_in_position(dfc, dfb,
@@ -226,7 +225,8 @@ def quartile_years_in_position(dfc, dfb,
 
         ds_eg = ds_sel_cols[(ds_sel_cols.eg == eg) & (ds_sel_cols.jnum >= 1)]
 
-        job_counts_by_emp = ds_eg.groupby(['empkey', 'jnum']).size()
+        job_counts_by_emp = ds_eg.groupby([pd.Grouper('empkey'),
+                                          'jnum']).size()
 
         months_in_jobs = job_counts_by_emp.unstack() \
             .fillna(0).sort_index(axis=1, ascending=True).astype(int)
@@ -265,7 +265,8 @@ def quartile_years_in_position(dfc, dfb,
             sa_eg = sa_sel_cols[
                 (sa_sel_cols.eg == eg) & (sa_sel_cols.jnum >= 1)]
 
-            sa_job_counts_by_emp = sa_eg.groupby(['empkey', 'jnum']).size()
+            sa_job_counts_by_emp = sa_eg.groupby([pd.Grouper('empkey'),
+                                                 'jnum']).size()
 
             sa_months_in_jobs = sa_job_counts_by_emp.unstack() \
                 .fillna(0).sort_index(axis=1, ascending=True).astype(int)
@@ -768,261 +769,6 @@ def multiline_plot_by_emp(df, measure, xax,
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
-    plt.show()
-
-
-def multiline_plot_by_eg(df, measure, xax,
-                         eg_list, job_strs,
-                         job_levels, colors,
-                         ret_age,
-                         sdict, attr_dict,
-                         ds_dict=None, mnum=0,
-                         ret_only=False,
-                         attr1=None, oper1='>=', val1=0,
-                         attr2=None, oper2='>=', val2=0,
-                         attr3=None, oper3='>=', val3=0,
-                         scatter=True, scatter_size=5,
-                         exclude_fur=False,
-                         chart_style='ticks',
-                         marker_alpha=.4,
-                         grid=True,
-                         grid_color='gray',
-                         grid_alpha=.25,
-                         suptitle_size=14,
-                         title_size=14,
-                         legend_size=14,
-                         full_pcnt_xscale=True,
-                         full_pcnt_yscale=True,
-                         xsize=12, ysize=10,
-                         image_dir=None,
-                         image_format='png'):
-    '''Plot separate selected employee group data for a specific month.
-
-    The chart marker type may be line or scatter(default).
-
-    inputs
-        df (dataframe)
-            dataset to examine, may be a dataframe variable or a string key
-            from the ds_dict dictionary object
-        measure (string)
-            attribute to plot on y axis
-        xax (string)
-            x axis attribute
-        eg_list (list)
-            list of employee groups to plot (integer codes)
-        job_strs (list)
-            job text labels for y axis when job number measure selected
-        job_levels (integer)
-            number of job levels in model (excluding furlough)
-        colors (list)
-            colors for eg plots
-        ret_age (float)
-            retirement age (example: 65.0)
-        sdict (dictionary)
-            program settings dictionary
-        attr_dict (dictionary)
-            dataset column name description dictionary
-        ds_dict (dictionary)
-            output of the load_datasets function, dictionary.  This keyword
-            argument must be set if a string key is used as the df input.
-        mnum (integer)
-            month number for analysis
-        ret_only (boolean)
-            if True, mnum input is ignored and results are displayed for
-            all employees at retirement
-        attr(n) (string)
-            filter attribute or dataset column as string
-        oper(n) (string)
-            operator (i.e. <, >, ==, etc.) for attr(n) as string
-        val(n) (string, integer, float, date as string as appropriate)
-            attr(n) limiting value (combined with oper(n)) as string
-        marker_alpha (integer or float)
-            transparency setting for plot lines or points (0.0 to 1.0)
-        scatter (boolean)
-            plot a scatter chart (vs. line chart)
-        exclude_fur (boolean)
-            do not plot furoughed employees
-        chart_style (string)
-            any valid seaborn chart style name
-        suptitle_size (integer or float)
-            text size of chart super title
-        title_size (integer or float)
-            text size of chart title
-        legend_size (integer or float)
-            text size of chart legend
-        full_pcnt_xscale (boolean)
-            plot x axis percentage from 0 to 100 percent (vs. autoscale)
-        full_pcnt_yscale (boolean)
-            plot y axis percentage from 0 to 100 percent (vs. autoscale)
-        xsize, ysize (integer or float)
-            plot size in inches
-        image_dir (string)
-            if not None, name of a directory in which to save an image of the
-            chart output.  If the directory does not exist, it will be
-            created.
-        image_format (string)
-            file extension string for a saved chart image if the image_dir
-            input is not None
-
-            Examples:
-
-                'svg', 'png'
-    '''
-    ds, df_label = determine_dataset(df, ds_dict, return_label=True)
-
-    d_filt, t_string = filter_ds(ds,
-                                 attr1=attr1, oper1=oper1, val1=val1,
-                                 attr2=attr2, oper2=oper2, val2=val2,
-                                 attr3=attr3, oper3=oper3, val3=val3,
-                                 return_title_string=True)
-
-    if exclude_fur:
-        d_filt = d_filt[(d_filt.jnum >= 1) & (d_filt.jnum <= job_levels)]
-
-    if not ret_only:
-        frame = d_filt[(d_filt.mnum == mnum)][[xax, measure, 'eg', 'ret_mark']]
-    else:
-        frame = d_filt[(d_filt.ret_mark == 1)][[xax, measure,
-                                                'eg', 'ret_mark']]
-
-    if measure == 'mpay' and not ret_only:
-        frame = frame[frame.ret_mark == 0]
-
-    if measure in ['date', 'ldate', 'doh', 'retdate']:
-        print('''\nError: (invalid "measure" input),
-              \n  date-type values not allowed for "measure" input...
-              ...however, date-type values are permitted for "xax" inputs\n''')
-        return
-
-    with sns.axes_style(chart_style):
-        fig, ax = plt.subplots(figsize=(xsize, ysize))
-    if grid:
-        ax.grid(color=grid_color, alpha=grid_alpha)
-
-    for i in eg_list:
-
-        frame_for_plot = frame[frame.eg == i]
-        x = frame_for_plot[xax]
-        y = frame_for_plot[measure]
-        if scatter:
-            if xax in ['date', 'ldate', 'doh', 'retdate']:
-                ax.plot_date(x=x, y=y, color=colors[i - 1],
-                             marker='o', markersize=scatter_size,
-                             label=i, alpha=marker_alpha)
-            else:
-                ax.scatter(x=x, y=y, color=colors[i - 1],
-                           s=scatter_size, label=i, alpha=marker_alpha)
-        else:
-            frame_for_plot.set_index(xax)[measure].plot(label=i,
-                                                        color=colors[i - 1],
-                                                        alpha=marker_alpha)
-
-    if measure in ['spcnt', 'lspcnt']:
-        ax.yaxis.set_major_formatter(pct_format())
-        if full_pcnt_yscale:
-            ax.set_yticks(np.arange(0, 1.05, .05))
-            ax.set_ylim(ymin=-0.01, ymax=1.01)
-        else:
-            ax.set_ylim(ymin=-0.01)
-
-    if measure in ['jnum', 'nbnf', 'jobp', 'fbff']:
-
-        ax.set_yticks(np.arange(0, job_levels + 2, 1))
-        ytick_labels = list(ax.get_yticks())
-
-        for i in np.arange(1, len(ytick_labels)):
-            ytick_labels[i] = job_strs[i - 1]
-
-        ax.axhspan(job_levels + 1, job_levels + 2, facecolor='.8', alpha=0.3)
-        ax.set_yticklabels(ytick_labels, va='top')
-        ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.3, lw=3)
-        ax.set_ylim(.75, job_levels + 2)
-
-    limit_dict = {'mpay': -0.2,
-                  'mlong': -10.0,
-                  'ylong': -1.0,
-                  'cpay': -50,
-                  'new_order': -50,
-                  'cat_order': -50,
-                  'lnum': -50,
-                  'snum': -50}
-
-    if measure in limit_dict.keys():
-        ax.set_ylim(ymin=limit_dict[measure])
-    if xax in limit_dict.keys():
-        ax.set_xlim(xmin=limit_dict[xax])
-
-    if xax in ['spcnt', 'lspcnt']:
-        ax.xaxis.set_major_formatter(pct_format())
-        if full_pcnt_xscale:
-            ax.set_xticks(np.arange(0, 1.1, .1))
-            ax.set_xlim(xmin=-0.01, xmax=1.01)
-        else:
-            ax.set_xlim(xmin=-0.01)
-
-    if xax in ['new_order', 'cat_order', 'lnum', 'snum']:
-        ax.set_xlabel(xax)
-
-    if xax in ['mlong', 'ylong']:
-        # ax.set_xlim(xmin=0)
-        ax.set_xlabel(xax)
-
-    if xax in ['jnum', 'nbnf', 'jobp', 'fbff']:
-        ax.set_xticks(np.arange(0, job_levels + 2, 1))
-        ax.set_xlim(.75, job_levels + 2)
-
-    # invert axis as required:
-    if measure in ['snum', 'lnum', 'spcnt', 'lspcnt', 'rank_in_job',
-                   'cat_order', 'jnum', 'nbnf', 'jobp', 'fbff', 'new_order']:
-        ax.invert_yaxis()
-
-    if xax in ['date']:
-        ax.set_xlim(xmin=sdict['starting_date'] + pd.offsets.MonthEnd(-1))
-
-    if xax in ['spcnt', 'lspcnt', 'date', 'ldate', 'doh', 'retdate',
-               'jnum', 'nbnf', 'jobp', 'fbff', 'cat_order', 'new_order',
-               'lnum', 'snum']:
-        ax.invert_xaxis()
-
-    if xax in ['date', 'retdate'] and ret_only:
-        ax.invert_xaxis()
-
-    if xax in ['date', 'ldate', 'doh', 'retdate']:
-        locator = mdate.YearLocator()
-        ax.xaxis.set_major_locator(locator)
-        fig.autofmt_xdate()
-        plt.xticks(rotation=75, ha='center')
-        if len(ax.get_xticks()) > 20:
-            for label in ax.xaxis.get_ticklabels()[1::2]:
-                label.set_visible(False)
-
-    ax.legend(loc=4, markerscale=2, fontsize=legend_size)
-
-    prop_text = df_label
-
-    if ret_only:
-        title_suffix = ' - at retirement'
-    else:
-        title_suffix = ' - month: ' + str(mnum)
-
-    suptitle = (attr_dict[measure].upper() + ' ordered by ' +
-                attr_dict[xax].upper() + ' - ' + prop_text + title_suffix)
-
-    if t_string:
-        fig.suptitle(suptitle, fontsize=suptitle_size)
-        ax.set_title(t_string, fontsize=title_size)
-    else:
-        ax.set_title(suptitle, fontsize=title_size)
-
-    ax.set_ylabel(attr_dict[measure])
-    ax.set_xlabel(attr_dict[xax])
-
-    if image_dir:
-        func_name = sys._getframe().f_code.co_name
-        if not path.exists(image_dir):
-            makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
-
     plt.show()
 
 
@@ -2359,9 +2105,10 @@ def differential_scatter(df_list, dfb,
 
     df.sort_values(by='order1', inplace=True)
 
-    df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
+    eg_grouped = df.groupby('eg')
+    df['eg_sep_order'] = eg_grouped.cumcount() + 1
     eg_sep_order = np.array(df.eg_sep_order)
-    eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
+    eg_denom_dict = eg_grouped.eg_sep_order.max().to_dict()
 
     eg_arr = np.array(df.eg)
     eg_set = pd.unique(eg_arr)
@@ -2597,10 +2344,11 @@ def job_grouping_over_time(df, eg_list, jobs,
         denom = len(ds[(ds.mnum == 0) & (ds.eg == eg)])
         df_eg = d_filt[d_filt.eg == eg]
 
+        grouped = df_eg.groupby(['date', 'jnum'])
+
         if rets_only:
 
-            grpby = df_eg.groupby(['date', 'jnum']) \
-                .size().unstack().fillna(0).astype(int)
+            grpby = grouped.size().unstack().fillna(0).astype(int)
             df = grpby.resample(time_group).sum()
 
             if time_group == 'A':
@@ -2611,8 +2359,7 @@ def job_grouping_over_time(df, eg_list, jobs,
 
         else:
 
-            grpby = df_eg.groupby(['date', 'jnum']) \
-                .size().unstack().fillna(0).astype(int)
+            grpby = grouped.size().unstack().fillna(0).astype(int)
             df = grpby.resample(time_group).mean()
             ylbl = 'count'
 
@@ -3291,8 +3038,8 @@ def quartile_bands_over_time(df, eg,
     else:
         filler = 0
 
-    grouped = eg_df.groupby(['year', 'empkey'])[measure].mean().reset_index()[
-        ['year', measure]].fillna(filler)
+    grouped = eg_df.groupby(['year', pd.Grouper('empkey')])[measure].mean() \
+        .reset_index()[['year', measure]].fillna(filler)
 
     denom = len(grouped[grouped.year == min(eg_df.year)])
 
@@ -4249,34 +3996,66 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
                     5: 'sg_only'
                     }
 
+    num input is used with the single_eg input - output is plot of only
+    corresponding employee group.
+
     sg refers to special group - a group with special job rights
 
     inputs
-        df
-        mnum
-        measure
-        xax
-        job_strs
-        span_colors
-        job_levels
-        settings_dict
-        attr_dict
-        ds_dict
-        fur_color
-        single_eg
-        num
-        exclude_fur
-        plot_scatter
-        s
-        a
-        lw
-        job_bands_alpha
-        title_size
-        tick_size
-        label_pad
-        chart_style
-        remove_ax2_border
-        xsize, ysize
+        df (dataframe)
+            pandas dataframe input
+        mnum (integer)
+            month number for analysis
+        measure (string)
+            dataframe column name (attribute for analysis)
+        xax (string)
+            x axis attribute
+        job_strs (list)
+            list of job descriptions for labels (normally sdict['job_strs'])
+        span_colors (list)
+            list of colors for job level zones (normally cdict['job_colors'])
+        job_levels (integer)
+            number of job levels in model (sdict['num_of_job_levels'])
+        settings_dict (dictionary)
+            program job settings dictionary
+        attr_dict (dictionary)
+            program attribute name to attribute description dictionary
+        ds_dict (dictionary)
+            output from load_datasets function
+        fur_color (string color value)
+            if not None, color for furlough span color
+        single_eg (boolean)
+            if True, use the num input options to plot data for one group of
+            employees
+        num (integer)
+            selective plot option number (see docstring before input section)
+        exclude_fur (boolean)
+            if True, remove furloughed employees from input data
+        plot_scatter (boolean)
+            if True (default), plot a scatter chart, otherwise plot a line
+            chart
+        s (integer or float)
+            size of scatter markers if a plot_scatter input is True
+        a (float)
+            transparency value for both line plots and scatter plots
+            (0.0 to 1.0)
+        lw (integer or float)
+            width of maker edge lines with a scatter plot
+        job_bands_alpha (float)
+            transparency value for job level color spans
+        title_size (integer or float)
+            text size of chart title
+        tick_size (integer or float)
+            text size of chart tick labels
+        label_pad (integer)
+            minimum padding between job description labels that would
+            otherwise overlap
+        chart_style (string)
+            any seaborn plotting style name
+        remove_ax2_border (boolean)
+            if True, remove axis 2 (ax2) chart spines
+        xsize, ysize (integer or float)
+            width and height of chart
         image_dir (string)
             if not None, name of a directory in which to save an image of the
             chart output.  If the directory does not exist, it will be
@@ -5713,14 +5492,15 @@ def job_time_change(ds_list, ds_base,
     ds_frames = od()
     ds_dict = od()
     # sorts index by empkey, this is base df with key 0
-    ds_dict[0] = dsb_filt.groupby(['empkey', 'jnum']).size()\
+    ds_dict[0] = dsb_filt.groupby([pd.Grouper('empkey'), 'jnum']).size()\
         .unstack().fillna(0)
 
     i = 1
     for ds in ds_list:
         ds_frames[i] = ds[ds.mnum == 0][[xax, 'eg']]
         # sorts index by empkey
-        ds_dict[i] = ds.groupby(['empkey', 'jnum']).size().unstack().fillna(0)
+        ds_dict[i] = ds.groupby([pd.Grouper('empkey'),
+                                'jnum']).size().unstack().fillna(0)
         i += 1
 
     # get keys for comparative dataframes (all but key 0)
@@ -6001,19 +5781,19 @@ def group_average_and_median(dfc, dfb,
     for eg in eg_list:
         # for each employee group, group by date and plot avg/median of measure
         try:
+            date_group = dfc[dfc.eg == eg].groupby('date')
             if plot_average:
-                dfc[dfc.eg == eg].groupby('date')[measure] \
-                    .mean().plot(color=eg_colors[eg - 1], lw=3,
-                                 ax=ax, label=dfc_label +
-                                 ', ' +
-                                 'grp' + p_dict[eg] + ' avg')
+                date_group[measure].mean().plot(color=eg_colors[eg - 1],
+                                                ax=ax, lw=3,
+                                                label=dfc_label +
+                                                ', grp' +
+                                                p_dict[eg] + ' avg')
             if plot_median:
-                dfc[dfc.eg == eg].groupby('date')[measure] \
-                    .median().plot(color=eg_colors[eg - 1],
-                                   ax=ax, lw=1,
-                                   label=dfc_label +
-                                   ', ' +
-                                   'grp' + p_dict[eg] + ' median')
+                date_group[measure].median().plot(color=eg_colors[eg - 1],
+                                                  ax=ax, lw=1,
+                                                  label=dfc_label +
+                                                  ', grp' +
+                                                  p_dict[eg] + ' median')
         except:
             print('invalid or missing data - dfc, group ' + str(eg))
 
@@ -6039,28 +5819,27 @@ def group_average_and_median(dfc, dfb,
 
         for eg in eg_list:
             try:
+                date_group = dfb[dfb.eg == eg].groupby('date')
                 if plot_average:
-                    dfb[dfb.eg == eg].groupby('date')[measure]\
-                        .mean().plot(label=dfb_label +
-                                     ', ' +
-                                     'grp' + p_dict[eg] +
-                                     ' avg',
-                                     color=eg_colors[eg - 1],
-                                     ls='dashed',
-                                     lw=2.5,
-                                     alpha=.5,
-                                     ax=ax)
+                    date_group[measure].mean().plot(label=dfb_label +
+                                                    ', ' +
+                                                    'grp' + p_dict[eg] +
+                                                    ' avg',
+                                                    color=eg_colors[eg - 1],
+                                                    ls='dashed',
+                                                    lw=2.5,
+                                                    alpha=.5,
+                                                    ax=ax)
                 if plot_median:
-                    dfb[dfb.eg == eg].groupby('date')[measure]\
-                        .median().plot(label=dfb_label +
-                                       ', ' +
-                                       'grp' + p_dict[eg] +
-                                       ' median',
-                                       color=eg_colors[eg - 1],
-                                       ls='dotted',
-                                       lw=2.5,
-                                       alpha=.5,
-                                       ax=ax)
+                    date_group[measure].median().plot(label=dfb_label +
+                                                      ', ' +
+                                                      'grp' + p_dict[eg] +
+                                                      ' median',
+                                                      color=eg_colors[eg - 1],
+                                                      ls='dotted',
+                                                      lw=2.5,
+                                                      alpha=.5,
+                                                      ax=ax)
             except:
                 print('invalid or missing data - dfb, group ' + str(eg))
 
@@ -7428,11 +7207,11 @@ def percent_bins(eg, base,
     pcnt_df['empkey'] = pcnt_df.index
 
     if by_year:
-        grouped = pcnt_df[['empkey', 'year', 'out']].groupby(['empkey',
-                                                              'year'])
+        grouped = pcnt_df[['empkey', 'year', 'out']] \
+            .groupby([pd.Grouper('empkey'), 'year'])
     else:
-        grouped = pcnt_df[['empkey', time_col, 'out']].groupby(['empkey',
-                                                                time_col])
+        grouped = pcnt_df[['empkey', time_col, 'out']] \
+            .groupby([pd.Grouper('empkey'), time_col])
 
     if agg_method == 'mean':
         pc_df = grouped.mean().unstack().fillna(0)
@@ -8008,60 +7787,256 @@ def cohort_differential(ds, base,
     plt.show()
 
 
-def test_chart(df, x, y,
-               x_quantiles,
-               y_quantiles,
-               sdict,
-               adict,
-               cdict,
-               eg_list=None,
-               q_eglist_only=True,
-               markersize=5,
-               marker_alpha=.7,
-               grid_alpha=.25,
-               border_size=.5,
-               xquant_lines=True,
-               xl_alpha=1,
-               xl_ls='dashed',
-               xl_lw=1,
-               xl_color='.7',
-               x_bands=True,
-               xb_fc='.3',
-               xb_alpha=.09,
-               yquant_lines=True,
-               yl_alpha=1,
-               yl_ls='dashed',
-               yl_lw=1,
-               yl_color='.7',
-               y_bands=True,
-               yb_fc='#66ffb3',
-               yb_alpha=.09,
-               chart_style='ticks',
-               legend_size=14,
-               xsize=14,
-               ysize=11,
-               image_dir=None,
-               image_format='png'):
+def eg_attributes(ds, xmeasure, ymeasure,
+                  sdict,
+                  adict,
+                  cdict,
+                  eg_list=None,
+                  mnum=None,
+                  ret_only=False,
+                  ds_dict=None,
+                  attr1=None, oper1='>=', val1=0,
+                  attr2=None, oper2='>=', val2=0,
+                  attr3=None, oper3='>=', val3=0,
+                  q_eglist_only=True,
+                  xquant_lines=True,
+                  x_quantiles=10,
+                  xl_alpha=1,
+                  xl_ls='dashed',
+                  xl_lw=1,
+                  xl_color='.7',
+                  x_bands=True,
+                  xb_fc='.3',
+                  xb_alpha=.09,
+                  yquant_lines=True,
+                  y_quantiles=10,
+                  yl_alpha=1,
+                  yl_ls='dashed',
+                  yl_lw=1,
+                  yl_color='.7',
+                  y_bands=True,
+                  yb_fc='#66ffb3',
+                  yb_alpha=.09,
+                  linestyle='',
+                  linewidth=0,
+                  markersize=5,
+                  marker_alpha=.7,
+                  grid_alpha=.25,
+                  chart_style='ticks',
+                  full_xpcnt=True,
+                  full_ypcnt=True,
+                  xax_rotate=70,
+                  label_size=13,
+                  qlabel_size=12,
+                  tick_size=12,
+                  border_size=.5,
+                  legend_size=14,
+                  title_size=18,
+                  y_title_pos=1.12,
+                  box_height=.95,
+                  xsize=15,
+                  ysize=11,
+                  image_dir=None,
+                  image_format='png'):
+    '''Plot selected employee group(s) attribute data.
 
+    Chart x and y axes may be any dataset attributes, including date
+    attributes.
+
+    Quantile membership for the x and/or y attribute may also be displayed.
+    Membership may be relative to the entire integrated population or only
+    to the employee group(s) selected for display (q_eglist_only input).
+
+    inputs
+        ds (dataframe)
+            dataset to examine, may be a dataframe variable or a string key
+            from the ds_dict dictionary object
+        xmeasure (string)
+            attribute to plot on x axis
+        ymeasure (string)
+            attribute to plot on y axis
+        sdict (dictionary)
+            program settings dictionary
+        adict (dictionary)
+            dataset column name description dictionary
+        cdict (dictionary)
+            program colors dictionary
+        eg_list (list)
+            list of employee groups to plot (integer codes)
+        mnum (integer)
+            month number for analysis
+        ret_only (boolean)
+            if True, mnum input is ignored and results are displayed for
+            all employees at retirement
+        ds_dict (dictionary)
+            output of the load_datasets function, dictionary.  This keyword
+            argument must be set if a string key is used as the df input.
+        attr(n) (string)
+            filter attribute or dataset column as string
+        oper(n) (string)
+            operator (i.e. <, >, ==, etc.) for attr(n) as string
+        val(n) (string, integer, float, date as string as appropriate)
+            attr(n) limiting value (combined with oper(n)) as string
+        q_eglist_only (boolean)
+            if set to True:
+
+                if quantile bands are displayed, show membership based on
+                selected employee groups (eg_list input).
+
+            if set to False:
+
+                if quantile bands are displayed, show membership based on
+                the integrated group population (all groups).
+        xquant_lines (boolean)
+            if True, show quantile membership for x axis attribute
+        x_quantiles (integer)
+            number of quantiles to display if xquant_lines input is True
+        xl_alpha (float)
+            transparency value of x axis quantile lines (0.0 to 1.0)
+        xl_ls (string)
+            x axis quantile lines linestyle ('dashed', 'dotted', etc.)
+        xl_lw (integer or float)
+            x axis quantile lines line width
+        xl_color (string color value)
+            x axis quantile lines color
+        x_bands (boolean)
+            if True, show a background color within every other x axis
+            quantile membership area
+        xb_fc (string color value)
+            x axis quantile bands background color
+        xb_alpha (float)
+            x axis quantile bands color transparency value (0.0 to 1.0)
+        yquant_lines (boolean)
+            if True, show quantile membership for y axis attribute
+        y_quantiles (integer)
+            number of quantiles to display if yquant_lines input is True
+        yl_alpha (float)
+            transparency value of y axis quantile lines (0.0 to 1.0)
+        yl_ls (string)
+            y axis quantile lines linestyle ('dashed', 'dotted', etc.)
+        yl_lw (integer or float)
+            y axis quantile lines line width
+        yl_color (string color value)
+            y axis quantile lines color
+        y_bands (boolean)
+            if True, show a background color within every other y axis
+            quantile membership area
+        yb_fc (string color value)
+            y axis quantile bands background color
+        yb_alpha (float)
+            y axis quantile bands color transparency value (0.0 to 1.0)
+        markersize (integer or float)
+            size of chart scatter points
+        marker_alpha (integer or float)
+            transparency setting for plot lines or points (0.0 to 1.0)
+        grid_alpha (float)
+            transparency value for the chart grid corresponding to the x and
+            y attribute values (not the quantile membership lines)
+        chart_style (string)
+            any valid seaborn chart style name
+        full_xpcnt
+        full_ypcnt
+        xax_rotate
+        qlabel_size
+        tick_size
+        label_size (integer or float)
+            text size of x and y axis labels
+        border_size (integer or float)
+            width of the chart border line (chart spines)
+        legend_size (integer or float)
+            text size of chart legend
+        title_size (integer or float)
+            text size of chart title
+        y_title_pos (float)
+            vertical position of the chart title when attribute filtering has
+            been applied.  (typical values are 1.1 to 1.2)
+        box_height (float)
+            chart height multiplier which slightly shrinks vertical chart
+            area for proper printing (saving) purposes.  This input does not
+            affect the displayed values.
+        xsize, ysize (integer or float)
+            plot size in inches
+        image_dir (string)
+            if not None, name of a directory in which to save an image of the
+            chart output.  If the directory does not exist, it will be
+            created.
+        image_format (string)
+            file extension string for a saved chart image if the image_dir
+            input is not None
+
+            Examples:
+
+                'svg', 'png'
+    '''
+    d, d_label = determine_dataset(ds, ds_dict, return_label=True)
+
+    # filter for ret_only or specific month
+    if ret_only:
+        d = d[d.ret_mark == 1].copy()
+    else:
+        if mnum is not None:
+            d = d[d.mnum == mnum].copy()
+
+    # additional user-defined filters
+    df, filt_title = filter_ds(d,
+                               attr1=attr1, oper1=oper1, val1=val1,
+                               attr2=attr2, oper2=oper2, val2=val2,
+                               attr3=attr3, oper3=oper3, val3=val3,
+                               return_title_string=True)
+
+    # reduce data to specific employee group(s)
     if q_eglist_only:
         egs = np.array(df.eg)
         df = df[np.in1d(egs, eg_list)].copy()
 
-    if x in ['snum', 'lnum', 'spcnt', 'lspcnt', 'cat_order']:
+    # filter to include only active employees if an "active only" attribute
+    # is selected
+    no_fur_list = ['spcnt', 'snum']
+    if xmeasure in no_fur_list or ymeasure in no_fur_list:
+        df = df[df.spcnt >= 0]
+
+    # list of attributes where a lower value should be at the top or right
+    # of chart display
+    invert_attr_list = ['cat_order', 'ldate', 'doh', 'retdate', 'date',
+                        'snum', 'lnum', 'spcnt', 'lspcnt', 'jnum', 'jobp',
+                        'fbff', 'orig_job', 'rank_in_job', 'new_order']
+
+    job_attr_list = ['jnum', 'jobp', 'orig_job', 'fbff']
+    date_attr_list = ['ldate', 'doh', 'retdate', 'date']
+
+    # define chart axis limits
+    if xmeasure in ['snum', 'lnum', 'spcnt', 'lspcnt', 'cat_order']:
         minx = 0
+        if full_xpcnt and xmeasure in ['spcnt', 'lspcnt']:
+            maxx = 1
+        else:
+            maxx = max(df[xmeasure])
+    elif xmeasure in job_attr_list:
+        minx = .75
+        maxx = sdict['num_of_job_levels'] + 2
     else:
-        minx = min(df[x])
-    if y in ['snum', 'lnum', 'spcnt', 'lspcnt', 'cat_order']:
+        minx = min(df[xmeasure])
+        maxx = max(df[xmeasure])
+
+    if ymeasure in ['snum', 'lnum', 'spcnt', 'lspcnt', 'cat_order']:
         miny = 0
+        if full_ypcnt and ymeasure in ['spcnt', 'lspcnt']:
+            maxy = 1
+        else:
+            maxy = max(df[ymeasure])
+    elif ymeasure in job_attr_list:
+        miny = .75
+        maxy = sdict['num_of_job_levels'] + 2
     else:
-        miny = min(df[y])
-    maxx = max(df[x])
-    maxy = max(df[y])
+        miny = min(df[ymeasure])
+        maxy = max(df[ymeasure])
+
     dflen = len(df)
 
     num_of_job_levels = sdict['num_of_job_levels']
-
     eg_colors = cdict['eg_colors']
+
+    # set employee group list
     if eg_list is None:
         eg_list = list(set(df.eg))
     else:
@@ -8070,74 +8045,102 @@ def test_chart(df, x, y,
     with sns.axes_style(chart_style):
         fig, ax1 = plt.subplots(figsize=(xsize, ysize))
 
-    if x in ['ldate', 'doh', 'retdate', 'date']:
+    # set x and y chart values - format values if date attribute
+    if xmeasure in date_attr_list:
+        dtx = list(df[xmeasure].dt.strftime('%Y-%b-%d'))
+        x = mdate.datestr2num(dtx)
+        max_yearx = max(df[xmeasure].dt.year)
+        min_yearx = min(df[xmeasure].dt.year)
+        yrngx = max_yearx - min_yearx
+    else:
+        x = df[xmeasure].values
 
-        for eg in eg_list:
-            df_eg = df[df.eg == eg]
-            ax1.plot_date(data=df_eg, x=x, y=y,
-                          color=eg_colors[eg - 1],
-                          markersize=markersize,
-                          alpha=marker_alpha,
-                          label=eg)
+    if ymeasure in date_attr_list:
+        dty = list(df[ymeasure].dt.strftime('%Y-%b-%d'))
+        y = mdate.datestr2num(dty)
 
-        xlocator = mdate.YearLocator()
-        ax1.xaxis.set_major_locator(xlocator)
+        max_yeary = max(df[ymeasure].dt.year)
+        min_yeary = min(df[ymeasure].dt.year)
+        yrngy = max_yeary - min_yeary
+    else:
+        y = df[ymeasure].values
+
+    # plot chart
+    for eg in eg_list:
+        mask = (df.eg.values == eg)
+        egy = y[mask]
+        egx = x[mask]
+        ax1.plot(egx, egy,
+                 color=eg_colors[eg - 1],
+                 ls=linestyle,
+                 lw=linewidth,
+                 marker='o',
+                 markersize=markersize,
+                 alpha=marker_alpha,
+                 label=eg)
+
+    # more date attribute handling:
+    if xmeasure in date_attr_list:
+        ax1.xaxis_date()
+
+        ax1.xaxis.set_major_locator(mdate.YearLocator())
+        ax1.xaxis.set_major_formatter(mdate.DateFormatter('%Y'))
+        if yrngx <= 3:
+            ax1.xaxis.set_minor_locator(mdate.MonthLocator())
+            ax1.xaxis.set_minor_formatter(ticker.NullFormatter())
         fig.autofmt_xdate()
-        plt.xticks(rotation=90, ha='center')
-
+        plt.xticks(rotation=75, ha='center')
         if len(ax1.get_xticks()) > 20:
             for label in ax1.xaxis.get_ticklabels()[1::2]:
                 label.set_visible(False)
 
-        if y in ['ldate', 'doh', 'retdate', 'date']:
-            ylocator = mdate.YearLocator()
-            ax1.yaxis.set_major_locator(ylocator)
+    if ymeasure in date_attr_list:
+        ax1.yaxis_date()
+        ax1.yaxis.set_major_locator(mdate.YearLocator())
+        ax1.yaxis.set_major_formatter(mdate.DateFormatter('%Y'))
+        if yrngy <= 3:
+            ax1.yaxis.set_minor_locator(mdate.MonthLocator())
+            ax1.yaxis.set_minor_formatter(ticker.NullFormatter())
+        if len(ax1.get_yticks()) > 20:
+            for label in ax1.yaxis.get_ticklabels()[1::2]:
+                label.set_visible(False)
 
-    else:
-        for eg in eg_list:
-
-            df_eg = df[df.eg == eg]
-            df_eg.plot(kind='scatter', x=x, y=y,
-                       color=eg_colors[eg - 1],
-                       label=eg, ax=ax1)
-
-    if x in ['spcnt', 'lspcnt']:
+    # axis setup if percentage or job-level related
+    if xmeasure in ['spcnt', 'lspcnt']:
         ax1.set_xticks(np.arange(0, 1.05, .05))
         ax1.xaxis.set_major_formatter(pct_format())
-    if y in ['spcnt', 'lspcnt']:
+    if ymeasure in ['spcnt', 'lspcnt']:
         ax1.set_yticks(np.arange(0, 1.05, .05))
         ax1.yaxis.set_major_formatter(pct_format())
-    if x in ['jnum', 'jobp', 'orig_job', 'fbff']:
+    if xmeasure in ['jnum', 'jobp', 'orig_job', 'fbff']:
         ax1.set_xticks(np.arange(0, num_of_job_levels + 2).astype(int))
-    if y in ['jnum', 'jobp', 'orig_job', 'fbff']:
+    if ymeasure in ['jnum', 'jobp', 'orig_job', 'fbff']:
         ax1.set_yticks(np.arange(0, num_of_job_levels + 2).astype(int))
+
+    # set chart axis limits
     ax1.set_xlim(minx, maxx)
     ax1.set_ylim(miny, maxy)
 
+    # quantile lines/bands start--------------
     if xquant_lines:
 
         with sns.axes_style(chart_style):
             x_ax = ax1.twiny()
 
-        if x == 'cat_order':
-            rel_val = max(df.cat_order)
-        else:
-            rel_val = dflen
-
         xdiv_list = np.linspace(0, 1, x_quantiles + 1)
         qx_labels = ["{0:.1f}%".format(f * 100) for f in xdiv_list]
-        xlines = np.linspace(0, rel_val, x_quantiles + 1).astype(int)
+        xlines = np.linspace(0, dflen, x_quantiles + 1).astype(int)
         xlines[-1] = xlines[-1] - 1
-        sorted_xdf = df[[x]].sort_values(x, ascending=False)
+        sorted_xdf = df[[xmeasure]].sort_values(xmeasure, ascending=False)
 
         x_locations = []
         for line in xlines:
-            x_locations.append(sorted_xdf.iloc[line][x])
+            x_locations.append(sorted_xdf.iloc[line][xmeasure])
         x_ax.set_xticks(x_locations)
         x_ax.set_xlim(ax1.get_xlim())
         x_ax.grid(ls=xl_ls, lw=xl_lw, color=xl_color)
 
-        # quantile bands
+        # x quantile bands
         if x_bands:
             x1 = x_locations[0:-1:2]
             x2 = x_locations[1::2][:len(x1)]
@@ -8149,103 +8152,150 @@ def test_chart(df, x, y,
         with sns.axes_style(chart_style):
             y_ax = ax1.twinx()
 
-        if y == 'cat_order':
-            rel_val = max(df.cat_order)
-        else:
-            rel_val = dflen
-
         ydiv_list = np.linspace(0, 1, y_quantiles + 1)
         qy_labels = ["{0:.1f}%".format(f * 100) for f in ydiv_list]
-        ylines = np.linspace(0, rel_val, y_quantiles + 1).astype(int)
+        ylines = np.linspace(0, dflen, y_quantiles + 1).astype(int)
         ylines[-1] = ylines[-1] - 1
-        sorted_ydf = df[[y]].sort_values(y, ascending=False)
+        sorted_ydf = df[[ymeasure]].sort_values(ymeasure, ascending=False)
 
         y_locations = []
         for line in ylines:
-            y_locations.append(sorted_ydf.iloc[line][y])
+            y_locations.append(sorted_ydf.iloc[line][ymeasure])
 
         y_ax.set_ylim(ax1.get_ylim())
         y_ax.set_yticks(y_locations)
         y_ax.grid(ls=yl_ls, lw=yl_lw, color=xl_color)
 
+        # y quantile bands
         if y_bands:
             y1 = y_locations[0:-1:2]
             y2 = y_locations[1::2][:len(y1)]
             for y1, y2 in zip(y1, y2):
                 y_ax.axhspan(y1, y2, facecolor=yb_fc, alpha=yb_alpha)
+    # quantile lines/bands end--------------
 
-    if y in ['cat_order', 'ldate', 'doh', 'retdate', 'date',
-             'snum', 'lnum', 'spcnt', 'lspcnt', 'jnum', 'jobp']:
+    # invert/label section start......................
+    if ymeasure in invert_attr_list:
+
         ax1.invert_yaxis()
         if yquant_lines:
-            y_ax.set_yticklabels(qy_labels[::-1], rotation=-4)
-            y_ax.invert_yaxis()
-        if y in ['retdate', 'ldate', 'doh', 'date']:
+            if ymeasure in invert_attr_list:
+                y_ax.invert_yaxis()
+                y_ax.set_yticklabels(qy_labels[::-1], rotation=-4,
+                                     fontsize=qlabel_size, va='top')
+            else:
+                y_ax.set_yticklabels(qy_labels, rotation=-4,
+                                     fontsize=qlabel_size, va='top')
+
             if len(ax1.get_yticks()) > 20:
                 for label in ax1.yaxis.get_ticklabels()[1::2]:
                     label.set_visible(False)
 
     else:
+        if yquant_lines:
+            y_ax.set_yticklabels(qy_labels, rotation=-4)
 
-        y_ax.set_yticklabels(qy_labels, rotation=-4)
-
-    if x in ['cat_order', 'ldate', 'doh', 'retdate', 'date',
-             'snum', 'lnum', 'spcnt', 'lspcnt', 'jnum', 'jobp']:
+    if xmeasure in invert_attr_list:
 
         ax1.invert_xaxis()
         if xquant_lines:
-            x_ax.set_xticklabels(qx_labels, rotation=75)
-            if x in ['retdate', 'ldate', 'doh', 'date']:
+            if xmeasure in invert_attr_list:
                 x_ax.invert_xaxis()
-                x_ax.set_xticklabels(qx_labels[::-1], rotation=75)
-                if len(ax1.get_xticks()) > 20:
-                    for label in ax1.xaxis.get_ticklabels()[1::2]:
-                        label.set_visible(False)
+                x_ax.set_xticklabels(qx_labels[::-1], rotation=75,
+                                     fontsize=qlabel_size, ha='left')
+            else:
+                x_ax.set_xticklabels(qx_labels, rotation=75,
+                                     fontsize=qlabel_size, ha='left')
+
+            if len(ax1.get_xticks()) > 20:
+                for label in ax1.xaxis.get_ticklabels()[1::2]:
+                    label.set_visible(False)
     else:
+        if xquant_lines:
+            x_ax.set_xticklabels(qx_labels, rotation=75)
+    # invert/label section end........................
 
-        x_ax.set_xticklabels(qx_labels, rotation=75)
+    if ymeasure in job_attr_list:
+        job_labels = ['']
+        job_str_dict = sdict['job_strs_dict']
+        y_ticks = ax1.get_yticks()
+        for tick in y_ticks:
+            try:
+                job_labels.append(job_str_dict[tick])
+            except:
+                pass
+        # move labels slightly down for y axis job-level attributes
+        ax1.set_yticklabels(job_labels, va='top')
 
-    ax1.grid(alpha=grid_alpha)
-    ax1.set_xlabel(adict[x])
-    ax1.set_ylabel(adict[y])
+    if xmeasure in job_attr_list:
+        job_labels = ['']
+        job_str_dict = sdict['job_strs_dict']
+        x_ticks = ax1.get_xticks()
+        for tick in x_ticks:
+            try:
+                job_labels.append(job_str_dict[tick])
+            except:
+                pass
+        ax1.set_xticklabels(job_labels, va='top', ha='right', rotation=80)
 
+    # title position adjustment
     if xquant_lines:
-        y_pos = 1.1
+        y_pos = y_title_pos
     else:
         y_pos = 1.01
 
-    ax1.set_title(adict[x] + ' vs. ' + adict[y] +
-                  ', groups ' + str(eg_list),
-                  y=y_pos)
+    if yquant_lines:
+        legend_pad = 5
+    else:
+        legend_pad = 1
 
-    if y in ['jnum', 'jobp', 'orig_job', 'fbff']:
-        ax1.set_yticklabels(ax1.get_yticks(), va='top')
+    title = (d_label + ' ' + adict[xmeasure] + ' vs. ' + adict[ymeasure] +
+             ', groups ' + str(eg_list))
+    if mnum is not None and ret_only is False:
+        title = title + ' ,month ' + str(mnum)
+    if ret_only:
+        title = title + ' at retirement'
+    if filt_title:
+        title = title + '\n' + filt_title
 
-    # job_labels = []
-    # for col in diff2.columns.values.tolist():
-    #     job_labels.append(job_strs[col - 1])
+    ax1.set_title(title, fontsize=title_size, y=y_pos)
 
-    # LEGEND
+    if xmeasure not in date_attr_list:
+        for tick in ax1.get_xticklabels():
+            tick.set_rotation(xax_rotate)
+    ax1.tick_params(axis='both', labelsize=tick_size)
+    ax1.grid(alpha=grid_alpha)
+    ax1.set_xlabel(adict[xmeasure], fontsize=label_size)
+    ax1.set_ylabel(adict[ymeasure], fontsize=label_size)
+    ax1.xaxis.labelpad = 5
+
+    # legend
     legend_title = 'eg'
     box = ax1.get_position()
-    ax1.set_position([box.x0, box.y0, box.width * 0.95, box.height])
-    x_ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
-    y_ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
+    ax1.set_position([box.x0, box.y0,
+                     box.width * 0.92, box.height * box_height])
+    if xquant_lines:
+        x_ax.set_position([box.x0, box.y0,
+                          box.width * 0.92, box.height * box_height])
+    if yquant_lines:
+        y_ax.set_position([box.x0, box.y0,
+                          box.width * 0.92, box.height * box_height])
+
     handles, labels = ax1.get_legend_handles_labels()
     lg = ax1.legend(handles, labels, title=legend_title, loc='center left',
                     bbox_to_anchor=(1.0, 0.5),
-                    borderaxespad=5,
+                    borderaxespad=legend_pad,
                     frameon=True,
                     fancybox=True,
-                    # shadow=True,
                     markerscale=2,
                     fontsize=legend_size)
-    lg.get_frame().set_linewidth(1)
+    lg.get_frame().set_linewidth(1.5)
 
     for ax in fig.axes:
         for spine in ax.spines.values():
             spine.set_linewidth(border_size)
 
+    # saving chart image:
     if image_dir:
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
@@ -8253,5 +8303,3 @@ def test_chart(df, x, y,
         plt.savefig(image_dir + '/' + func_name + '.' + image_format)
 
     plt.show()
-
-    # option to base quantiles on global indexes vs standalone indexes
