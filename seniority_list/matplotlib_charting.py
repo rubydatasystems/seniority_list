@@ -7827,7 +7827,7 @@ def eg_attributes(ds, xmeasure, ymeasure,
                   full_ypcnt=True,
                   xax_rotate=70,
                   label_size=13,
-                  qlabel_size=12,
+                  qtick_size=12,
                   tick_size=12,
                   border_size=.5,
                   legend_size=14,
@@ -7937,7 +7937,7 @@ def eg_attributes(ds, xmeasure, ymeasure,
         full_xpcnt
         full_ypcnt
         xax_rotate
-        qlabel_size
+        qtick_size
         tick_size
         label_size (integer or float)
             text size of x and y axis labels
@@ -8047,7 +8047,8 @@ def eg_attributes(ds, xmeasure, ymeasure,
 
     # set x and y chart values - format values if date attribute
     if xmeasure in date_attr_list:
-        dtx = list(df[xmeasure].dt.strftime('%Y-%b-%d'))
+        xto_dates = pd.to_datetime(df[xmeasure])
+        dtx = list(xto_dates.dt.strftime('%Y-%b-%d'))
         x = mdate.datestr2num(dtx)
         max_yearx = max(df[xmeasure].dt.year)
         min_yearx = min(df[xmeasure].dt.year)
@@ -8056,7 +8057,8 @@ def eg_attributes(ds, xmeasure, ymeasure,
         x = df[xmeasure].values
 
     if ymeasure in date_attr_list:
-        dty = list(df[ymeasure].dt.strftime('%Y-%b-%d'))
+        yto_dates = pd.to_datetime(df[ymeasure])
+        dty = list(yto_dates.dt.strftime('%Y-%b-%d'))
         y = mdate.datestr2num(dty)
 
         max_yeary = max(df[ymeasure].dt.year)
@@ -8182,10 +8184,10 @@ def eg_attributes(ds, xmeasure, ymeasure,
             if ymeasure in invert_attr_list:
                 y_ax.invert_yaxis()
                 y_ax.set_yticklabels(qy_labels[::-1], rotation=-4,
-                                     fontsize=qlabel_size, va='top')
+                                     fontsize=qtick_size, va='top')
             else:
                 y_ax.set_yticklabels(qy_labels, rotation=-4,
-                                     fontsize=qlabel_size, va='top')
+                                     fontsize=qtick_size, va='top')
 
             if len(ax1.get_yticks()) > 20:
                 for label in ax1.yaxis.get_ticklabels()[1::2]:
@@ -8202,10 +8204,10 @@ def eg_attributes(ds, xmeasure, ymeasure,
             if xmeasure in invert_attr_list:
                 x_ax.invert_xaxis()
                 x_ax.set_xticklabels(qx_labels[::-1], rotation=75,
-                                     fontsize=qlabel_size, ha='left')
+                                     fontsize=qtick_size, ha='left')
             else:
                 x_ax.set_xticklabels(qx_labels, rotation=75,
-                                     fontsize=qlabel_size, ha='left')
+                                     fontsize=qtick_size, ha='left')
 
             if len(ax1.get_xticks()) > 20:
                 for label in ax1.xaxis.get_ticklabels()[1::2]:
