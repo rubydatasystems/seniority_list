@@ -450,7 +450,8 @@ def quartile_years_in_position(dfc, dfb,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -559,7 +560,8 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format,
-                    bbox_extra_artists=fig.suptitle)
+                    bbox_extra_artists=fig.suptitle,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -768,7 +770,8 @@ def multiline_plot_by_emp(df, measure, xax,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -897,7 +900,8 @@ def violinplot_by_eg(df, measure, ret_age,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -969,7 +973,8 @@ def age_kde_dist(df, color_list,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -1272,7 +1277,8 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + yval +
-                        '.' + image_format)
+                        '.' + image_format,
+                        bbox_inches='tight', pad_inches=.25)
         plt.show()
 
 
@@ -1505,7 +1511,8 @@ def eg_boxplot(df_list, eg_list,
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + yval +
-                        '.' + image_format)
+                        '.' + image_format,
+                        bbox_inches='tight', pad_inches=.25)
         plt.show()
 
 
@@ -1705,7 +1712,7 @@ def stripplot_dist_in_category(df, job_levels,
         fig.set_size_inches(xsize + 1, ysize)
         plt.tight_layout()
         plt.savefig(image_dir + '/' + func_name + '.' + image_format,
-                    pad_inches=1)
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -1938,7 +1945,8 @@ def job_level_progression(df, emp_list,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -2226,7 +2234,8 @@ def differential_scatter(df_list, dfb,
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + p_label +
-                        '.' + image_format)
+                        '.' + image_format,
+                        bbox_inches='tight', pad_inches=.25)
         plt.show()
 
 
@@ -2409,7 +2418,8 @@ def job_grouping_over_time(df, eg_list, jobs,
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + 'group' +
-                        str(eg) + '.' + image_format)
+                        str(eg) + '.' + image_format,
+                        bbox_inches='tight', pad_inches=.25)
         plt.show()
 
 
@@ -2626,7 +2636,8 @@ def parallel(df_list, dfb,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -2913,7 +2924,8 @@ def rows_of_color(df, mnum, measure_list,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -3161,7 +3173,8 @@ def quartile_bands_over_time(df, eg,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -3415,7 +3428,8 @@ def job_transfer(dfc, dfb, eg,
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '_g' + str(eg) +
-                    '.' + image_format)
+                    '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -4296,7 +4310,8 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -4516,7 +4531,8 @@ def diff_range(df_list, dfb,
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - group' + str(eg) +
-                        '.' + image_format)
+                        '.' + image_format,
+                        bbox_inches='tight', pad_inches=.25)
         plt.show()
 
 
@@ -4760,7 +4776,8 @@ def job_count_charts(dfc, dfb,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -4869,7 +4886,8 @@ def emp_quick_glance(empkey, df,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -5153,7 +5171,8 @@ def cond_test(df, grp_sel,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
     if plot_job_bands_chart:
@@ -5200,7 +5219,8 @@ def cond_test(df, grp_sel,
             if not path.exists(image_dir):
                 makedirs(image_dir)
             plt.savefig(image_dir + '/' + func_name + ' - ' + 'job_bands' +
-                        '.' + image_format)
+                        '.' + image_format,
+                        bbox_inches='tight', pad_inches=.25)
         plt.show()
 
     # option to print a dataframe containing all job counts for all months:
@@ -5341,7 +5361,8 @@ def single_emp_compare(emp, measure,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -5621,7 +5642,8 @@ def job_time_change(ds_list, ds_base,
                     makedirs(image_dir)
                 plt.savefig(image_dir + '/' + func_name + ' - ' + str(jk) +
                             'grp' + str(eg) +
-                            '.' + image_format)
+                            '.' + image_format,
+                            bbox_inches='tight', pad_inches=.25)
             plt.show()
 
 
@@ -5907,7 +5929,8 @@ def group_average_and_median(dfc, dfb,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -6018,7 +6041,8 @@ def stripplot_eg_density(df, mnum,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -6217,7 +6241,8 @@ def job_count_bands(df_list,
                     makedirs(image_dir)
                 plt.savefig(image_dir + '/' + func_name + ' - ' +
                             label_dict[i] + ' grp' + str(eg) +
-                            '.' + image_format)
+                            '.' + image_format,
+                            bbox_inches='tight', pad_inches=.25)
             plt.show()
             i += 1
 
@@ -6246,8 +6271,8 @@ def determine_dataset(ds_def,
     else:
         if ds_dict:
             try:
-                ds = ds_dict[ds_def][0]
-                ds_label = ds_dict[ds_def][1]
+                ds = ds_dict[ds_def]
+                ds_label = ds_def
             except (NameError, LookupError):
                 print('error:\n invalid dataframe or ds_dict key ' +
                       '(first argument)')
@@ -6876,7 +6901,8 @@ def quartile_groupby(df, eg_list,
 
         plt.savefig(image_dir + '/' + func_name + ' - ' + df_label +
                     ' grp ' + str(eg_list) +
-                    '.' + image_format)
+                    '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -7509,7 +7535,8 @@ def percent_diff_bins(eg, base,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -7783,7 +7810,8 @@ def cohort_differential(ds, base,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
     plt.show()
 
 
@@ -8302,6 +8330,7 @@ def eg_attributes(ds, xmeasure, ymeasure,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format)
+        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+                    bbox_inches='tight', pad_inches=.25)
 
     plt.show()

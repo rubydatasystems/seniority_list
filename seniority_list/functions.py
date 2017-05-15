@@ -2850,7 +2850,7 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
             ws_ref = ws
 
         try:
-            ds_dict[ws] = pd.read_pickle('dill/' + ws_ref + '.pkl'), ws
+            ds_dict[ws] = pd.read_pickle('dill/' + ws_ref + '.pkl')
         except OSError:
             # if dataset doesn't exist, pass and notify user
             print('dataset for proposal "' + ws + '" not found in dill folder')
@@ -3221,38 +3221,108 @@ def make_group_lists(df,
     return col_list
 
 
-def make_eg_pcnt_column(df):
-    '''make an array derived from the input df reflecting the
-    starting (month zero) percentage of each employee within his/her
-    original employee group.  The array values have been data-aligned with
-    the df input index.
+def make_eg_pcnt_column(df, recalc_each_month=False, mnum=0,
+                        inplace=True, trim_ones=True,
+                        fixed_col_name='eg_start_pcnt',
+                        running_col_name='eg_pcnt'):
+    '''make an array derived from the input df reflecting one of the following
+    options:
 
-    returns an array of values, same length as input df
+    Option A:
 
-    assign to long-form dataframe:
+        The percentage of each employee within his/her original employee
+        group for **a selected month**.  The array values will be data-aligned
+        with the df input index.  This option is useful for tracking
+        percentile cohorts throughout the model.
+
+    Option B:
+
+        The percentage of each employee within his/her original employee
+        group **recalculated each month**.  This has the effect of adjusting
+        each group relative percentage for population changes due to
+        retirements, furlough, etc.  This option is useful for monthly
+        percentile cohort comparisons.
+
+    This function either adds a column to the input dataframe or returns an
+    array of values, the same length as the input dataframe.
+
+    Note: This function calculations include any furloughed employees
+
+    assign to long-form dataframe (with default month 0 values aligned):
 
     .. code:: python
 
-      df['eg_start_pcnt'] = make_eg_pcnt_column(df)
+      make_eg_pcnt_column(df)
 
     input
         df (dataframe)
             pandas dataframe containing an employee group code column ('eg')
             and a month number column ('mnum').  The dataframe must be
             indexed with employee number code integers ('empkey')
-    '''
-    # grab the first month of the input dataframe, only 'eg' column
-    m0df = df[df.mnum == 0][['eg']].copy()
-    # make a running total for each employee group and assign to column
-    m0df['eg_count'] = m0df.groupby('eg').cumcount() + 1
-    # make another column with the total count for each respective group
-    m0df['eg_total'] = m0df.groupby('eg')['eg'].transform('count')
-    # calculate the group percentage and assign to column
-    m0df['eg_pcnt'] = m0df.eg_count / m0df.eg_total
-    # data align results to long_form input dataframe
-    df['eg_start_pcnt'] = m0df.eg_pcnt
+        recalc_each_month (boolean)
 
-    return df.eg_start_pcnt.values
+            if True:
+
+                recalculate separate employee group percentage each month of
+                data model
+
+            if False:
+
+                calculate values for one month only - align those values
+                by employee number (empkey) to the entire data model
+
+        mnum (integer)
+            if recalc_each_month is True, calculate values for this selected
+            month number
+        inplace (boolean)
+            if True, add a column to the input dataframe with the calculated
+            values.  If False, return a numpy array of the calculated values.
+        trim_ones (boolean)
+            if True, replace 100% values (1.0) with a value slightly under
+            1.0 (.9999).  This action assists construction of percentile
+            quartiles for membership grouping purposes.
+        exclude_fur (boolean)
+            if True, remove furloughed employees from percentage calculations
+        fixed_col_name (string)
+            manually designated name for dataframe column when
+            recalc_each_month input is False and inplace input is True.
+        running_col_name (string)
+            manually designated name for dataframe column when
+            recalc_each_month input is True and inplace input is True.
+    '''
+
+    if not recalc_each_month:
+        # grab the first month of the input dataframe, only 'eg' column
+        m0df = df[df.mnum == mnum][['eg']].copy()
+        # make a running total for each employee group and assign to column
+        m0df['eg_count'] = m0df.groupby('eg').cumcount() + 1
+        # make another column with the total count for each respective group
+        m0df['eg_total'] = m0df.groupby('eg')['eg'].transform('count')
+        # calculate the group percentage and assign to column
+        m0df['eg_pcnt'] = m0df.eg_count / m0df.eg_total
+
+        if trim_ones:
+            m0df['eg_pcnt'].replace(to_replace=1, value=.9999, inplace=True)
+        if inplace:
+            # data align results to long_form input dataframe
+            df[fixed_col_name] = m0df.eg_pcnt
+        else:
+            return df.eg_start_pcnt.values
+
+    else:
+
+        df_egs = df[['mnum', 'eg']].copy()
+        df_egs['eg_count'] = df_egs.groupby(['mnum', 'eg']).cumcount() + 1
+        df_egs['eg_total'] = df_egs.groupby(['mnum', 'eg'])['eg'] \
+            .transform('count')
+        df_egs['eg_pcnt'] = df_egs.eg_count / df_egs.eg_total
+
+        if trim_ones:
+            df_egs['eg_pcnt'].replace(to_replace=1, value=.9999, inplace=True)
+        if inplace:
+            df[running_col_name] = df_egs.eg_pcnt
+        else:
+            return df.eg_pcnt.values
 
 
 def make_starting_val_column(df,
