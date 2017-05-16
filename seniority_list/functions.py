@@ -3351,7 +3351,7 @@ def make_starting_val_column(df, attr, inplace=True):
             values to the remaining data model months
     '''
     all_mths_df = df[['mnum', attr]].copy()
-    m0df = df[all_mths_df.mnum == 0][['mnum', attr]].copy()
+    m0df = all_mths_df[all_mths_df.mnum == 0]
     all_mths_df['starting_value'] = m0df[attr]
 
     if inplace:
