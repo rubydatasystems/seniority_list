@@ -3325,8 +3325,7 @@ def make_eg_pcnt_column(df, recalc_each_month=False, mnum=0,
             return df.eg_pcnt.values
 
 
-def make_starting_val_column(df,
-                             attr):
+def make_starting_val_column(df, attr, inplace=True):
     '''make an array of values derived from the input dataframe which will
     reflect the starting value (month zero) of a selected attribute.  Each
     employee will be assigned the zero-month attribute value specific to
@@ -3352,10 +3351,13 @@ def make_starting_val_column(df,
             values to the remaining data model months
     '''
     all_mths_df = df[['mnum', attr]].copy()
-    m0df = all_mths_df[all_mths_df.mnum == 0]
+    m0df = df[all_mths_df.mnum == 0][['mnum', attr]].copy()
     all_mths_df['starting_value'] = m0df[attr]
 
-    return all_mths_df.starting_value.values
+    if inplace:
+        df['start_' + attr] = all_mths_df.starting_value.values
+    else:
+        return all_mths_df.starting_value.values
 
 
 def save_and_load_dill_folder(save_as=None,
