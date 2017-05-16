@@ -560,7 +560,6 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
         if not path.exists(image_dir):
             makedirs(image_dir)
         plt.savefig(image_dir + '/' + func_name + '.' + image_format,
-                    bbox_extra_artists=fig.suptitle,
                     bbox_inches='tight', pad_inches=.25)
     plt.show()
 
