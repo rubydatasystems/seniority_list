@@ -596,6 +596,8 @@ def main():
     # ## eg_colors, lin_reg_colors, lin_reg_colors2, mean_colors
 
     short_colors = xl['eg_colors']
+    color_dict['eg_color_dict'] = dict(zip(short_colors.eg,
+                                           short_colors.eg_colors))
     short_cols = [col for col in list(short_colors) if col != 'eg']
     short_colors = xl['eg_colors'][short_cols]
     for col in list(short_colors):
