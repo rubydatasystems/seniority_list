@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''The functions module contains core program routines related to building and
-working with the data model and associated files.
-
-General definitions:
-
-dataset "month_form" is length n months in model
-
-"short_form" data has a length equal to the number of employees
-
-"long_form" data is the length of the cumulative sum non-retired employees
-for all months in the data model (could be millions of rows,
-depending on workgroup size and age)
 '''
+.. module:: functions
 
+   :synopsis: The functions module contains core program routines related
+   to building and working with the data model and associated files.
+
+   General definitions:
+
+   dataset "month_form" is length n months in model
+
+   "short_form" data has a length equal to the number of employees
+
+   "long_form" data is the length of the cumulative sum non-retired employees
+   for all months in the data model (could be millions of rows,
+   depending on workgroup size and age)
+
+.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
+
+'''
 
 import os
 import shutil

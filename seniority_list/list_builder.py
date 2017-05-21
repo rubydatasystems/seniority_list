@@ -1,32 +1,42 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''The list_builder module contains routines to build list orderings from the
-master list data as a starting point for further analysis and/or list editing.
-Lists may be built by various weighting and sorting methods.
+'''
+.. module:: list_builder
 
-Typical workflow:
+   :synopsis: The list_builder module contains routines to build list
+   orderings from the master list data as a starting point for further
+   analysis and/or list editing. Lists may be built by various weighting
+   and sorting methods.
 
-prepare_master_list - add columns to master list which can be used as hybrid
-list factors.  These columns are longevity, job, and percentage related.
+   Typical workflow:
 
-build_list - select, apply weighting, organize and sort a "hybrid" list.
+   prepare_master_list - add columns to master list which can be used as
+   hybrid list factors.  These columns are longevity, job, and percentage
+   related.
 
-Note: the sort_eg_attributes and sort_and_rank functions are helper functions
-which may be used as standalone functions as well.
+   build_list - select, apply weighting, organize and sort a "hybrid" list.
 
-sort_eg_attributes - normally used within the prepare_master_list function.
-Sort date-type attributes by employee group to form a chronological order
-within each group without disturbing other columns order.  (also works with
-any other attribute if needed).  Typical date columns to prepare in this
-manner would be doh and ldate.
+   Note: the sort_eg_attributes and sort_and_rank functions are helper
+   functions which may be used as standalone functions as well.
 
-The sort_and_rank is a helper function for the build_list function.
+   sort_eg_attributes - normally used within the prepare_master_list function.
+   Sort date-type attributes by employee group to form a chronological order
+   within each group without disturbing other columns order.  (also works with
+   any other attribute if needed).  Typical date columns to prepare in this
+   manner would be doh and ldate.
 
-The build_list function stores a pickle file that can then be used as an
-input to the compute_measures script.
-Example:
-%run compute_measures.py hybrid
+   The sort_and_rank is a helper function for the build_list function.
+
+   The build_list function stores a pickle file that can then be used as an
+   input to the compute_measures script.
+   Example:
+
+   .. code:: python
+
+      %run compute_measures.py hybrid
+
+.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
 
 '''
 

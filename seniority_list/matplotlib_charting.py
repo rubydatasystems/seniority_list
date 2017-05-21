@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''The matplotlib_charting module contains plotting functions and supporting
-utility functions.
+'''
+.. module:: matplotlib_charting
+
+   :synopsis: The matplotlib_charting module contains plotting functions
+   and supporting utility functions.
+
+.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
+
 '''
 import pandas as pd
 import numpy as np
@@ -7961,11 +7967,18 @@ def eg_attributes(ds, xmeasure, ymeasure,
             y attribute values (not the quantile membership lines)
         chart_style (string)
             any valid seaborn chart style name
-        full_xpcnt
-        full_ypcnt
-        xax_rotate
-        qtick_size
-        tick_size
+        full_xpcnt (boolean)
+            if True, show full range percentage (0 to 100 percent) when
+            a percentage attribute is displayed on the x axis
+        full_ypcnt (boolean)
+            if True, show full range percentage (0 to 100 percent) when
+            a percentage attribute is displayed on the y axis        
+        xax_rotate (integer)
+            rotation value (in degrees) for the x axis tick labels
+        qtick_size (integer or float)
+            text size of the quantile membership tick labels
+        tick_size (integer or float)
+            text size of the x and y attribute tick labels
         label_size (integer or float)
             text size of x and y axis labels
         border_size (integer or float)
