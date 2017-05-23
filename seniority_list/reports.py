@@ -70,6 +70,7 @@ def stats_to_excel(ds_dict,
         return
     # remove the skeleton dataset from consideration for this function
     ds_list = [key for key in ds_dict.keys() if key != 'skeleton']
+    ret_attrs = [attr for attr in attrs if attr not in ['mlong', 'ylong']]
 
     # loop through datasets
     for key in ds_list:
@@ -97,9 +98,9 @@ def stats_to_excel(ds_dict,
         # add grouped dataframes to dictionaries
         try:
             ret_dict[date_grouper + '_' + key] = \
-                retp.groupby([dateyr, ret, 'eg'])[attrs].mean().unstack()
+                retp.groupby([dateyr, ret, 'eg'])[ret_attrs].mean().unstack()
             ret_dict['job' + '_' + key] = \
-                retp.groupby([job, ret, 'eg'])[attrs].mean().unstack()
+                retp.groupby([job, ret, 'eg'])[ret_attrs].mean().unstack()
             ann_dict['A_' + key] = \
                 df.groupby([yr, 'eg'])[attrs].mean().unstack()
             ann_dict['Long_' + key] = \
@@ -326,6 +327,8 @@ def retirement_charts(ds_dict,
             ylim = max(dummy_ds[attr]) * .7
         if attr in job_attrs:
             jlim = int(max(dummy_ds[attr]) + 1)
+        if attr == 'cpay':
+            ylim = max(dummy_ds[attr])
         ldict = {}
         # initialize chart lines for each employee group
         for eg_num in eg_nums:
@@ -353,7 +356,7 @@ def retirement_charts(ds_dict,
         elif attr in ['snum', 'cat_order']:
             ax.set_ylim(ymin=-100, ymax=ylim)
         elif attr in ['cpay']:
-            ax.set_yticks(np.arange(0, ylim + cpay_stride, cpay_stride))
+            ax.set_yticks(np.arange(0, ylim, cpay_stride))
             ax.set_ylim(ymin=-100, ymax=ylim)
         min_xtick_yr = dt_min // 10 * 10
         max_xtick_yr = dt_max // 10 * 10 + 10
@@ -412,7 +415,7 @@ def retirement_charts(ds_dict,
                     # create the chart title
                     ax.set_title(long_title_pre + str(year) + '\n' +
                                  key + ' retirees',
-                                 fontsize=14)
+                                 fontsize=title_size)
                     # draw the chart
                     fig.canvas.draw()
                     # save the chart
@@ -441,7 +444,7 @@ def retirement_charts(ds_dict,
                     # create the chart title
                     ax.set_title(job_title_pre + str(job) + '\n' +
                                  key + ' retirees',
-                                 fontsize=14)
+                                 fontsize=title_size)
                     # draw the chart
                     fig.canvas.draw()
                     # save the chart
@@ -466,7 +469,7 @@ def retirement_charts(ds_dict,
                     # create the chart title
                     ax.set_title(iq_title_pre + str(qt) + '\n' +
                                  key + ' retirees',
-                                 fontsize=14)
+                                 fontsize=title_size)
                     # draw the chart
                     fig.canvas.draw()
                     # save the chart
@@ -691,6 +694,8 @@ def annual_charts(ds_dict,
             ylim = max(dummy_ds[attr]) * .7
         if attr in job_attrs:
             jlim = int(max(dummy_ds[attr]) + 1)
+        if attr == 'cpay':
+            ylim = max(dummy_ds[attr])
         ldict = {}
         # initialize chart lines for each employee group
         for eg_num in eg_nums:
@@ -718,7 +723,7 @@ def annual_charts(ds_dict,
         elif attr in ['snum', 'cat_order']:
             ax.set_ylim(ymin=-100, ymax=ylim)
         elif attr in ['cpay']:
-            ax.set_yticks(np.arange(0, ylim + cpay_stride, cpay_stride))
+            ax.set_yticks(np.arange(0, ylim, cpay_stride))
             ax.set_ylim(ymin=-100, ymax=ylim)
         min_xtick_yr = dt_min // 10 * 10
         max_xtick_yr = dt_max // 10 * 10 + 10
@@ -772,7 +777,7 @@ def annual_charts(ds_dict,
                     # create the chart title
                     ax.set_title(long_title_pre + str(year) + '\n' +
                                  key + ' actives',
-                                 fontsize=14)
+                                 fontsize=title_size)
                     # draw the chart
                     fig.canvas.draw()
                     # save the chart
@@ -801,7 +806,7 @@ def annual_charts(ds_dict,
                     # create the chart title
                     ax.set_title(job_title_pre + str(job) + '\n' +
                                  key + ' actives',
-                                 fontsize=14)
+                                 fontsize=title_size)
                     # draw the chart
                     fig.canvas.draw()
                     # save the chart
@@ -826,7 +831,7 @@ def annual_charts(ds_dict,
                     # create the chart title
                     ax.set_title(iq_title_pre + str(qt) + '\n' +
                                  key + ' actives',
-                                 fontsize=14)
+                                 fontsize=title_size)
                     # draw the chart
                     fig.canvas.draw()
                     # save the chart

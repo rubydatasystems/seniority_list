@@ -7972,7 +7972,7 @@ def eg_attributes(ds, xmeasure, ymeasure,
             a percentage attribute is displayed on the x axis
         full_ypcnt (boolean)
             if True, show full range percentage (0 to 100 percent) when
-            a percentage attribute is displayed on the y axis        
+            a percentage attribute is displayed on the y axis
         xax_rotate (integer)
             rotation value (in degrees) for the x axis tick labels
         qtick_size (integer or float)
