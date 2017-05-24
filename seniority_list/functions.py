@@ -3285,7 +3285,7 @@ def make_eg_pcnt_column(df, recalc_each_month=False, mnum=0,
         trim_ones (boolean)
             if True, replace 100% values (1.0) with a value slightly under
             1.0 (.9999).  This action assists construction of percentile
-            quartiles for membership grouping purposes.
+            quantiles for membership grouping purposes.
         exclude_fur (boolean)
             if True, remove furloughed employees from percentage calculations
         fixed_col_name (string)

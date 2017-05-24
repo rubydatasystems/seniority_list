@@ -59,7 +59,7 @@ def pct_format():
     return ticker.FuncFormatter(to_percent)
 
 
-def quartile_years_in_position(dfc, dfb,
+def quantile_years_in_position(dfc, dfb,
                                job_levels,
                                num_bins,
                                job_str_list,
@@ -90,7 +90,7 @@ def quartile_years_in_position(dfc, dfb,
                                image_dir=None,
                                image_format='png'):
     '''stacked bar or area chart presenting the time spent in the various
-    job levels for quartiles of a selected employee group.
+    job levels for quantiles of a selected employee group.
 
     inputs
         dfc (string or dataframe variable)
@@ -338,10 +338,10 @@ def quartile_years_in_position(dfc, dfb,
 
                 if rotate:
                     ax.set_xlabel('years', fontsize=label_size)
-                    ax.set_ylabel('quartiles', fontsize=label_size)
+                    ax.set_ylabel('quantiles', fontsize=label_size)
                 else:
                     ax.set_ylabel('years', fontsize=label_size)
-                    ax.set_xlabel('quartiles', fontsize=label_size)
+                    ax.set_xlabel('quantiles', fontsize=label_size)
                     ax.set_xticklabels(ax.xaxis.get_ticklabels(),
                                        rotation='horizontal')
 
@@ -375,7 +375,7 @@ def quartile_years_in_position(dfc, dfb,
 
                 if rotate:
                     ax.set_xlabel('years', fontsize=label_size)
-                    ax.set_ylabel('quartiles', fontsize=label_size)
+                    ax.set_ylabel('quantiles', fontsize=label_size)
                     if normalize_yr_scale:
                         ax.set_xlim(year_clip / -3, year_clip / 3)
                     if not flip_y:
@@ -386,7 +386,7 @@ def quartile_years_in_position(dfc, dfb,
                         ax.axvspan(0, x_min, facecolor='r', alpha=bg_alpha)
                 else:
                     ax.set_ylabel('years', fontsize=label_size)
-                    ax.set_xlabel('quartiles', fontsize=label_size)
+                    ax.set_xlabel('quantiles', fontsize=label_size)
                     if normalize_yr_scale:
                         ax.set_ylim(year_clip / -3, year_clip / 3)
                     if flip_y:
@@ -2934,16 +2934,16 @@ def rows_of_color(df, mnum, measure_list,
     plt.show()
 
 
-def quartile_bands_over_time(df, eg,
+def quantile_bands_over_time(df, eg,
                              measure,
                              bins=20,
                              ds_dict=None,
                              year_clip=None,
                              kind='area',
-                             quartile_ticks=False,
+                             quantile_ticks=False,
                              cm_name='Vega20c',
                              chart_style='ticks',
-                             quartile_alpha=.75,
+                             quantile_alpha=.75,
                              grid_alpha=.4,
                              custom_start=0.0,
                              custom_finish=1.0,
@@ -2954,7 +2954,7 @@ def quartile_bands_over_time(df, eg,
                              xsize=14, ysize=8,
                              image_dir=None,
                              image_format='png'):
-    '''Visualize quartile distribution for an employee group over time
+    '''Visualize quantile distribution for an employee group over time
     for a selected proposal.
 
     This chart answers the question of where the different employee groups
@@ -2964,7 +2964,7 @@ def quartile_bands_over_time(df, eg,
     resultant percentage positioning.
 
     The chart contains a background grid for reference and may display
-    quartiles as integers or percentages, using a bar or area type display,
+    quantiles as integers or percentages, using a bar or area type display,
     and includes several chart color options.
 
     inputs
@@ -2976,7 +2976,7 @@ def quartile_bands_over_time(df, eg,
         measure (string)
             a list percentage input, either 'spcnt' or 'lspcnt'
         bins (integer)
-            number of quartiles to calculate and display
+            number of quantiles to calculate and display
         ds_dict (dictionary)
             output from load_datasets function
         year_clip (integer)
@@ -2984,15 +2984,15 @@ def quartile_bands_over_time(df, eg,
             input to be True)
         kind (string)
             type of chart display, either 'area' or 'bar'
-        quartile_ticks (boolean)
+        quantile_ticks (boolean)
             if True, display integers along y axis and in legend representing
-            quartiles.  Otherwise, present percentages.
+            quantiles.  Otherwise, present percentages.
         cm_name (string)
             colormap name (string), example: 'Set1'
         chart_style (string)
             style for chart output, any valid seaborn plotting style name
-        quartile_alpha (float)
-            alpha (opacity setting) value for quartile plot
+        quantile_alpha (float)
+            alpha (opacity setting) value for quantile plot
         grid_alpha (float)
             opacity setting for background grid
         custom_start (float)
@@ -3031,10 +3031,10 @@ def quartile_bands_over_time(df, eg,
 
     cm_subsection = np.linspace(custom_start, custom_finish, bins)
     colormap = eval('cm.' + cm_name)
-    quartile_colors = [colormap(x) for x in cm_subsection]
+    quantile_colors = [colormap(x) for x in cm_subsection]
 
-    quartiles = np.arange(1, bins + 1)
-    minor_quartiles = quartiles - .5
+    quantiles = np.arange(1, bins + 1)
+    minor_quantiles = quantiles - .5
 
     if year_clip:
         eg_df = ds[(ds.eg == eg) & (ds.date.dt.year <= year_clip)]
@@ -3060,7 +3060,7 @@ def quartile_bands_over_time(df, eg,
 
     denom = len(grouped[grouped.year == min(eg_df.year)])
 
-    # in which quartile do we find employees over time?
+    # in which quantile do we find employees over time?
     i = 0
     for year in years:
         this_year = grouped[grouped.year == year][measure]
@@ -3070,7 +3070,7 @@ def quartile_bands_over_time(df, eg,
         result_arr[i, :] = these_pcnts
         i += 1
 
-    frm = pd.DataFrame(result_arr, columns=quartiles, index=years)
+    frm = pd.DataFrame(result_arr, columns=quantiles, index=years)
 
     with sns.axes_style(chart_style):
         fig, ax = plt.subplots(figsize=(xsize, ysize))
@@ -3079,10 +3079,10 @@ def quartile_bands_over_time(df, eg,
 
     if kind == 'area':
         frm.plot(kind=kind, linewidth=1, stacked=True,
-                 color=quartile_colors, alpha=quartile_alpha, ax=ax)
+                 color=quantile_colors, alpha=quantile_alpha, ax=ax)
     elif kind == 'bar':
         frm.plot(kind=kind, width=1, stacked=True,
-                 color=quartile_colors, alpha=quartile_alpha,
+                 color=quantile_colors, alpha=quantile_alpha,
                  edgecolor='w', linewidth=.35, ax=ax)
 
     ax.set_ylim(0, 1)
@@ -3103,19 +3103,19 @@ def quartile_bands_over_time(df, eg,
         for label in ax.xaxis.get_ticklabels()[1::2]:
             label.set_visible(False)
 
-    if quartile_ticks:
+    if quantile_ticks:
         ax2 = ax.twinx()
 
         if bins > 20:
-            ax2_yticks = minor_quartiles[::2]
-            quartile_labels = quartiles[::2]
+            ax2_yticks = minor_quantiles[::2]
+            quantile_labels = quantiles[::2]
         else:
-            ax2_yticks = minor_quartiles
-            quartile_labels = quartiles
-        ax2.set_yticks(quartiles, minor=True)
+            ax2_yticks = minor_quantiles
+            quantile_labels = quantiles
+        ax2.set_yticks(quantiles, minor=True)
         ax2.yaxis.set_minor_formatter(ticker.NullFormatter())
         ax2.set_yticks(ax2_yticks)
-        ax2.set_yticklabels(quartile_labels)
+        ax2.set_yticklabels(quantile_labels)
         ax2.set_ylim(0, bins)
 
         ax2.invert_yaxis()
@@ -3127,10 +3127,10 @@ def quartile_bands_over_time(df, eg,
         ax.tick_params(axis='x', which='both', left='off',
                        right='off', labelleft='off')
 
-        ax2.set_ylabel('original quartile', fontsize=label_size)
+        ax2.set_ylabel('original quantile', fontsize=label_size)
         ax2.yaxis.labelpad = 10
-        legend_labels = quartiles
-        legend_title = 'result quartile'
+        legend_labels = quantiles
+        legend_title = 'result quantile'
 
     else:
         ax.xaxis.grid(which='major', color='k', alpha=grid_alpha, ls='dotted')
@@ -3139,7 +3139,7 @@ def quartile_bands_over_time(df, eg,
                          .format(percent=((quart * step) - step) * 100) +
                          ' - ' +
                          '{percent:.1%}'.format(percent=quart * step)
-                         for quart in quartiles]
+                         for quart in quantiles]
         legend_title = 'result_pcnt'
 
     if alt_bg_color:
@@ -3149,21 +3149,21 @@ def quartile_bands_over_time(df, eg,
     ax.set_xlabel('year', fontsize=label_size)
     ax.xaxis.labelpad = 10
     ax.set_title(df_label + ', group ' + str(eg) +
-                 ' quartile change over time\n' + str(bins) + ' quartiles',
+                 ' quantile change over time\n' + str(bins) + ' quantiles',
                  fontsize=16, y=1.02)
 
     recs = []
-    patch_alpha = min(quartile_alpha + .1, 1)
+    patch_alpha = min(quantile_alpha + .1, 1)
     legend_cols = int(bins / 30) + 1
 
     for i in np.arange(bins, dtype='int'):
         recs.append(mpatches.Rectangle((0, 0), 1, 1,
-                                       fc=quartile_colors[i],
+                                       fc=quantile_colors[i],
                                        alpha=patch_alpha))
 
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
-    if quartile_ticks:
+    if quantile_ticks:
         ax2.set_position([box.x0, box.y0, box.width * 0.7, box.height])
     handles, labels = ax.get_legend_handles_labels()
 
@@ -6460,30 +6460,30 @@ def slice_ds_by_filtered_index(df, ds_dict=None,
     return ds_filter
 
 
-def mark_quartiles(df, quartiles=10):
-    '''add a column to the input dataframe identifying quartile membership as
-    integers (the column is named "quartile").  The quartile membership
+def mark_quantiles(df, quantiles=10):
+    '''add a column to the input dataframe identifying quantile membership as
+    integers (the column is named "quantile").  The quantile membership
     (category) is calculated for each employee group separately, based on
     the employee population in month zero.
 
     The output dataframe permits attributes for employees within month zero
-    quartile categories to be be analyzed throughout all the months of the
+    quantile categories to be be analyzed throughout all the months of the
     data model.
 
-    The number of quartiles to create within each employee group is selected
-    by the "quartiles" input.
+    The number of quantiles to create within each employee group is selected
+    by the "quantiles" input.
 
-    The function utilizes numpy arrays and functions to compute the quartile
+    The function utilizes numpy arrays and functions to compute the quantile
     assignments, and pandas index data alignment feature to assign month zero
-    quartile membership to the long-form, multi-month output dataframe.
+    quantile membership to the long-form, multi-month output dataframe.
 
-    This function is used within the quartile_groupby function.
+    This function is used within the quantile_groupby function.
 
     inputs
         df (dataframe)
             Any pandas dataframe containing an "eg" (employee group) column
-        quartiles (integer)
-            The number of quartiles to create.
+        quantiles (integer)
+            The number of quantiles to create.
 
             example:
 
@@ -6493,7 +6493,7 @@ def mark_quartiles(df, quartiles=10):
             with 2, etc., through to the last quantile, 10.
     '''
     mult = 1000
-    mod = mult / quartiles
+    mod = mult / quantiles
     aligned_df = df.copy()
     df = df[df.mnum == 0][['eg']].copy()
     eg_arr = np.array(df.eg)
@@ -6505,13 +6505,13 @@ def mark_quartiles(df, quartiles=10):
         this_bin_arr = (this_eg_arr * mult // mod).astype(int) + 1
         np.put(bins_arr, np.where(eg_arr == eg)[0], this_bin_arr)
 
-    df['quartile'] = bins_arr
-    aligned_df['quartile'] = df['quartile']
+    df['quantile'] = bins_arr
+    aligned_df['quantile'] = df['quantile']
     return aligned_df
 
 
-def quartile_groupby(df, eg_list,
-                     measure, quartiles,
+def quantile_groupby(df, eg_list,
+                     measure, quantiles,
                      eg_colors,
                      band_colors,
                      settings_dict,
@@ -6545,7 +6545,7 @@ def quartile_groupby(df, eg_list,
                      image_dir=None,
                      image_format='png'):
     '''Plot representative values of a selected attribute measure for each
-    employee group quartile over time.
+    employee group quantile over time.
 
     Multiple employee groups may be plotted at the same time.  Job bands may
     be plotted as a chart background to display job level progression when
@@ -6554,22 +6554,22 @@ def quartile_groupby(df, eg_list,
     Example use case: plot the average job category rank of each employee
     quantile group, from the start date though the life of the data model.
 
-    The quartile group attribute may be analyzed with any of the following
+    The quantile group attribute may be analyzed with any of the following
     methods:
 
         [mean, median, first, last, min, max]
 
     If the eg_list input list contains a single employee group code and
     the custom_color input is set to "True", the color of the plotted
-    quartile result lines will be a spectrum of colors. The following inputs
+    quantile result lines will be a spectrum of colors. The following inputs
     are related to the custom color generation:
 
         [cm_name, start, stop, exclude, reverse]
 
     The above inputs will be used by the make_color_list function located
     within this module to produce a list of colors with a length equal to
-    the quartiles input.  (Please see the docstring for the make_color_list
-    function for further explaination).  If the quartiles input is set to a
+    the quantiles input.  (Please see the docstring for the make_color_list
+    function for further explaination).  If the quantiles input is set to a
     relatively high value (100-200), the impact on the career profiles of
     the employee groups is easily discernible when using a qualitative
     color map.
@@ -6586,8 +6586,8 @@ def quartile_groupby(df, eg_list,
             last employee group plotted on top of the others.
         measure (string)
             Attribute column name
-        quartiles (integer)
-            The number of quartiles to create and plot for each employee
+        quantiles (integer)
+            The number of quantiles to create and plot for each employee
             group in the eg_list input.
         eg_colors (list)
             list of color values for plotting the employee groups
@@ -6601,7 +6601,7 @@ def quartile_groupby(df, eg_list,
         attr_dict (dictionary)
             dataset column name description dictionary
         groupby_method (string)
-            The method applied to the attribute data within each quartile.  The
+            The method applied to the attribute data within each quantile.  The
             allowable methods are listed in the description above.  Default is
             'median'.
         xax (string)
@@ -6704,10 +6704,10 @@ def quartile_groupby(df, eg_list,
     else:
         through_date = max(df.date)
 
-    # make a dataframe with an added column ('quartile') indicating quartile
+    # make a dataframe with an added column ('quantile') indicating quantile
     # membership number (integer) for each employee, each employee group
     # calculated separately...
-    bin_df = mark_quartiles(df, quartiles)
+    bin_df = mark_quantiles(df, quantiles)
 
     # if mpay is selected, remove employee monthly pay data for retirement
     # months to exclude partial pay amounts
@@ -6718,7 +6718,7 @@ def quartile_groupby(df, eg_list,
         multiplot = True
     else:
         multiplot = False
-        clrs = make_color_list(num_of_colors=quartiles, start=start,
+        clrs = make_color_list(num_of_colors=quantiles, start=start,
                                stop=stop, exclude=exclude, reverse=reverse,
                                cm_name_list=[cm_name],
                                return_list=True)
@@ -6820,9 +6820,9 @@ def quartile_groupby(df, eg_list,
 
     for eg in eg_list:
         frame = bin_df[bin_df.eg == eg]
-        # group frame for eg by xax and quartile category and include
+        # group frame for eg by xax and quantile category and include
         # measure attribute
-        gb = frame.groupby([xax, 'quartile'])[measure]
+        gb = frame.groupby([xax, 'quantile'])[measure]
         # apply a groupby method to the groups
         gb = getattr(gb, groupby_method)()
         # unstack and plot
@@ -6895,8 +6895,8 @@ def quartile_groupby(df, eg_list,
                 ax1.axvline(settings_dict['implementation_date'],
                             c='g', ls='--', alpha=1, lw=1)
 
-    ax1.set_title('egs: ' + str(eg_list) + '    ' + str(quartiles) +
-                  ' quartile ' + attr_dict[measure] + ' by ' + groupby_method,
+    ax1.set_title('egs: ' + str(eg_list) + '    ' + str(quantiles) +
+                  ' quantile ' + attr_dict[measure] + ' by ' + groupby_method,
                   fontsize=title_size)
 
     if image_dir:
@@ -7179,7 +7179,7 @@ def percent_bins(eg, base,
                  compare,
                  measure='spcnt',
                  by_year=True,
-                 quartiles=20,
+                 quantiles=20,
                  time_col='date',
                  agg_method='median'):
     '''Return a tuple of two dataframes containing differential percentage
@@ -7188,9 +7188,9 @@ def percent_bins(eg, base,
 
     This function first compares list percentage between two datasets on a
     grouped time period basis (annual or monthly), then counts the number of
-    employees within specified percentage gain or loss quartiles.
+    employees within specified percentage gain or loss quantiles.
 
-    The counts are returned in dataframes with indexes reflecting the quartiles
+    The counts are returned in dataframes with indexes reflecting the quantiles
     and columns representing the grouped time period.
 
     This function is used in the percent_diff_bins plotting function.
@@ -7207,17 +7207,17 @@ def percent_bins(eg, base,
         by_year (boolean)
             if True, group employee percentage differentials by year, otherwise
             by time_col input
-        quartiles (integer)
-            number of quartiles to measure.  An input of 20 would translate to
-            quartiles of 5% each (100 / 20).
+        quantiles (integer)
+            number of quantiles to measure.  An input of 20 would translate to
+            quantiles of 5% each (100 / 20).
         time_col (string)
             if by_year is False, group percentage differentials by this time
             unit.  Inputs may be "mnum" or "date".
         agg_method (string)
-            quartile bin aggregation method.  Inputs may be "mean" or "median"
+            quantile bin aggregation method.  Inputs may be "mean" or "median"
     '''
-    bins = np.linspace(0, 1, quartiles + 1)
-    neg_bins = np.linspace(-1, 0, quartiles + 1)
+    bins = np.linspace(0, 1, quantiles + 1)
+    neg_bins = np.linspace(-1, 0, quantiles + 1)
     neg_bins[-1] = -.001
     bins[0] = .001
 
@@ -7252,9 +7252,9 @@ def percent_bins(eg, base,
     pc_df.columns = pc_df.columns.droplevel(0)
     pc_df_col_list = pc_df.columns.values.tolist()
 
-    pos_df = pd.DataFrame(index=np.arange(1, quartiles + 1),
+    pos_df = pd.DataFrame(index=np.arange(1, quantiles + 1),
                           columns=pc_df_col_list)
-    neg_df = pd.DataFrame(index=np.arange(1, quartiles + 1),
+    neg_df = pd.DataFrame(index=np.arange(1, quantiles + 1),
                           columns=pc_df_col_list)
 
     for time_period in pc_df_col_list:
@@ -7273,7 +7273,7 @@ def percent_diff_bins(eg, base,
                       compare,
                       measure='spcnt',
                       kind='bar',
-                      quartiles=40,
+                      quantiles=40,
                       num_display_colors=25,
                       area_xax='date',
                       ds_dict=None,
@@ -7314,7 +7314,7 @@ def percent_diff_bins(eg, base,
             list percentage attribute for comparison ('spcnt' or 'lspcnt')
         kind (string)
             chart style ('bar', 'barh', or 'area')
-        quartiles (integer)
+        quantiles (integer)
             the number of differential percentage bins.  If the input is 40,
             each bin width will be 2.5% (100 / 40)
         num_display_colors (integer)
@@ -7426,7 +7426,7 @@ def percent_diff_bins(eg, base,
         by_year = True
 
     pos, neg = percent_bins(eg, b, c, by_year=by_year,
-                            quartiles=quartiles, measure=measure,
+                            quantiles=quantiles, measure=measure,
                             agg_method='median', time_col=area_xax)
 
     pv = pos.values
@@ -7445,7 +7445,7 @@ def percent_diff_bins(eg, base,
 
     bins_found = max(pos_bins_found, neg_bins_found) + 1
 
-    label_arr = (np.linspace(0, 1, quartiles + 1) * 100)[1:]
+    label_arr = (np.linspace(0, 1, quantiles + 1) * 100)[1:]
     pos_labels = [str(x) + '%' for x in label_arr][:bins_found]
     neg_labels = [str(x) + '%' for x in label_arr * -1][:bins_found]
 

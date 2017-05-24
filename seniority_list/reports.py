@@ -24,7 +24,7 @@ from os import path, makedirs
 def stats_to_excel(ds_dict,
                    attrs=['spcnt', 'snum', 'cat_order',
                           'jobp', 'cpay', 'ylong'],
-                   quartiles=10,
+                   quantiles=10,
                    date_grouper='ldate',
                    fixed_col_name='eg_initQ',
                    running_col_name='eg_runQ'):
@@ -38,26 +38,26 @@ def stats_to_excel(ds_dict,
     years, further grouped for longevity or initial job.
 
     The annual information is grouped by the model year, and further grouped
-    by 10% quartiles, either by initial quartile membership or by an annual
-    quartile adjustment of remaining employees.
+    by 10% quantiles, either by initial quantile membership or by an annual
+    quantile adjustment of remaining employees.
 
     inputs
         ds_dict (dictionary)
             output of load_datasets function, a dictionary of datasets
-        quartiles (integer)
-            the number of binning quartiles to measure for the initial and
-            running (annually updated) quartile membership analysis
+        quantiles (integer)
+            the number of binning quantiles to measure for the initial and
+            running (annually updated) quantile membership analysis
             (default is 10)
         date_grouper (string)
             column name representing a column of dates within a dataframe.
             Year membership of this column will be used for grouping.
             Input is limited to 'ldate' or 'doh'.
         fixed_col_name (string)
-            label to use for quartile number column when calculating using
-            the initial quartile membership for all results
+            label to use for quantile number column when calculating using
+            the initial quantile membership for all results
         running_col_name (string)
-            label to use for quartile number column when calculating using
-            a continuously updated quartile membership for all results
+            label to use for quantile number column when calculating using
+            a continuously updated quantile membership for all results
     '''
     ret_dict = {}
     ann_dict = {}
@@ -88,8 +88,8 @@ def stats_to_excel(ds_dict,
         # make grouping values
         yr = df.date.dt.year
         lyr = df.ldate.dt.year
-        rq = ((df[running_col_name] * quartiles // 1) + 1).astype(int)
-        iq = ((df[fixed_col_name] * quartiles // 1) + 1).astype(int)
+        rq = ((df[running_col_name] * quantiles // 1) + 1).astype(int)
+        iq = ((df[fixed_col_name] * quantiles // 1) + 1).astype(int)
 
         retp = df[df.ret_mark == 1]
         dateyr = retp[date_grouper].dt.year
@@ -156,7 +156,7 @@ def retirement_charts(ds_dict,
                       plot_job_group=True,
                       plot_init_quarter=True,
                       plot_running_quarter=True,
-                      quartiles=10,
+                      quantiles=10,
                       pcnt_ylim=.75,
                       cpay_stride=500,
                       fixed_col_name='eg_initQ',
@@ -202,9 +202,9 @@ def retirement_charts(ds_dict,
         plot_job_group (boolean)
             if True,  create chart images grouped by job level held by
             employees
-        quartiles (integer)
-            the number of binning quartiles to measure for the initial and
-            running (annually updated) quartile membership analysis
+        quantiles (integer)
+            the number of binning quantiles to measure for the initial and
+            running (annually updated) quantile membership analysis
             (default is 10)
         plot_init_quarter (boolean)
             if True, produce output grouped by initial list quantile
@@ -219,11 +219,11 @@ def retirement_charts(ds_dict,
             y axis chart tick interval (in thousands) for charts displaying
             cpay (career pay)
         fixed_col_name (string)
-            label to use for quartile number column when calculating using
-            the initial quartile membership for all results
+            label to use for quantile number column when calculating using
+            the initial quantile membership for all results
         running_col_name (string)
-            label to use for quartile number column when calculating using
-            a continuously updated quartile membership for all results
+            label to use for quantile number column when calculating using
+            a continuously updated quantile membership for all results
         figsize (tuple)
             optional size of all generated chart images.  Default is None.
             This input will allow creation of larger chart images than the
@@ -385,8 +385,8 @@ def retirement_charts(ds_dict,
             # make grouping values
             ds['yr'] = ds.date.dt.year
             ds['rq'] = ((ds[running_col_name] *
-                         quartiles // 1) + 1).astype(int)
-            ds['iq'] = ((ds[fixed_col_name] * quartiles // 1) + 1).astype(int)
+                         quantiles // 1) + 1).astype(int)
+            ds['iq'] = ((ds[fixed_col_name] * quantiles // 1) + 1).astype(int)
             # create a dataframe containing each employee in retirement month
             ret_df = ds[ds.ret_mark == 1]
             yr = ret_df.date.dt.year
@@ -453,16 +453,16 @@ def retirement_charts(ds_dict,
                                           str(job) + '_' + key + '.png'))
 
             if plot_init_quarter:
-                # group by initial quartile, data model year, and employee
+                # group by initial quantile, data model year, and employee
                 # group
                 gb = ret_df.groupby([iq, yr, 'eg'])[attr]
                 unstkd = gb.mean().unstack()
-                # get a sorted array of quartiles
+                # get a sorted array of quantiles
                 qrtls = np.unique(unstkd.index.get_level_values(level=0))
-                # loop through intial quartile groups
+                # loop through intial quantile groups
                 for qt in qrtls:
                     # reset the chart line data for the data model
-                    # initial quartile and employee group
+                    # initial quantile and employee group
                     for eg_num in eg_nums:
                         ldict[eg_num].set_data(unstkd.loc[qt].index.values,
                                                unstkd.loc[qt][eg_num].values)
@@ -478,17 +478,17 @@ def retirement_charts(ds_dict,
                                           str(qt) + '_' + key + '.png'))
 
             if plot_running_quarter:
-                # group by running quartile, data model year, and employee
+                # group by running quantile, data model year, and employee
                 # group
                 gb = ret_df.groupby([rq, yr, 'eg'])[attr]
-                # get a sorted array of quartiles
+                # get a sorted array of quantiles
                 unstkd = gb.mean().unstack()
                 # get a sorted array of unique data model years
                 qrtls = np.unique(unstkd.index.get_level_values(level=0))
-                # loop through running quartile groups
+                # loop through running quantile groups
                 for qt in qrtls:
                     # reset the chart line data for the current data
-                    # running quartile and employee group
+                    # running quantile and employee group
                     for eg_num in eg_nums:
                         ldict[eg_num].set_data(unstkd.loc[qt].index.values,
                                                unstkd.loc[qt][eg_num].values)
@@ -519,7 +519,7 @@ def annual_charts(ds_dict,
                   adict, cdict,
                   plot_year_group=True,
                   plot_job_group=True,
-                  quartiles=10,
+                  quantiles=10,
                   plot_init_quarter=True,
                   plot_running_quarter=True,
                   pcnt_ylim=.75,
@@ -569,9 +569,9 @@ def annual_charts(ds_dict,
         plot_job_group (boolean)
             if True,  create chart images grouped by job level held by
             employees
-        quartiles (integer)
-            the number of binning quartiles to measure for the initial and
-            running (annually updated) quartile membership analysis
+        quantiles (integer)
+            the number of binning quantiles to measure for the initial and
+            running (annually updated) quantile membership analysis
             (default is 10)
         plot_init_quarter (boolean)
             if True, produce output grouped by initial list quantile
@@ -586,11 +586,11 @@ def annual_charts(ds_dict,
             y axis chart tick interval (in thousands) for charts displaying
             cpay (career pay)
         fixed_col_name (string)
-            label to use for quartile number column when calculating using
-            the initial quartile membership for all results
+            label to use for quantile number column when calculating using
+            the initial quantile membership for all results
         running_col_name (string)
-            label to use for quartile number column when calculating using
-            a continuously updated quartile membership for all results
+            label to use for quantile number column when calculating using
+            a continuously updated quantile membership for all results
         figsize (tuple)
             optional size of all generated chart images.  Default is None.
             This input will allow creation of larger chart images than the
@@ -751,8 +751,8 @@ def annual_charts(ds_dict,
                                   running_col_name=running_col_name)
             # make grouping values
             yr = ds.date.dt.year
-            rq = ((ds[running_col_name] * quartiles // 1) + 1).astype(int)
-            iq = ((ds[fixed_col_name] * quartiles // 1) + 1).astype(int)
+            rq = ((ds[running_col_name] * quantiles // 1) + 1).astype(int)
+            iq = ((ds[fixed_col_name] * quantiles // 1) + 1).astype(int)
 
             dateyr = ds[date_grouper].dt.year
             job = ds.start_jnum
@@ -815,16 +815,16 @@ def annual_charts(ds_dict,
                                           str(job) + '_' + key + '.png'))
 
             if plot_init_quarter:
-                # group by initial quartile, data model year, and employee
+                # group by initial quantile, data model year, and employee
                 # group
                 gb = ds.groupby([iq, yr, 'eg'])[attr]
                 unstkd = gb.mean().unstack()
-                # get a sorted array of quartiles
+                # get a sorted array of quantiles
                 qrtls = np.unique(unstkd.index.get_level_values(level=0))
-                # loop through intial quartile groups
+                # loop through intial quantile groups
                 for qt in qrtls:
                     # reset the chart line data for the data model
-                    # initial quartile and employee group
+                    # initial quantile and employee group
                     for eg_num in eg_nums:
                         ldict[eg_num].set_data(unstkd.loc[qt].index.values,
                                                unstkd.loc[qt][eg_num].values)
@@ -840,17 +840,17 @@ def annual_charts(ds_dict,
                                           str(qt) + '_' + key + '.png'))
 
             if plot_running_quarter:
-                # group by running quartile, data model year, and employee
+                # group by running quantile, data model year, and employee
                 # group
                 gb = ds.groupby([rq, yr, 'eg'])[attr]
-                # get a sorted array of quartiles
+                # get a sorted array of quantiles
                 unstkd = gb.mean().unstack()
                 # get a sorted array of unique data model years
                 qrtls = np.unique(unstkd.index.get_level_values(level=0))
-                # loop through running quartile groups
+                # loop through running quantile groups
                 for qt in qrtls:
                     # reset the chart line data for the current data
-                    # running quartile and employee group
+                    # running quantile and employee group
                     for eg_num in eg_nums:
                         ldict[eg_num].set_data(unstkd.loc[qt].index.values,
                                                unstkd.loc[qt][eg_num].values)
