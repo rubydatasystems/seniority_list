@@ -22,8 +22,6 @@ from os import path, makedirs
 
 
 def stats_to_excel(ds_dict,
-                   attrs=['spcnt', 'snum', 'cat_order',
-                          'jobp', 'cpay', 'ylong'],
                    quantiles=10,
                    date_grouper='ldate',
                    fixed_col_name='eg_initQ',
@@ -70,7 +68,37 @@ def stats_to_excel(ds_dict,
         return
     # remove the skeleton dataset from consideration for this function
     ds_list = [key for key in ds_dict.keys() if key != 'skeleton']
+    attrs = ['spcnt', 'snum', 'cat_order', 'jobp', 'cpay', 'ylong']
     ret_attrs = [attr for attr in attrs if attr not in ['mlong', 'ylong']]
+
+    # find number of employee groups in case study
+    num_egs = np.unique(ds_dict[ds_list[0]].eg).size
+    # find column numbers for each attribute measure
+    ret_start = np.array(range(2, (num_egs * 6) + 1, num_egs))
+    ret_end = ret_start + (num_egs - 1)
+    ann_start = np.array(range(1, (num_egs * 6) + 1, num_egs))
+    ann_end = ann_start + (num_egs - 1)
+    # make an array of excel column letters
+    xlcols = list('abcdefghijklmnopqrstuvwxyz'.upper())
+    next_cols = ['A' + el for el in xlcols]
+    xlcols.extend(next_cols)
+    cols = np.array(xlcols)
+    # slice column letter array according to column numbers
+    ret_startxl_cols = cols[ret_start]
+    ret_endxl_cols = cols[ret_end]
+    ann_startxl_cols = cols[ann_start]
+    ann_endxl_cols = cols[ann_end]
+    # make excel column ranges for formatting (example: 'C:E')
+    ret_col_dict = {}
+    i = 0
+    for idx in range(len(ret_startxl_cols)):
+        ret_col_dict[i] = ret_startxl_cols[idx] + ':' + ret_endxl_cols[idx]
+        i += 1
+    ann_col_dict = {}
+    i = 0
+    for idx in range(len(ann_startxl_cols)):
+        ann_col_dict[i] = ann_startxl_cols[idx] + ':' + ann_endxl_cols[idx]
+        i += 1
 
     # loop through datasets
     for key in ds_list:
@@ -132,21 +160,89 @@ def stats_to_excel(ds_dict,
 
     # write grouped retirement dataframes to excel workbook
     with pd.ExcelWriter('reports/' + case_name + '/ret_stats.xlsx',
-                        engine='xlsxwriter',
-                        datetime_format='yyyy-mm-dd',
-                        date_format='yyyy-mm-dd') as writer:
+                        engine='xlsxwriter') as writer:
 
         for ws_name, df_sheet in sorted(ret_dict.items()):
             df_sheet.to_excel(writer, sheet_name=ws_name)
 
+            if ws_name not in ['retirement_count']:
+
+                # prepare to format worksheet
+                workbook = writer.book
+                worksheet = writer.sheets[ws_name]
+
+                format0 = workbook.add_format({'num_format': '#0',
+                                               'align': 'center'})
+                format2 = workbook.add_format({'num_format': '#0.00',
+                                               'align': 'center'})
+                formatpcnt = workbook.add_format({'num_format': '#0.0%'})
+                # format each worksheet attribute column range
+                worksheet.set_column('A:A', 10, None)
+                worksheet.set_column('B:B', 7, None)
+                worksheet.set_column(ret_col_dict[0], 7, formatpcnt)
+                worksheet.set_column(ret_col_dict[1], 7, format0)
+                worksheet.set_column(ret_col_dict[2], 7, format0)
+                worksheet.set_column(ret_col_dict[3], 6, format2)
+                worksheet.set_column(ret_col_dict[4], 7, format0)
+                # freeze worksheet for scrolling with headers visible
+                worksheet.freeze_panes('A4')
+
+            else:
+                # format retirement count worksheet
+                workbook = writer.book
+                worksheet = writer.sheets[ws_name]
+                format0 = workbook.add_format({'num_format': '#0',
+                                               'align': 'center'})
+
+                worksheet.set_column('A:A', 10, None)
+                worksheet.set_column('B:B', 7, None)
+                worksheet.set_column(ret_col_dict[0], 7, format0)
+                worksheet.freeze_panes('A2')
+
     # write grouped annual dataframes to excel workbook
     with pd.ExcelWriter('reports/' + case_name + '/annual_stats.xlsx',
-                        engine='xlsxwriter',
-                        datetime_format='yyyy-mm-dd',
-                        date_format='yyyy-mm-dd') as writer:
+                        engine='xlsxwriter') as writer:
 
         for ws_name, df_sheet in sorted(ann_dict.items()):
             df_sheet.to_excel(writer, sheet_name=ws_name)
+
+            if ws_name not in ['retirement_count']:
+
+                workbook = writer.book
+                worksheet = writer.sheets[ws_name]
+
+                format0 = workbook.add_format({'num_format': '#0',
+                                               'align': 'center'})
+                format1 = workbook.add_format({'num_format': '#0.0',
+                                               'align': 'center'})
+                format2 = workbook.add_format({'num_format': '#0.00',
+                                               'align': 'center'})
+                formatpcnt = workbook.add_format({'num_format': '#0.0%'})
+
+                if ws_name.startswith('A_'):
+                    col_dict = ann_col_dict
+                else:
+                    col_dict = ret_col_dict
+
+                worksheet.set_column('A:A', 10, None)
+                worksheet.set_column(col_dict[0], 7, formatpcnt)
+                worksheet.set_column(col_dict[1], 7, format0)
+                worksheet.set_column(col_dict[2], 7, format0)
+                worksheet.set_column(col_dict[3], 6, format2)
+                worksheet.set_column(col_dict[4], 7, format0)
+                worksheet.set_column(col_dict[5], 6, format1)
+                worksheet.freeze_panes('A4')
+
+            else:
+
+                workbook = writer.book
+                worksheet = writer.sheets[ws_name]
+                format0 = workbook.add_format({'num_format': '#0',
+                                               'align': 'center'})
+
+                worksheet.set_column('A:A', 10, None)
+                worksheet.set_column(ann_col_dict[0], 7, format0)
+                worksheet.freeze_panes('A2')
 
 
 def retirement_charts(ds_dict,
