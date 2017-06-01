@@ -97,8 +97,8 @@ def main():
 
     # ORIG_JOB*
 
-    eg_sequence = np.array(df_master.eg)
-    fur_sequence = np.array(df_master.fur)
+    eg_sequence = df_master.eg.values
+    fur_sequence = df_master.fur.values
 
     # create list of employee group codes from the master data
     egs = sorted(pd.unique(eg_sequence))
@@ -133,8 +133,8 @@ def main():
 
             if eg in sg_eg_list:
                 # (run prex stovepipe routine with eg dict key and value)
-                sg = np.array(df_master[df_master.eg == eg]['sg'])
-                fur = np.array(df_master[df_master.eg == eg]['fur'])
+                sg = df_master[df_master.eg == eg]['sg'].values
+                fur = df_master[df_master.eg == eg]['fur']
                 ojob_array = f.make_stovepipe_prex_shortform(
                     jcnts_arr[0][eg - 1], sg, sg_dict[eg], fur)
                 prex_stove = np.take(ojob_array, np.where(fur == 0)[0])
@@ -265,7 +265,7 @@ def main():
         ds['fur'] = df_master['fur']
 
     # grab long_form indexed stovepipe jobs (int)
-    orig = np.array(ds['orig_job'])
+    orig = ds['orig_job'].values
 
     table = tdict['table']
     j_changes = tdict['j_changes']
@@ -309,7 +309,7 @@ def main():
 
     # SNUM, SPCNT, LNUM, LSPCNT
 
-    jnum_jobs = np.array(ds['jnum']).astype(int)
+    jnum_jobs = ds['jnum'].values.astype(int)
     job_count_each_month = table[1]
 
     ds['snum'], ds['spcnt'], ds['lnum'], ds['lspcnt'] = \
@@ -332,7 +332,7 @@ def main():
     jpcnt = np.array(ds.rank_in_job / ds.job_count)
     np.put(jpcnt, np.where(jpcnt == 1.0)[0], .99999)
 
-    ds['jobp'] = ds['jnum'] + jpcnt
+    ds['jobp'] = ds['jnum'].values + jpcnt
 
     # PAY - merge with pay table - provides monthly pay
     if sdict['compute_pay_measures']:
@@ -341,15 +341,15 @@ def main():
         if sdict['discount_longev_for_fur']:
             # skel(ds) provides pre-calculated non-discounted scale data
             # flip ones and zeros...
-            ds['non_fur'] = 1 - ds.fur
+            ds['non_fur'] = 1 - ds.fur.values
 
-            non_fur = np.array(ds.groupby([pd.Grouper('empkey')])
-                               ['non_fur'].cumsum())
+            non_fur = ds.groupby([pd.Grouper('empkey')])['non_fur'] \
+                .cumsum().values
             ds.pop('non_fur')
-            starting_mlong = np.array(ds.s_lmonths)
+            starting_mlong = ds.s_lmonths.values
             cum_active_months = non_fur + starting_mlong
             ds['mlong'] = cum_active_months
-            ds['ylong'] = ds['mlong'] / 12
+            ds['ylong'] = ds['mlong'].values / 12
             ds['scale'] = np.clip((cum_active_months / 12) + 1, 1,
                                   sdict['top_of_scale']).astype(int)
 
@@ -359,8 +359,9 @@ def main():
         # vehicle to use with indexed pay table....
         # the dataframe index contains specific scale, job, and contract year
         # for each line in long_form ds
-        df_pt_index = pd.DataFrame(
-            index=(ds['scale'] * 100) + ds['jnum'] + (ds['year'] * 100000))
+        df_pt_index = pd.DataFrame(index=((ds['scale'].values * 100) +
+                                          ds['jnum'].values +
+                                          (ds['year'].values * 100000)))
 
         if sdict['enhanced_jobs']:
             df_pt = pd.read_pickle('dill/pay_table_enhanced.pkl')
@@ -370,14 +371,14 @@ def main():
         # 'data-align' small indexed pay_table to long_form df:
         df_pt_index['monthly'] = df_pt['monthly']
 
-        ds['monthly'] = np.array(df_pt_index.monthly)
+        ds['monthly'] = df_pt_index.monthly.values
 
         # MPAY
         # adjust monthly pay for any raise and last month pay percent if
         # applicable
-        ds['mpay'] = ((ds['pay_raise'] *
-                       ds['mth_pcnt'] *
-                       ds['monthly'])) / 1000
+        ds['mpay'] = ((ds['pay_raise'].values *
+                       ds['mth_pcnt'].values *
+                       ds['monthly'].values)) / 1000
 
         ds.pop('monthly')
 
@@ -392,7 +393,7 @@ def main():
         # date
         for col in imp_cols:
             if col in ds_cols:
-                arr = np.array(ds[col])
+                arr = ds[col].values
                 arr[:imp_high] = col_array[arr_dict[col]][:imp_high]
                 ds[col] = arr
 

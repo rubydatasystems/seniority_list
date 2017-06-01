@@ -674,7 +674,8 @@ def main():
     df_dates['day_of_month'] = df_dates.retdate.dt.day
     df_dates['days_in_month'] = (df_dates.retdate +
                                  pd.offsets.MonthEnd(0)).dt.day
-    df_dates['last_pay'] = df_dates.day_of_month / df_dates.days_in_month
+    df_dates['last_pay'] = df_dates.day_of_month.values / \
+        df_dates.days_in_month.values
 
     df_dates.set_index('retdate', inplace=True)
     df_dates = df_dates[['last_pay']]
