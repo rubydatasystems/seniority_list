@@ -8026,7 +8026,9 @@ def eg_attributes(ds, xmeasure, ymeasure,
 
     # reduce data to specific employee group(s)
     if q_eglist_only:
-        egs = np.array(df.eg)
+        egs = df.eg.values
+        if eg_list is None:
+            eg_list = np.unique(egs)
         df = df[np.in1d(egs, eg_list)].copy()
 
     # filter to include only active employees if an "active only" attribute
@@ -8174,7 +8176,6 @@ def eg_attributes(ds, xmeasure, ymeasure,
         xlines = np.linspace(0, dflen, x_quantiles + 1).astype(int)
         xlines[-1] = xlines[-1] - 1
         sorted_xdf = df[[xmeasure]].sort_values(xmeasure, ascending=False)
-
         x_locations = []
         for line in xlines:
             x_locations.append(sorted_xdf.iloc[line][xmeasure])
