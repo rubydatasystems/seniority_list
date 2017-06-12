@@ -3368,11 +3368,12 @@ def make_starting_val_column(df, attr, inplace=True):
 def save_and_load_dill_folder(save_as=None,
                               load_case=None,
                               print_saved=False):
-    '''Save the current "dill" folder to the "saved_dill_folders" folder.
-    Load a saved dill folder as the "dill" folder if it exists.
+    '''Save the current "dill" folder to the "saved_dill_folders" folder, or
+    load a saved dill folder as the "dill" folder if it exists.
 
-    This function allows previously calculated pickle files (including the
-    datasets) to be loaded into the dill folder for quick review.
+    This function allows calculated case study pickle files
+    (including the calculated datasets) to be saved to or loaded loaded from
+    a "saved_dill_folders" folder.
 
     The "saved_dill_folders" folder is created if it does not already exist.
     The load_case input is a case study name.  If the load_case input is set to
@@ -3386,8 +3387,7 @@ def save_and_load_dill_folder(save_as=None,
     when this option is set to True.
 
     If an award has conditions which differ from proposed conditions, the
-    settings dictionary must be modified prior to calculating the award
-    dataset.
+    settings dictionary must be modified and the dataset rebuilt.
 
     This function allows previously calculated datasets to be quickly
     retrieved and eliminates continual adjustment of the settings spreadsheet

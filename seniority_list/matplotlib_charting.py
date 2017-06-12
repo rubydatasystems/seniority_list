@@ -2116,6 +2116,8 @@ def differential_scatter(df_list, dfb,
         order_dict[i] = 'order' + str(i)
         i += 1
 
+    print(label_dict)
+
     df.sort_values(by='order1', inplace=True)
 
     eg_grouped = df.groupby('eg')
@@ -2192,6 +2194,8 @@ def differential_scatter(df_list, dfb,
                                       'alpha': .4},
                             ax=ax)
                 ax.set_xlim(0, x_limit)
+
+            ax.set_xlabel('order: ' + label_dict[prop_num])
 
         if measure == 'jobp':
             ymin = math.floor(min(df[yax]))
@@ -5330,7 +5334,7 @@ def single_emp_compare(emp, measure,
 
         df_list[i][df_list[i].empkey == emp].set_index(xax)[measure] \
             .plot(label=label_dict[i],
-                  lw=3, color=eg_colors[i],
+                  lw=3,
                   alpha=.6, ax=ax)
 
     ax.set_title('Employee  ' + str(emp) + '  -  ' + attr_dict[measure],
@@ -7269,8 +7273,8 @@ def percent_bins(eg, base,
 
 
 # DIFFERENTIAL PERCENTAGE BINS
-def percent_diff_bins(eg, base,
-                      compare,
+def percent_diff_bins(compare,
+                      base, eg,
                       measure='spcnt',
                       kind='bar',
                       quantiles=40,
@@ -7304,12 +7308,12 @@ def percent_diff_bins(eg, base,
     The analysis groups may be targeted by up to three attribute value filters.
 
     inputs
-        eg (integer)
-            employee group code
-        base (dataframe)
-            baseline dataframe (dataset)
         compare (dataframe)
             comparison dataframe (dateset)
+        base (dataframe)
+            baseline dataframe (dataset)
+        eg (integer)
+            employee group code
         measure (string)
             list percentage attribute for comparison ('spcnt' or 'lspcnt')
         kind (string)
