@@ -2116,8 +2116,6 @@ def differential_scatter(df_list, dfb,
         order_dict[i] = 'order' + str(i)
         i += 1
 
-    print(label_dict)
-
     df.sort_values(by='order1', inplace=True)
 
     eg_grouped = df.groupby('eg')
