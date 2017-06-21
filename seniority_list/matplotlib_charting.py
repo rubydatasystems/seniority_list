@@ -23,8 +23,11 @@ from matplotlib import colors as mplclrs
 from matplotlib import dates as mdate
 import matplotlib.patches as mpatches
 
+from time import sleep
+
 from cycler import cycler
-from ipywidgets import interactive, Button, widgets
+from ipywidgets import interactive, Button, widgets, Layout, \
+    Box, VBox, Label, Checkbox, Dropdown, Text, IntSlider, IntRangeSlider
 from IPython.display import display, Javascript
 from collections import OrderedDict as od
 
@@ -3448,13 +3451,14 @@ def editor(settings_dict,
            reset=False,
            prop_order=True,
            mean_len=80,
-           dot_size=20,
+           dot_size=10,
            lin_reg_order=12,
            ylimit=False,
            ylim=5,
-           width=17.5,
-           height=10,
-           strip_height=3.5,
+           xsize=14,
+           ysize=9,
+           strip_dot_size=2.5,
+           strip_height=3,
            bright_bg=True,
            chart_style='whitegrid',
            bg_clr='white',
@@ -3516,10 +3520,12 @@ def editor(settings_dict,
             limit the y axis scale in scope if outliers exist
         ylim (integer or float)
             limit for ylimit input
-        width (integer or float)
+        xsize (integer or float)
             width of chart
-        height (integer or float)
+        ysize (integer or float)
             height of chart
+        strip_dot_size (integer or float)
+            dot size for stripplot
         strip_height (integer or float)
             height of stripplot (group density display)
         bright_bg (boolean)
@@ -3585,43 +3591,51 @@ def editor(settings_dict,
     max_month = max(compare_ds.mnum)
     persist = pd.read_pickle('dill/squeeze_vals.pkl')
 
-    chk_scatter = widgets.Checkbox(description='scatter',
-                                   value=bool(persist['scat_val'].value))
-    chk_fit = widgets.Checkbox(description='poly_fit',
-                               value=bool(persist['fit_val'].value))
-    chk_mean = widgets.Checkbox(description='mean',
-                                value=bool(persist['mean_val'].value))
-    drop_measure = widgets.Dropdown(options=['jobp', 'spcnt',
-                                             'lspcnt', 'snum', 'lnum',
-                                             'cat_order', 'mpay', 'cpay'],
-                                    value=persist['drop_msr'].value,
-                                    description='attr')
-    drop_operator = widgets.Dropdown(options=['<', '<=',
-                                              '==', '!=', '>=', '>'],
-                                     value=persist['drop_opr'].value,
-                                     description='operator')
-    drop_filter = widgets.Dropdown(options=['jnum', 'mnum', 'eg', 'sg', 'age',
-                                            'scale', 's_lmonths',
-                                            'orig_job', 'lnum', 'snum', 'mnum',
-                                            'rank_in_job', 'mpay', 'cpay',
-                                            'ret_mark'],
-                                   value=persist['drop_filter'].value,
-                                   description='attr filter')
+    # ipywidgets layout for dropdowns, text boxes and checkboxes
+    col_layout = Layout(display='flex', flex_flow='row',
+                        width='auto', justify_content='center')
 
-    int_val = widgets.Text(min=0,
-                           max=max_month,
-                           value=persist['int_sel'].value,
-                           description='value', width='150px')
+    chk_scatter = Checkbox(description='scatter', layout=col_layout,
+                           value=bool(persist['scat_val'].value))
 
-    mnum_operator = widgets.Dropdown(options=['<', '<=',
-                                              '==', '!=', '>=', '>'],
-                                     value=persist['mnum_opr'].value,
-                                     description='mnum')
+    chk_fit = Checkbox(description='poly_fit', layout=col_layout,
+                       value=bool(persist['fit_val'].value))
 
-    mnum_input = widgets.Dropdown(options=list(np.arange(0, max_month)
-                                               .astype(str)),
-                                  value=persist['int_mnum'].value,
-                                  description='value')
+    chk_mean = Checkbox(description='mean', layout=col_layout,
+                        value=bool(persist['mean_val'].value))
+
+    drop_measure = Dropdown(options=['jobp', 'spcnt', 'lspcnt', 'snum', 'lnum',
+                                     'cat_order', 'mpay', 'cpay'],
+                            value=persist['drop_msr'].value,
+                            description='attr', layout=col_layout)
+
+    drop_operator = Dropdown(options=['<', '<=',
+                                      '==', '!=', '>=', '>'],
+                             value=persist['drop_opr'].value,
+                             description='operator', layout=col_layout)
+
+    drop_filter = Dropdown(options=['jnum', 'mnum', 'eg', 'sg', 'age',
+                                    'scale', 's_lmonths', 'orig_job',
+                                    'lnum', 'snum', 'mnum',
+                                    'rank_in_job', 'mpay', 'cpay', 'ret_mark'],
+                           value=persist['drop_filter'].value,
+                           description='attr filter', layout=col_layout)
+
+    int_val = Text(min=0,
+                   max=max_month,
+                   value=persist['int_sel'].value,
+                   description='value', layout=col_layout)
+
+    mnum_operator = Dropdown(options=['<', '<=', '==', '!=', '>=', '>'],
+                             value=persist['mnum_opr'].value,
+                             description='mnum',
+                             layout=col_layout)
+
+    mnum_input = Dropdown(options=list(np.arange(0, max_month)
+                                       .astype(str)),
+                          value=persist['int_mnum'].value,
+                          description='value',
+                          layout=col_layout)
 
     mnum_val = mnum_input.value
     mnum_oper = mnum_operator.value
@@ -3689,7 +3703,7 @@ def editor(settings_dict,
 
     with sns.axes_style(chart_style):
 
-        fig, ax = plt.subplots(figsize=(width, height))
+        fig, ax = plt.subplots(figsize=(xsize, ysize))
 
         df.sort_values(by='proposal_order', inplace=True)
 
@@ -3776,51 +3790,77 @@ def editor(settings_dict,
                 junior_init = persist['junior'].value
                 senior_init = persist['senior'].value
             except AttributeError:
-                junior_init = int(.8 * x_limit)
-                senior_init = int(.2 * x_limit)
+                junior_init = int(.8 * -x_limit)
+                senior_init = int(.2 * -x_limit)
         else:
             try:
                 junior_init = persist['junior'].value
                 senior_init = persist['senior'].value
             except AttributeError:
-                junior_init = .8
-                senior_init = .2
+                junior_init = -.8
+                senior_init = -.2
 
         drop_p_dict = {'1': 1, '2': 2, '3': 3}
         drop_dir_dict = {'u  >>': 'u', '<<  d': 'd'}
         incr_dir_dict = {'u  >>': -1, '<<  d': 1}
 
-        drop_eg = widgets.Dropdown(options=drop_eg_options,
-                                   value=persist['drop_eg_val'].value,
-                                   description='emp grp')
+        drop_eg = Dropdown(options=drop_eg_options,
+                           value=persist['drop_eg_val'].value,
+                           description='emp grp', layout=col_layout)
 
-        drop_dir = widgets.Dropdown(options=['u  >>', '<<  d'],
-                                    value=persist['drop_dir_val'].value,
-                                    description='sqz dir')
+        drop_dir = Dropdown(options=['u  >>', '<<  d'],
+                            value=persist['drop_dir_val'].value,
+                            description='sqz dir', layout=col_layout)
 
-        drop_squeeze = widgets.Dropdown(options=['log', 'slide'],
-                                        value=persist['drop_sq_val'].value,
-                                        description='sq type')
+        drop_squeeze = Dropdown(options=['log', 'slide'],
+                                value=persist['drop_sq_val'].value,
+                                description='sq type', layout=col_layout)
 
-        slide_factor = widgets.IntSlider(value=persist['slide_fac_val'].value,
-                                         min=1,
-                                         max=400,
-                                         step=1,
-                                         description='squeeze',
-                                         margin='15px',
-                                         width='600px')
+        slide_factor = IntSlider(value=persist['slide_fac_val'].value,
+                                 min=1,
+                                 max=400,
+                                 step=1,
+                                 description='squeeze',
+                                 layout=Layout(width='90%',
+                                 margin='10px'))
 
-        def set_cursor(junior=junior_init, senior=senior_init,):
-            v1line.set_xdata((junior, junior))
-            v2line.set_xdata((senior, senior))
-            range_list[0] = junior
-            range_list[1] = senior
+        slide_factor.style.handle_color = '#f7c3a1'
+
+        if prop_order:
+            min_val = -x_limit
+            step = 1
+        else:
+            min_val = -1
+            step = .001
+
+        rg = IntRangeSlider(min=min_val, max=0, step=step,
+                            layout=Layout(width='90%'),
+                            value=(junior_init, senior_init),
+                            continuous_update=True,
+                            readout=False)
+
+        j_caption = Label(value=str(-junior_init), layout=Layout(width='10%'))
+        s_caption = Label(value=str(-senior_init), layout=Layout(width='10%'))
+
+        def set_cursor(edit_zone):
+            v1line.set_xdata((-rg.value[1], -rg.value[1]))
+            v2line.set_xdata((-rg.value[0], -rg.value[0]))
+            range_list[0] = -rg.value[1]
+            range_list[1] = -rg.value[0]
+            sleep(.05)
             display(fig)
+
+        def range_slider_change(change):
+            j_caption.value = str(-rg.value[0])
+            s_caption.value = str(-rg.value[1])
+        rg.observe(range_slider_change, names='value')
+
+        range_sel = interactive(set_cursor, edit_zone=rg)
 
         def perform_squeeze(b):
 
-            jval = v1line.get_xdata()[0]
-            sval = v2line.get_xdata()[0]
+            jval = v2line.get_xdata()[0]
+            sval = v1line.get_xdata()[0]
 
             direction = drop_dir_dict[drop_dir.value]
             factor = slide_factor.value * .005
@@ -3848,14 +3888,15 @@ def editor(settings_dict,
                                                   dtype='int')
 
             with sns.axes_style(chart_style):
-                fig, ax2 = plt.subplots(figsize=(width, strip_height))
+                fig, ax2 = plt.subplots(figsize=(xsize, strip_height))
 
             ax2 = sns.stripplot(x='new_order', y='eg',
                                 data=data_reorder, jitter=.5,
                                 orient='h', order=np.arange(1,
                                                             max_eg_plus_one,
                                                             1),
-                                palette=color_dict['eg_colors'], size=3,
+                                palette=color_dict['eg_colors'],
+                                size=strip_dot_size,
                                 linewidth=0, split=True)
 
             for item in ([ax2.xaxis.label, ax2.yaxis.label] +
@@ -3891,8 +3932,8 @@ def editor(settings_dict,
                                        'mnum_opr': mnum_operator.value,
                                        'int_mnum': mnum_input.value,
                                        'int_sel': int_val.value,
-                                       'junior': range_sel.children[0].value,
-                                       'senior': range_sel.children[1].value},
+                                       'junior': rg.value[0],
+                                       'senior': rg.value[1]},
                                       index=['value'])
 
             persist_df.to_pickle('dill/squeeze_vals.pkl')
@@ -3913,40 +3954,53 @@ def editor(settings_dict,
             store_vals()
             display(Javascript('IPython.notebook.execute_cell()'))
 
-        button_calc = Button(description="calculate",
-                             background_color='#80ffff', width='80px',
-                             margin='15px')
+        button_layout = Layout(width='20%', margin='5px')
+        buttons_layout = Layout(display='flex', flex_flow='row',
+                                justify_content='space-around')
+
+        button_calc = Button(description="calculate", layout=button_layout)
+        button_plot = Button(description="plot", layout=button_layout)
+        button_squeeze = Button(description='squeeze', layout=button_layout)
+
         button_calc.on_click(run_cell)
-
-        button_plot = Button(description="plot",
-                             background_color='#dab3ff', width='80px',
-                             margin='15px')
         button_plot.on_click(redraw)
+        button_squeeze.on_click(perform_squeeze)
 
-        if prop_order:
-            range_sel = interactive(set_cursor, junior=(0, x_limit),
-                                    senior=(0, x_limit), width='600px')
-        else:
-            range_sel = interactive(set_cursor, junior=(0, 1, .001),
-                                    senior=(0, 1, .001), width='600px')
+        button_calc.style.button_color = 'lightblue'
+        button_plot.style.button_color = 'plum'
+        button_squeeze.style.button_color = 'lightgreen'
 
-        button = Button(description='squeeze',
-                        background_color='#b3ffd9', width='80px',
-                        margin='15px')
-        button.on_click(perform_squeeze)
+        button_items = [Box([j_caption, button_squeeze, button_calc,
+                             button_plot, s_caption],
+                            layout=buttons_layout)]
 
-        hbox8 = widgets.HBox((button, button_calc,
-                              button_plot))
-        hbox1 = widgets.HBox((range_sel, hbox8))
+        hbuttons = Box(button_items, layout=Layout(display='flex',
+                       flex_flow='column', align_items='stretch', width='95%',
+                       margin='5px'))
 
-        vbox1 = widgets.VBox((chk_scatter, chk_fit, chk_mean))
-        vbox2 = widgets.VBox((drop_squeeze, drop_eg, drop_dir))
-        vbox3 = widgets.VBox((drop_measure,
-                              mnum_operator, mnum_input))
-        vbox4 = widgets.VBox((drop_filter,
-                              drop_operator, int_val))
-        hbox2 = widgets.HBox((vbox1, vbox2, vbox3, vbox4))
-        display(widgets.VBox((slide_factor, hbox2, hbox1)))
+        m_layout = Layout(display='flex', flex_flow='column',
+                          width='100%',  # percent of overall container
+                          border='dotted 1px',
+                          margin='5px',
+                          padding='4px',
+                          justify_content='space-between')
+
+        items = [Box([chk_scatter, chk_fit, chk_mean], layout=m_layout),
+                 Box([drop_squeeze, drop_eg, drop_dir], layout=m_layout),
+                 Box([drop_measure, mnum_operator, mnum_input],
+                     layout=m_layout),
+                 Box([drop_filter, drop_operator, int_val],
+                     layout=m_layout)]
+
+        hdropdowns = Box(items, layout=Layout(display='flex',
+                         flex_flow='row',
+                         justify_content='center',
+                         align_items='stretch',
+                         width='95%',
+                         margin='10px'))
+
+        display(VBox((slide_factor, hdropdowns, hbuttons,
+                      range_sel)))
 
 
 def reset_editor():
