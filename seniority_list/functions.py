@@ -3490,8 +3490,8 @@ def save_and_load_dill_folder(save_as=None,
                   '" proposal names are:\n\n    ' +
                   str(proposal_names) + '\n')
         except OSError:
-            print('\nError >>>  problem finding a saved dill folder with a ' +
-                  load_case + ' prefix in ' +
+            print('\nError >>>  problem finding a saved dill folder with a "' +
+                  load_case + '" prefix in ' +
                   'the "saved_dill_folders" folder.')
             print('\nThe dill folder contents remain unchanged.\n')
 

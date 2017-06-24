@@ -26,8 +26,8 @@ import matplotlib.patches as mpatches
 from time import sleep
 
 from cycler import cycler
-from ipywidgets import interactive, Button, widgets, Layout, \
-    Box, VBox, Label, Checkbox, Dropdown, Text, IntSlider, IntRangeSlider
+from ipywidgets import interactive, Button, Layout, Box, VBox, Label, \
+    Checkbox, Dropdown, Text, IntSlider, IntRangeSlider, FloatRangeSlider
 from IPython.display import display, Javascript
 from collections import OrderedDict as od
 
@@ -3451,15 +3451,17 @@ def editor(settings_dict,
            reset=False,
            prop_order=True,
            mean_len=80,
-           dot_size=10,
+           dot_size=14,
            lin_reg_order=12,
-           ylimit=False,
-           ylim=5,
+           ylim=None,
            xsize=14,
            ysize=9,
            strip_dot_size=2.5,
            strip_height=3,
-           bright_bg=True,
+           title_size=16,
+           label_size=14,
+           tick_size=13,
+           grid_alpha=.25,
            chart_style='whitegrid',
            bg_clr='white',
            show_grid=True):
@@ -3516,10 +3518,9 @@ def editor(settings_dict,
             chart dot size
         lin_reg_order (integer)
             polynomial fit order
-        ylimit (boolean)
-            limit the y axis scale in scope if outliers exist
         ylim (integer or float)
-            limit for ylimit input
+            if not None, limit the y axis scale to this input value.
+            Helpful when outliers exist.
         xsize (integer or float)
             width of chart
         ysize (integer or float)
@@ -3528,12 +3529,10 @@ def editor(settings_dict,
             dot size for stripplot
         strip_height (integer or float)
             height of stripplot (group density display)
-        bright_bg (boolean)
-            fill chart background with alternate color
         chart_style (string)
             seaborn chart style
-        bg_clr (color value)
-            color input for bright_bg option
+        bg_clr (None or color value)
+            if not None, color input for chart background
 
     '''
     # define path for edited datasets (ds_edit.pkl):
@@ -3541,6 +3540,7 @@ def editor(settings_dict,
     # boolean value, True if ds_edit exists
     edit_file_exists = path.exists(edit_file)
 
+    # set the COMPARE dataset...
     # test to see if user wishes to start over with another dataset
     if not reset:
         # if not, see if an edited dataset exists:
@@ -3576,7 +3576,7 @@ def editor(settings_dict,
             compare_ds = pd.read_pickle('dill/ds_' + proposal_list[0] + '.pkl')
             title_label = '< using ' + proposal_list[0] + ' >'
 
-    # set baseline dataset
+    # set BASELINE dataset
     try:
         base_ds = pd.read_pickle('dill/_ds' + base + '.pkl')
     except OSError:
@@ -3675,9 +3675,9 @@ def editor(settings_dict,
                                'new_order': 'proposal_order'}, inplace=True)
     df = df.join(to_join_ds)
 
-    x_limit = int(max(df.proposal_order) // 100) * 100 + 100
     df.sort_values(by='proposal_order', inplace=True)
-    df['squeeze_order'] = np.arange(len(df))
+    df['proposal_order'] = np.arange(len(df))
+    x_limit = int(max(df.proposal_order) // 100) * 100 + 100
     df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
     eg_sep_order = np.array(df.eg_sep_order)
     eg_arr = np.array(df.eg)
@@ -3702,305 +3702,328 @@ def editor(settings_dict,
     p_dict = settings_dict['p_dict']
 
     with sns.axes_style(chart_style):
-
         fig, ax = plt.subplots(figsize=(xsize, ysize))
 
-        df.sort_values(by='proposal_order', inplace=True)
+    df.sort_values(by='proposal_order', inplace=True)
 
-        if prop_order:
-            xval = 'proposal_order'
+    if prop_order:
+        xval = 'proposal_order'
 
-        else:
-            xval = 'separate_eg_percentage'
+    else:
+        xval = 'separate_eg_percentage'
 
-        for eg in eg_set:
-            data = df[df.eg == eg].copy()
+    for eg in eg_set:
+        data = df[df.eg == eg].copy()
 
+        if chk_scatter.value:
+            ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
+                           color=color_dict['eg_colors'][eg - 1],
+                           s=dot_size,
+                           label=p_dict[eg],
+                           ax=ax)
+
+        if chk_mean.value:
+            data['ma'] = data[yval].rolling(mean_len).mean()
+            ax = data.plot(x=xval, y='ma', lw=5,
+                           color=color_dict['mean_colors'][eg - 1],
+                           label=p_dict[eg],
+                           alpha=.6, ax=ax)
+
+        if chk_fit.value:
             if chk_scatter.value:
-                ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
-                               color=color_dict['eg_colors'][eg - 1],
-                               s=dot_size,
-                               label=p_dict[eg],
-                               ax=ax)
-
-            if chk_mean.value:
-                data['ma'] = data[yval].rolling(mean_len).mean()
-                ax = data.plot(x=xval, y='ma', lw=5,
-                               color=color_dict['mean_colors'][eg - 1],
-                               label=p_dict[eg],
-                               alpha=.6, ax=ax)
-
-            if chk_fit.value:
-                if chk_scatter.value:
-                    lin_reg_colors = color_dict['lin_reg_colors']
-                else:
-                    lin_reg_colors = color_dict['lin_reg_colors2']
-                ax = sns.regplot(x=xval, y=yval, data=data,
-                                 color=lin_reg_colors[eg - 1],
-                                 label=p_dict[eg],
-                                 scatter=False, truncate=True, ci=50,
-                                 order=lin_reg_order,
-                                 line_kws={'lw': 20,
-                                           'alpha': .4},
-                                 ax=ax)
-        ax.set_xlim(0, x_limit)
-
-        if measure == 'jobp':
-            ymin = math.floor(min(df[yval]))
-            ymax = math.ceil(max(df[yval]))
-            scale_lim = max(abs(ymin), ymax)
-            ax.set_yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
-            if ylimit:
-                ax.set_ylim(-ylim, ylim)
+                lin_reg_colors = color_dict['lin_reg_colors']
             else:
-                ax.set_ylim(-scale_lim, scale_lim)
+                lin_reg_colors = color_dict['lin_reg_colors2']
+            ax = sns.regplot(x=xval, y=yval, data=data,
+                             color=lin_reg_colors[eg - 1],
+                             label=p_dict[eg],
+                             scatter=False, truncate=True, ci=50,
+                             order=lin_reg_order,
+                             line_kws={'lw': 20,
+                                       'alpha': .4},
+                             ax=ax)
+    ax.set_xlim(0, x_limit)
 
-        ax.tick_params(labelsize=13)
-
-        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label]):
-            item.set_fontsize(15)
-
-        ax.set_title(title_label + ' differential: ' + measure, fontsize=16)
-        ax.set_xlim(xmin=0)
-
-        if measure in ['spcnt', 'lspcnt']:
-            ax.yaxis.set_major_formatter(pct_format())
-
-        if xval == 'separate_eg_percentage':
-            ax.set_xlim(xmax=1)
-            ax.xaxis.set_major_formatter(pct_format())
-            ax.set_xticks(np.arange(0, 1.05, .05))
-
-        ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
-        ax.invert_xaxis()
-        ax.legend(markerscale=1.5, fontsize=14)
-        if bright_bg:
-            ax.set_facecolor(bg_clr)
-        if show_grid:
-            ax.grid(lw=1, ls='-', c='grey', alpha=.25)
-
-        plt.close(fig)
-
-        v1line = ax.axvline(2, color='m', lw=2, ls='dashed')
-        v2line = ax.axvline(200, color='c', lw=2, ls='dashed')
-        range_list = [0, 0]
-
-        if prop_order:
-            try:
-                junior_init = persist['junior'].value
-                senior_init = persist['senior'].value
-            except AttributeError:
-                junior_init = int(.8 * -x_limit)
-                senior_init = int(.2 * -x_limit)
+    if measure == 'jobp':
+        ymin = math.floor(min(df[yval]))
+        ymax = math.ceil(max(df[yval]))
+        scale_lim = max(abs(ymin), ymax)
+        ax.set_yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
+        if ylim is not None:
+            ax.set_ylim(-ylim, ylim)
         else:
-            try:
-                junior_init = persist['junior'].value
-                senior_init = persist['senior'].value
-            except AttributeError:
-                junior_init = -.8
-                senior_init = -.2
+            ax.set_ylim(-scale_lim, scale_lim)
 
-        drop_p_dict = {'1': 1, '2': 2, '3': 3}
-        drop_dir_dict = {'u  >>': 'u', '<<  d': 'd'}
-        incr_dir_dict = {'u  >>': -1, '<<  d': 1}
+    ax.tick_params(labelsize=tick_size)
 
-        drop_eg = Dropdown(options=drop_eg_options,
-                           value=persist['drop_eg_val'].value,
-                           description='emp grp', layout=col_layout)
+    for item in ([ax.xaxis.label, ax.yaxis.label]):
+        item.set_fontsize(label_size)
 
-        drop_dir = Dropdown(options=['u  >>', '<<  d'],
-                            value=persist['drop_dir_val'].value,
-                            description='sqz dir', layout=col_layout)
+    ax.set_title(title_label + ' differential: ' + measure,
+                 fontsize=title_size)
+    ax.set_xlim(xmin=0)
 
-        drop_squeeze = Dropdown(options=['log', 'slide'],
-                                value=persist['drop_sq_val'].value,
-                                description='sq type', layout=col_layout)
+    if measure in ['spcnt', 'lspcnt']:
+        ax.yaxis.set_major_formatter(pct_format())
 
-        slide_factor = IntSlider(value=persist['slide_fac_val'].value,
-                                 min=1,
-                                 max=400,
-                                 step=1,
-                                 description='squeeze',
-                                 layout=Layout(width='90%',
-                                 margin='10px'))
+    if xval == 'separate_eg_percentage':
+        ax.set_xlim(xmax=1)
+        ax.xaxis.set_major_formatter(pct_format())
+        ax.set_xticks(np.arange(0, 1.05, .05))
 
-        slide_factor.style.handle_color = '#f7c3a1'
+    ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
+    ax.invert_xaxis()
+    ax.legend(markerscale=1.5, fontsize=14)
+    if bg_clr is not None:
+        ax.set_facecolor(bg_clr)
+    if show_grid:
+        ax.grid(lw=1, ls='-', c='grey', alpha=grid_alpha)
 
-        if prop_order:
-            min_val = -x_limit
-            step = 1
+    plt.close(fig)
+
+    if prop_order:
+        if persist['junior'].value < -1:
+            junior_init = persist['junior'].value
+            senior_init = persist['senior'].value
         else:
-            min_val = -1
-            step = .001
+            junior_init = int(.8 * -x_limit)
+            senior_init = int(.2 * -x_limit)
+    else:
+        if persist['junior'].value >= -1:
+            junior_init = persist['junior'].value
+            senior_init = persist['senior'].value
+        else:
+            junior_init = -.8
+            senior_init = -.2
 
+    drop_p_dict = {'1': 1, '2': 2, '3': 3}
+    drop_dir_dict = {'u  >>': 'u', '<<  d': 'd'}
+    incr_dir_dict = {'u  >>': -1, '<<  d': 1}
+
+    drop_eg = Dropdown(options=drop_eg_options,
+                       value=persist['drop_eg_val'].value,
+                       description='emp grp', layout=col_layout)
+
+    drop_dir = Dropdown(options=['u  >>', '<<  d'],
+                        value=persist['drop_dir_val'].value,
+                        description='sqz dir', layout=col_layout)
+
+    drop_squeeze = Dropdown(options=['log', 'slide'],
+                            value=persist['drop_sq_val'].value,
+                            description='sq type', layout=col_layout)
+
+    slide_factor = IntSlider(value=persist['slide_fac_val'].value,
+                             min=1,
+                             max=400,
+                             step=1,
+                             description='squeeze',
+                             layout=Layout(width='90%',
+                             margin='10px'))
+
+    slide_factor.style.handle_color = '#f7c3a1'
+
+    if prop_order:
+        min_val = -x_limit
+        step = 1
         rg = IntRangeSlider(min=min_val, max=0, step=step,
                             layout=Layout(width='90%'),
                             value=(junior_init, senior_init),
                             continuous_update=True,
                             readout=False)
-
-        j_caption = Label(value=str(-junior_init), layout=Layout(width='10%'))
-        s_caption = Label(value=str(-senior_init), layout=Layout(width='10%'))
-
-        def set_cursor(edit_zone):
-            v1line.set_xdata((-rg.value[1], -rg.value[1]))
-            v2line.set_xdata((-rg.value[0], -rg.value[0]))
-            range_list[0] = -rg.value[1]
-            range_list[1] = -rg.value[0]
-            sleep(.05)
-            display(fig)
+        jun_caption = str(-junior_init)
+        sen_caption = str(-senior_init)
 
         def range_slider_change(change):
             j_caption.value = str(-rg.value[0])
             s_caption.value = str(-rg.value[1])
-        rg.observe(range_slider_change, names='value')
+    else:
+        min_val = -1
+        step = .001
+        rg = FloatRangeSlider(min=min_val, max=0, step=step,
+                              layout=Layout(width='90%'),
+                              value=(junior_init, senior_init),
+                              continuous_update=True,
+                              readout=False)
+        jun_caption = "{:.1%}".format(-junior_init)
+        sen_caption = "{:.1%}".format(-senior_init)
 
-        range_sel = interactive(set_cursor, edit_zone=rg)
+        def range_slider_change(change):
+            j_caption.value = "{:.1%}".format(-rg.value[0])
+            s_caption.value = "{:.1%}".format(-rg.value[1])
 
-        def perform_squeeze(b):
+    j_caption = Label(value=jun_caption, layout=Layout(width='10%'))
+    s_caption = Label(value=sen_caption, layout=Layout(width='10%'))
 
+    v1line = ax.axvline(2, color='c', lw=2, ls='dashed')
+    v2line = ax.axvline(200, color='m', lw=2, ls='dashed')
+    range_list = [0, 0]
+
+    def set_cursor(edit_zone):
+        v1line.set_xdata((-rg.value[1], -rg.value[1]))
+        v2line.set_xdata((-rg.value[0], -rg.value[0]))
+        range_list[0] = -rg.value[1]
+        range_list[1] = -rg.value[0]
+        sleep(.05)
+        display(fig)
+
+    rg.observe(range_slider_change, names='value')
+
+    range_sel = interactive(set_cursor, edit_zone=rg)
+
+    def perform_squeeze(b):
+
+        squeeze_eg = drop_p_dict[drop_eg.value]
+
+        if prop_order:
             jval = v2line.get_xdata()[0]
             sval = v1line.get_xdata()[0]
+        else:
+            ints = data_reorder.new_order.values
+            pcnts = ints / ints.size
+            p_dict = dict(zip(pcnts, ints))
+            v2 = v2line.get_xdata()[0]
+            v1 = v1line.get_xdata()[0]
+            # find closest key value to match vline pcnt values
+            jval = p_dict[v2] if v2 in p_dict \
+                else p_dict[min(p_dict.keys(), key=lambda k: abs(k - v2))]
+            sval = p_dict[v1] if v1 in p_dict \
+                else p_dict[min(p_dict.keys(), key=lambda k: abs(k - v1))]
 
-            direction = drop_dir_dict[drop_dir.value]
-            factor = slide_factor.value * .005
-            incr_dir_correction = incr_dir_dict[drop_dir.value]
-            increment = slide_factor.value * incr_dir_correction
+        direction = drop_dir_dict[drop_dir.value]
+        factor = slide_factor.value * .005
+        incr_dir_correction = incr_dir_dict[drop_dir.value]
+        increment = slide_factor.value * incr_dir_correction
 
-            squeeze_eg = drop_p_dict[drop_eg.value]
+        if drop_squeeze.value == 'log':
+            squeezer = f.squeeze_logrithmic(data_reorder,
+                                            squeeze_eg,
+                                            sval, jval,
+                                            direction=direction,
+                                            put_segment=1,
+                                            log_factor=factor)
+        if drop_squeeze.value == 'slide':
+            squeezer = f.squeeze_increment(data_reorder,
+                                           squeeze_eg,
+                                           sval, jval,
+                                           increment=increment)
 
-            if drop_squeeze.value == 'log':
-                squeezer = f.squeeze_logrithmic(data_reorder,
-                                                squeeze_eg,
-                                                sval, jval,
-                                                direction=direction,
-                                                put_segment=1,
-                                                log_factor=factor)
-            if drop_squeeze.value == 'slide':
-                squeezer = f.squeeze_increment(data_reorder,
-                                               squeeze_eg,
-                                               sval, jval,
-                                               increment=increment)
+        data_reorder['new_order'] = squeezer
+        data_reorder.sort_values('new_order', inplace=True)
+        data_reorder['new_order'] = np.arange(len(data_reorder),
+                                              dtype='int')
 
-            data_reorder['new_order'] = squeezer
-            data_reorder.sort_values('new_order', inplace=True)
-            data_reorder['new_order'] = np.arange(len(data_reorder),
-                                                  dtype='int')
+        with sns.axes_style(chart_style):
+            fig, ax2 = plt.subplots(figsize=(xsize, strip_height))
 
-            with sns.axes_style(chart_style):
-                fig, ax2 = plt.subplots(figsize=(xsize, strip_height))
+        ax2 = sns.stripplot(x='new_order', y='eg',
+                            data=data_reorder, jitter=.5,
+                            orient='h', order=np.arange(1,
+                                                        max_eg_plus_one,
+                                                        1),
+                            palette=color_dict['eg_colors'],
+                            size=strip_dot_size,
+                            linewidth=0, split=True)
 
-            ax2 = sns.stripplot(x='new_order', y='eg',
-                                data=data_reorder, jitter=.5,
-                                orient='h', order=np.arange(1,
-                                                            max_eg_plus_one,
-                                                            1),
-                                palette=color_dict['eg_colors'],
-                                size=strip_dot_size,
-                                linewidth=0, split=True)
+        for item in ([ax2.xaxis.label, ax2.yaxis.label] +
+                     ax2.get_xticklabels() + ax2.get_yticklabels()):
+            item.set_fontsize(label_size)
 
-            for item in ([ax2.xaxis.label, ax2.yaxis.label] +
-                         ax2.get_xticklabels() + ax2.get_yticklabels()):
-                item.set_fontsize(12)
+        if bg_clr is not None:
+            ax2.set_facecolor(bg_clr)
 
-            if bright_bg:
-                ax2.set_facecolor(bg_clr)
+        ax2.set_xticks(np.arange(0, len(data_reorder), 1000))
+        ax2.set_ylabel('eg\n')
 
-            ax2.set_xticks(np.arange(0, len(data_reorder), 1000))
-            if measure in ['spcnt', 'lspcnt', 'cpay']:
-                ax2.set_ylabel('\n\neg\n')
-            else:
-                ax2.set_ylabel('eg\n')
-            ax2.set_xlim(len(data_reorder), 0)
-            plt.show()
+        ax2.set_xlim(len(data_reorder), 0)
+        plt.show()
 
-            data_reorder[['new_order']].to_pickle('dill/p_new_order.pkl')
+        data_reorder[['new_order']].to_pickle('dill/p_new_order.pkl')
 
-            store_vals()
+        store_vals()
 
-        def store_vals():
-            persist_df = pd.DataFrame({'drop_eg_val': drop_eg.value,
-                                       'drop_dir_val': drop_dir.value,
-                                       'drop_sq_val': drop_squeeze.value,
-                                       'slide_fac_val': slide_factor.value,
-                                       'scat_val': chk_scatter.value,
-                                       'fit_val': chk_fit.value,
-                                       'mean_val': chk_mean.value,
-                                       'drop_msr': drop_measure.value,
-                                       'drop_opr': drop_operator.value,
-                                       'drop_filter': drop_filter.value,
-                                       'mnum_opr': mnum_operator.value,
-                                       'int_mnum': mnum_input.value,
-                                       'int_sel': int_val.value,
-                                       'junior': rg.value[0],
-                                       'senior': rg.value[1]},
-                                      index=['value'])
+    def store_vals():
+        persist_df = pd.DataFrame({'drop_eg_val': drop_eg.value,
+                                   'drop_dir_val': drop_dir.value,
+                                   'drop_sq_val': drop_squeeze.value,
+                                   'slide_fac_val': slide_factor.value,
+                                   'scat_val': chk_scatter.value,
+                                   'fit_val': chk_fit.value,
+                                   'mean_val': chk_mean.value,
+                                   'drop_msr': drop_measure.value,
+                                   'drop_opr': drop_operator.value,
+                                   'drop_filter': drop_filter.value,
+                                   'mnum_opr': mnum_operator.value,
+                                   'int_mnum': mnum_input.value,
+                                   'int_sel': int_val.value,
+                                   'junior': rg.value[0],
+                                   'senior': rg.value[1]},
+                                  index=['value'])
 
-            persist_df.to_pickle('dill/squeeze_vals.pkl')
+        persist_df.to_pickle('dill/squeeze_vals.pkl')
 
-        def run_cell(ev):
-            # 'new_order' is simply a placeholder here.
-            # This is where ds_edit.pkl is generated (compute_measures script)
-            cmd = 'python compute_measures.py new_order edit'
-            if cond_list:
-                for cond in cond_list:
-                    cmd = cmd + ' ' + cond
-            # run compute_measures script with conditions
-            system(cmd)
-            # show results
-            display(Javascript('IPython.notebook.execute_cell()'))
+    def run_cell(ev):
+        # 'new_order' is simply a placeholder here.
+        # This is where ds_edit.pkl is generated (compute_measures script)
+        cmd = 'python compute_measures.py new_order edit'
+        if cond_list:
+            for cond in cond_list:
+                cmd = cmd + ' ' + cond
+        # run compute_measures script with conditions
+        system(cmd)
+        # show results
+        display(Javascript('IPython.notebook.execute_cell()'))
 
-        def redraw(ev):
-            store_vals()
-            display(Javascript('IPython.notebook.execute_cell()'))
+    def redraw(ev):
+        store_vals()
+        display(Javascript('IPython.notebook.execute_cell()'))
 
-        button_layout = Layout(width='20%', margin='5px')
-        buttons_layout = Layout(display='flex', flex_flow='row',
-                                justify_content='space-around')
+    button_layout = Layout(width='20%', margin='5px')
+    buttons_layout = Layout(display='flex', flex_flow='row',
+                            justify_content='space-around')
 
-        button_calc = Button(description="calculate", layout=button_layout)
-        button_plot = Button(description="plot", layout=button_layout)
-        button_squeeze = Button(description='squeeze', layout=button_layout)
+    button_calc = Button(description="calculate", layout=button_layout)
+    button_plot = Button(description="plot", layout=button_layout)
+    button_squeeze = Button(description='squeeze', layout=button_layout)
 
-        button_calc.on_click(run_cell)
-        button_plot.on_click(redraw)
-        button_squeeze.on_click(perform_squeeze)
+    button_calc.on_click(run_cell)
+    button_plot.on_click(redraw)
+    button_squeeze.on_click(perform_squeeze)
 
-        button_calc.style.button_color = 'lightblue'
-        button_plot.style.button_color = 'plum'
-        button_squeeze.style.button_color = 'lightgreen'
+    button_calc.style.button_color = 'lightblue'
+    button_plot.style.button_color = 'plum'
+    button_squeeze.style.button_color = 'lightgreen'
 
-        button_items = [Box([j_caption, button_squeeze, button_calc,
-                             button_plot, s_caption],
-                            layout=buttons_layout)]
+    button_items = [Box([j_caption, button_squeeze, button_calc,
+                         button_plot, s_caption],
+                        layout=buttons_layout)]
 
-        hbuttons = Box(button_items, layout=Layout(display='flex',
-                       flex_flow='column', align_items='stretch', width='95%',
-                       margin='5px'))
+    hbuttons = Box(button_items, layout=Layout(display='flex',
+                   flex_flow='column', align_items='stretch', width='95%',
+                   margin='5px'))
 
-        m_layout = Layout(display='flex', flex_flow='column',
-                          width='100%',  # percent of overall container
-                          border='dotted 1px',
-                          margin='5px',
-                          padding='4px',
-                          justify_content='space-between')
+    m_layout = Layout(display='flex', flex_flow='column',
+                      width='100%',  # percent of overall container
+                      border='dotted 1px',
+                      margin='5px',
+                      padding='4px',
+                      justify_content='space-between')
 
-        items = [Box([chk_scatter, chk_fit, chk_mean], layout=m_layout),
-                 Box([drop_squeeze, drop_eg, drop_dir], layout=m_layout),
-                 Box([drop_measure, mnum_operator, mnum_input],
-                     layout=m_layout),
-                 Box([drop_filter, drop_operator, int_val],
-                     layout=m_layout)]
+    items = [Box([chk_scatter, chk_fit, chk_mean], layout=m_layout),
+             Box([drop_squeeze, drop_eg, drop_dir], layout=m_layout),
+             Box([drop_measure, mnum_operator, mnum_input],
+                 layout=m_layout),
+             Box([drop_filter, drop_operator, int_val],
+                 layout=m_layout)]
 
-        hdropdowns = Box(items, layout=Layout(display='flex',
-                         flex_flow='row',
-                         justify_content='center',
-                         align_items='stretch',
-                         width='95%',
-                         margin='10px'))
+    hdropdowns = Box(items, layout=Layout(display='flex',
+                     flex_flow='row',
+                     justify_content='center',
+                     align_items='stretch',
+                     width='95%',
+                     margin='10px'))
 
-        display(VBox((slide_factor, hdropdowns, hbuttons,
-                      range_sel)))
+    display(VBox((slide_factor, hdropdowns, hbuttons,
+                  range_sel)))
 
 
 def reset_editor():

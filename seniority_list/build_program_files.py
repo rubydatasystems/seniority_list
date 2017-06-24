@@ -779,12 +779,12 @@ def main():
     # The values stored within this file will be replaced and
     # updated by the editor tool when it is utilized.
     rows = len(master)
-    low = int(.2 * rows)
-    high = int(.8 * rows)
+    jun_val = int(.8 * -rows)
+    sen_val = int(.2 * -rows)
 
     init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark', 'spcnt', 'log',
-                                    False, '==', '1', high, False, True,
-                                    low, 100, '>=', '0']],
+                                    False, '==', '1', jun_val, False, True,
+                                    sen_val, 100, '>=', '0']],
                                     columns=['drop_dir_val', 'drop_eg_val',
                                              'drop_filter', 'drop_msr',
                                              'drop_sq_val', 'fit_val',
