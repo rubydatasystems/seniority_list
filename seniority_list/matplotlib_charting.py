@@ -3475,23 +3475,24 @@ def editor(settings_dict,
     initial comparison.  The function then will revert to the new edited
     dataset for all subsequent calculations.
 
-    The function will delete the edited dataset and start over with a
-    user-defined dataset if the reset input is set to True.  This input must
-    be removed or set back to False to allow dataset editing to take place.
-
     If the user desires to save an edited dataset for further
     analysis, it must be manually copied and saved to another folder.
 
-    #################################################
-        prop_order (boolean)
-            order the output differential chart x axis in proposal
-            (or edited dataset) order, necessary to use the interactive
-            tool.  If False, the x axis is arranged in native list
-            order for each group
+    "mode" dropdown
+        reset
+            delete the current edited dataset (if it exists) and start
+            over with a calculated dataset (the "compare" input).
+            No editing will take place with this selection.
+        edit
+            allow dataset editing to take place
 
-        reset (boolean)
-            if True, delete the edited dataset and start over with a
-            user-defined dataset ("compare" input)
+    "x axis" dropdown
+        prop order
+            the output differential chart x axis will display integrated
+            proposal (or edited dataset) order
+
+        eg pcnt
+            the x axis is arranged in native list percentage for each group
 
     created by editor tool (when run):
 
@@ -3978,6 +3979,7 @@ def editor(settings_dict,
 
         store_vals()
 
+    # grab the widget values, create a dataframe, pickle
     def store_vals():
         persist_df = pd.DataFrame({'drop_eg_val': drop_eg.value,
                                    'drop_dir_val': drop_dir.value,
