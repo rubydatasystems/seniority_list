@@ -783,12 +783,14 @@ def main():
     sen_val = int(.2 * -rows)
 
     init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark', 'spcnt', 'log',
-                                    False, '==', '1', jun_val, False, True,
+                                    False, '==', 'edit', 'prop', '1',
+                                    jun_val, False, True,
                                     sen_val, 100, '>=', '0']],
                                     columns=['drop_dir_val', 'drop_eg_val',
                                              'drop_filter', 'drop_msr',
                                              'drop_sq_val', 'fit_val',
                                              'drop_opr',
+                                             'drop_mode', 'drop_xax',
                                              'int_sel', 'junior', 'mean_val',
                                              'scat_val', 'senior',
                                              'slide_fac_val',

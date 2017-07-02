@@ -3448,8 +3448,6 @@ def editor(settings_dict,
            base='standalone',
            compare='ds_edit',
            cond_list=None,
-           reset=False,
-           prop_order=True,
            mean_len=80,
            dot_size=14,
            lin_reg_order=12,
@@ -3457,10 +3455,11 @@ def editor(settings_dict,
            xsize=14,
            ysize=9,
            strip_dot_size=2.5,
-           strip_height=3,
+           strip_height=1,
            title_size=16,
            label_size=14,
            tick_size=13,
+           legend_size=13,
            grid_alpha=.25,
            chart_style='whitegrid',
            bg_clr='white',
@@ -3483,6 +3482,17 @@ def editor(settings_dict,
     If the user desires to save an edited dataset for further
     analysis, it must be manually copied and saved to another folder.
 
+    #################################################
+        prop_order (boolean)
+            order the output differential chart x axis in proposal
+            (or edited dataset) order, necessary to use the interactive
+            tool.  If False, the x axis is arranged in native list
+            order for each group
+
+        reset (boolean)
+            if True, delete the edited dataset and start over with a
+            user-defined dataset ("compare" input)
+
     created by editor tool (when run):
 
         ds_edit.pkl
@@ -3502,14 +3512,6 @@ def editor(settings_dict,
             comparison dataset string name
         cond_list (list)
             conditions to apply when calculating dataset
-        reset (boolean)
-            if True, delete the edited dataset and start over with a
-            user-defined dataset ("compare" input)
-        prop_order (boolean)
-            order the output differential chart x axis in proposal
-            (or edited dataset) order, necessary to use the interactive
-            tool.  If False, the x axis is arranged in native list
-            order for each group
         mean_len (integer)
             length of rolling mean if 'mean' selected for display
         eg_list (list)
@@ -3529,17 +3531,82 @@ def editor(settings_dict,
             dot size for stripplot
         strip_height (integer or float)
             height of stripplot (group density display)
+        title_size (integer or float)
+            chart title font size
+        label_size (integer or float)
+            chart x and y label font size
+        tick_size (integer or float)
+            chart x and y tick label font size
+        grid_alpha (integer or float)
+            transparency value for chart grid
         chart_style (string)
             seaborn chart style
         bg_clr (None or color value)
             if not None, color input for chart background
 
     '''
+    persist = pd.read_pickle('dill/squeeze_vals.pkl')
+
+    # ipywidgets layout for dropdowns, text boxes and checkboxes
+    cb_layout = Layout(display='flex',
+                       flex_flow='row',
+                       width='60%',
+                       justify_content='center')
+
+    dd_layout = Layout(display='flex',
+                       flex_flow='row',
+                       width='90%',
+                       justify_content='center')
+
+    chk_scatter = Checkbox(description='scatter', layout=cb_layout,
+                           value=bool(persist['scat_val'].value))
+
+    chk_fit = Checkbox(description='poly_fit', layout=cb_layout,
+                       value=bool(persist['fit_val'].value))
+
+    chk_mean = Checkbox(description='mean', layout=cb_layout,
+                        value=bool(persist['mean_val'].value))
+
+    drop_measure = Dropdown(options=['jobp', 'spcnt', 'lspcnt', 'snum', 'lnum',
+                                     'cat_order', 'mpay', 'cpay'],
+                            value=persist['drop_msr'].value,
+                            description='attr', layout=dd_layout)
+
+    drop_operator = Dropdown(options=['<', '<=',
+                                      '==', '!=', '>=', '>'],
+                             value=persist['drop_opr'].value,
+                             description='operator', layout=dd_layout)
+
+    drop_filter = Dropdown(options=['jnum', 'mnum', 'eg', 'sg', 'age',
+                                    'scale', 's_lmonths', 'orig_job',
+                                    'lnum', 'snum', 'mnum',
+                                    'rank_in_job', 'mpay', 'cpay', 'ret_mark'],
+                           value=persist['drop_filter'].value,
+                           description='attr filter', layout=dd_layout)
+
+    drop_mode = Dropdown(options=['edit', 'reset'],
+                         value=persist['drop_mode'].value,
+                         description='mode', layout=dd_layout)
+
+    drop_xax = Dropdown(options=['prop', 'eg pcnt'],
+                        value=persist['drop_xax'].value,
+                        description='x axis', layout=dd_layout)
+
+    if drop_xax.value == 'prop':
+        prop_order = True
+    else:
+        prop_order = False
+
+    if drop_mode.value == 'reset':
+        reset = True
+    else:
+        reset = False
+
     # define path for edited datasets (ds_edit.pkl):
     edit_file = 'dill/ds_edit.pkl'
     # boolean value, True if ds_edit exists
     edit_file_exists = path.exists(edit_file)
-
+    
     # set the COMPARE dataset...
     # test to see if user wishes to start over with another dataset
     if not reset:
@@ -3589,53 +3656,22 @@ def editor(settings_dict,
             return
 
     max_month = max(compare_ds.mnum)
-    persist = pd.read_pickle('dill/squeeze_vals.pkl')
-
-    # ipywidgets layout for dropdowns, text boxes and checkboxes
-    col_layout = Layout(display='flex', flex_flow='row',
-                        width='auto', justify_content='center')
-
-    chk_scatter = Checkbox(description='scatter', layout=col_layout,
-                           value=bool(persist['scat_val'].value))
-
-    chk_fit = Checkbox(description='poly_fit', layout=col_layout,
-                       value=bool(persist['fit_val'].value))
-
-    chk_mean = Checkbox(description='mean', layout=col_layout,
-                        value=bool(persist['mean_val'].value))
-
-    drop_measure = Dropdown(options=['jobp', 'spcnt', 'lspcnt', 'snum', 'lnum',
-                                     'cat_order', 'mpay', 'cpay'],
-                            value=persist['drop_msr'].value,
-                            description='attr', layout=col_layout)
-
-    drop_operator = Dropdown(options=['<', '<=',
-                                      '==', '!=', '>=', '>'],
-                             value=persist['drop_opr'].value,
-                             description='operator', layout=col_layout)
-
-    drop_filter = Dropdown(options=['jnum', 'mnum', 'eg', 'sg', 'age',
-                                    'scale', 's_lmonths', 'orig_job',
-                                    'lnum', 'snum', 'mnum',
-                                    'rank_in_job', 'mpay', 'cpay', 'ret_mark'],
-                           value=persist['drop_filter'].value,
-                           description='attr filter', layout=col_layout)
-
-    int_val = Text(min=0,
-                   max=max_month,
-                   value=persist['int_sel'].value,
-                   description='value', layout=col_layout)
 
     mnum_operator = Dropdown(options=['<', '<=', '==', '!=', '>=', '>'],
                              value=persist['mnum_opr'].value,
                              description='mnum',
-                             layout=col_layout)
+                             layout=dd_layout)
 
     mnum_input = Dropdown(options=list(np.arange(0, max_month)
                                        .astype(str)),
                           value=persist['int_mnum'].value,
                           description='value',
-                          layout=col_layout)
+                          layout=dd_layout)
+
+    int_val = Text(min=0,
+                   max=max_month,
+                   value=persist['int_sel'].value,
+                   description='value', layout=dd_layout)
 
     mnum_val = mnum_input.value
     mnum_oper = mnum_operator.value
@@ -3773,7 +3809,7 @@ def editor(settings_dict,
 
     ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
     ax.invert_xaxis()
-    ax.legend(markerscale=1.5, fontsize=14)
+    ax.legend(markerscale=2, fontsize=legend_size)
     if bg_clr is not None:
         ax.set_facecolor(bg_clr)
     if show_grid:
@@ -3802,15 +3838,15 @@ def editor(settings_dict,
 
     drop_eg = Dropdown(options=drop_eg_options,
                        value=persist['drop_eg_val'].value,
-                       description='emp grp', layout=col_layout)
+                       description='emp grp', layout=dd_layout)
 
     drop_dir = Dropdown(options=['u  >>', '<<  d'],
                         value=persist['drop_dir_val'].value,
-                        description='sqz dir', layout=col_layout)
+                        description='sqz dir', layout=dd_layout)
 
     drop_squeeze = Dropdown(options=['log', 'slide'],
                             value=persist['drop_sq_val'].value,
-                            description='sq type', layout=col_layout)
+                            description='sq type', layout=dd_layout)
 
     slide_factor = IntSlider(value=persist['slide_fac_val'].value,
                              min=1,
@@ -3913,7 +3949,8 @@ def editor(settings_dict,
                                               dtype='int')
 
         with sns.axes_style(chart_style):
-            fig, ax2 = plt.subplots(figsize=(xsize, strip_height))
+            fig, ax2 = plt.subplots(figsize=(xsize,
+                                             strip_height * len(eg_set)))
 
         ax2 = sns.stripplot(x='new_order', y='eg',
                             data=data_reorder, jitter=.5,
@@ -3951,6 +3988,8 @@ def editor(settings_dict,
                                    'mean_val': chk_mean.value,
                                    'drop_msr': drop_measure.value,
                                    'drop_opr': drop_operator.value,
+                                   'drop_mode': drop_mode.value,
+                                   'drop_xax': drop_xax.value,
                                    'drop_filter': drop_filter.value,
                                    'mnum_opr': mnum_operator.value,
                                    'int_mnum': mnum_input.value,
@@ -3977,7 +4016,7 @@ def editor(settings_dict,
         store_vals()
         display(Javascript('IPython.notebook.execute_cell()'))
 
-    button_layout = Layout(width='20%', margin='5px')
+    button_layout = Layout(width='16%', margin='5px')
     buttons_layout = Layout(display='flex', flex_flow='row',
                             justify_content='space-around')
 
@@ -3988,6 +4027,10 @@ def editor(settings_dict,
     button_calc.on_click(run_cell)
     button_plot.on_click(redraw)
     button_squeeze.on_click(perform_squeeze)
+
+    def drop_mode_change(change):
+        store_vals()
+    drop_mode.observe(drop_mode_change, names='value')
 
     button_calc.style.button_color = 'lightblue'
     button_plot.style.button_color = 'plum'
@@ -4001,26 +4044,32 @@ def editor(settings_dict,
                    flex_flow='column', align_items='stretch', width='95%',
                    margin='5px'))
 
-    m_layout = Layout(display='flex', flex_flow='column',
-                      width='100%',  # percent of overall container
-                      border='dotted 1px',
-                      margin='5px',
-                      padding='4px',
-                      justify_content='space-between')
+    cb_col_layout = Layout(display='flex',
+                           flex_flow='column',
+                           width='10%',
+                           justify_content='center')
 
-    items = [Box([chk_scatter, chk_fit, chk_mean], layout=m_layout),
-             Box([drop_squeeze, drop_eg, drop_dir], layout=m_layout),
+    dd_col_layout = Layout(display='flex',
+                           flex_flow='column',
+                           width='20%',
+                           justify_content='center',
+                           border='dotted 1px',
+                           padding='4px',
+                           margin='3px')
+
+    form_layout = Layout(display='flex',
+                         width='100%',
+                         justify_content='space-around')
+
+    items = [Box([chk_scatter, chk_fit, chk_mean], layout=cb_col_layout),
+             Box([drop_mode, drop_xax], layout=dd_col_layout),
+             Box([drop_squeeze, drop_eg, drop_dir], layout=dd_col_layout),
              Box([drop_measure, mnum_operator, mnum_input],
-                 layout=m_layout),
+                 layout=dd_col_layout),
              Box([drop_filter, drop_operator, int_val],
-                 layout=m_layout)]
+                 layout=dd_col_layout)]
 
-    hdropdowns = Box(items, layout=Layout(display='flex',
-                     flex_flow='row',
-                     justify_content='center',
-                     align_items='stretch',
-                     width='95%',
-                     margin='10px'))
+    hdropdowns = Box(items, layout=form_layout)
 
     display(VBox((slide_factor, hdropdowns, hbuttons,
                   range_sel)))
@@ -4031,29 +4080,20 @@ def reset_editor():
     (for use when invalid input is selected resulting in an exception)
     '''
     def reset(x):
-        init_editor_vals = pd.DataFrame([['<<  d', '2',
-                                          'ret_mark',
-                                          'spcnt', 'log',
-                                          False, '==', '1',
-                                          5000, False,
-                                          True,
-                                          1000, 100,
+        init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark', 'spcnt',
+                                          'log', False, '==', 'edit', 'prop',
+                                          '1', 1000, False, True, 500, 100,
                                           '>=', '0']],
-                                        columns=['drop_dir_val',
-                                                 'drop_eg_val',
-                                                 'drop_filter',
-                                                 'drop_msr',
-                                                 'drop_sq_val',
-                                                 'fit_val',
+                                        columns=['drop_dir_val', 'drop_eg_val',
+                                                 'drop_filter', 'drop_msr',
+                                                 'drop_sq_val', 'fit_val',
                                                  'drop_opr',
-                                                 'int_sel',
-                                                 'junior',
+                                                 'drop_mode', 'drop_xax',
+                                                 'int_sel', 'junior',
                                                  'mean_val',
-                                                 'scat_val',
-                                                 'senior',
+                                                 'scat_val', 'senior',
                                                  'slide_fac_val',
-                                                 'mnum_opr',
-                                                 'int_mnum'],
+                                                 'mnum_opr', 'int_mnum'],
                                         index=['value'])
 
         init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
