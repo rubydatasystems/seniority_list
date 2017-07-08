@@ -26,7 +26,7 @@ import matplotlib.patches as mpatches
 from time import sleep
 
 from cycler import cycler
-from ipywidgets import interactive, Button, Layout, Box, VBox, Label, \
+from ipywidgets import interactive, Button, Layout, Box, HBox, VBox, Label, \
     Checkbox, Dropdown, Text, IntSlider, IntRangeSlider, FloatRangeSlider
 from IPython.display import display, Javascript
 from collections import OrderedDict as od
@@ -3449,11 +3449,14 @@ def editor(settings_dict,
            compare='ds_edit',
            cond_list=None,
            mean_len=80,
+           attr1=None, oper1=None, val1=None,
+           attr2=None, oper2=None, val2=None,
+           attr3=None, oper3=None, val3=None,
            dot_size=14,
            lin_reg_order=12,
            ylim=None,
-           xsize=14,
-           ysize=9,
+           xsize=16,
+           ysize=11,
            strip_dot_size=2.5,
            strip_height=1,
            title_size=16,
@@ -3559,6 +3562,11 @@ def editor(settings_dict,
                        width='90%',
                        justify_content='center')
 
+    filt1_layout = Layout(width='20%')
+    filt2_layout = Layout(width='40%')
+
+    # --------display style checkboxes-----------------------
+
     chk_scatter = Checkbox(description='scatter', layout=cb_layout,
                            value=bool(persist['scat_val'].value))
 
@@ -3568,22 +3576,51 @@ def editor(settings_dict,
     chk_mean = Checkbox(description='mean', layout=cb_layout,
                         value=bool(persist['mean_val'].value))
 
-    drop_measure = Dropdown(options=['jobp', 'spcnt', 'lspcnt', 'snum', 'lnum',
-                                     'cat_order', 'mpay', 'cpay'],
+    # --------top row checkboxes and dropdown-----------------
+
+    chk_ret = Checkbox(description='ret only', layout=Layout(width='25%'),
+                       value=bool(persist['ret_val'].value))
+
+    display_attrs = ['jobp', 'cat_order', 'spcnt', 'lspcnt',
+                     'jnum', 'mpay', 'cpay', 'snum', 'lnum']
+
+    drop_measure = Dropdown(options=display_attrs,
                             value=persist['drop_msr'].value,
-                            description='attr', layout=dd_layout)
+                            description='display attr',
+                            layout=Layout(width='50%',
+                                          border='solid 2px #99ccff',
+                                          margin='1px',
+                                          padding='1px'))
 
-    drop_operator = Dropdown(options=['<', '<=',
-                                      '==', '!=', '>=', '>'],
-                             value=persist['drop_opr'].value,
-                             description='operator', layout=dd_layout)
+    chk_filt = Checkbox(description='filter', layout=Layout(width='25%'),
+                        value=bool(persist['filt_val'].value))
 
-    drop_filter = Dropdown(options=['jnum', 'mnum', 'eg', 'sg', 'age',
-                                    'scale', 's_lmonths', 'orig_job',
-                                    'lnum', 'snum', 'mnum',
-                                    'rank_in_job', 'mpay', 'cpay', 'ret_mark'],
-                           value=persist['drop_filter'].value,
-                           description='attr filter', layout=dd_layout)
+    # -----------Chart Display Filter Widgets------------------------
+    attr_list = ['', 'jnum', 'mnum', 'eg', 'cat_order', 'jobp',
+                 'ldate', 'doh', 'retdate', 'sg', 'age',
+                 'scale', 's_lmonths',
+                 'orig_job', 'lnum', 'snum', 'mnum', 'rank_in_job',
+                 'mpay', 'cpay', 'ret_mark']
+
+    dd1_attr = Dropdown(options=attr_list, value=persist['dd1_attr'].value,
+                        layout=filt2_layout)
+    dd2_attr = Dropdown(options=attr_list, value=persist['dd2_attr'].value,
+                        layout=filt2_layout)
+    dd3_attr = Dropdown(options=attr_list, value=persist['dd3_attr'].value,
+                        layout=filt2_layout)
+
+    dd1_oper = Dropdown(options=['<', '<=', '==', '!=', '>=', '>'],
+                        value=persist['dd1_oper'].value, layout=filt1_layout)
+    dd2_oper = Dropdown(options=['<', '<=', '==', '!=', '>=', '>'],
+                        value=persist['dd2_oper'].value, layout=filt1_layout)
+    dd3_oper = Dropdown(options=['<', '<=', '==', '!=', '>=', '>'],
+                        value=persist['dd3_oper'].value, layout=filt1_layout)
+
+    txt1_val = Text(value=persist['txt1_val'].value, layout=filt2_layout)
+    txt2_val = Text(value=persist['txt2_val'].value, layout=filt2_layout)
+    txt3_val = Text(value=persist['txt3_val'].value, layout=filt2_layout)
+
+    # ----------------------------------------------------------------
 
     drop_mode = Dropdown(options=['edit', 'reset'],
                          value=persist['drop_mode'].value,
@@ -3593,21 +3630,34 @@ def editor(settings_dict,
                         value=persist['drop_xax'].value,
                         description='x axis', layout=dd_layout)
 
+    drop_display = Dropdown(options=['diff', 'abs'],
+                            value=persist['drop_display'].value,
+                            description='display', layout=dd_layout)
+
     if drop_xax.value == 'prop':
         prop_order = True
+        xval = 'proposal_order'
     else:
         prop_order = False
+        xval = 'separate_eg_percentage'
 
     if drop_mode.value == 'reset':
         reset = True
     else:
         reset = False
 
+    if drop_display.value == 'diff':
+        diff = True
+        yval = 'differential'
+    else:
+        diff = False
+        yval = 'absolute value'
+
     # define path for edited datasets (ds_edit.pkl):
     edit_file = 'dill/ds_edit.pkl'
     # boolean value, True if ds_edit exists
     edit_file_exists = path.exists(edit_file)
-    
+
     # set the COMPARE dataset...
     # test to see if user wishes to start over with another dataset
     if not reset:
@@ -3645,76 +3695,89 @@ def editor(settings_dict,
             title_label = '< using ' + proposal_list[0] + ' >'
 
     # set BASELINE dataset
-    try:
-        base_ds = pd.read_pickle('dill/_ds' + base + '.pkl')
-    except OSError:
+    if diff:
+        base_ds = None
         try:
-            base_ds = pd.read_pickle('dill/standalone.pkl')
+            base_ds = pd.read_pickle('dill/_ds' + base + '.pkl')
         except OSError:
-            # exit routine if baseline dataset not found
-            print('invalid "base_ds" name input, neither ds_' +
-                  base + '.pkl nor standalone.pkl not found\n')
-            return
+            try:
+                base_ds = pd.read_pickle('dill/standalone.pkl')
+            except OSError:
+                # exit routine if baseline dataset not found
+                print('invalid "base_ds" name input, neither ds_' +
+                      base + '.pkl nor standalone.pkl not found\n')
+                return
 
     max_month = max(compare_ds.mnum)
 
+    mnum_caption = Label(value='Month', layout=dd_layout)
+
     mnum_operator = Dropdown(options=['<', '<=', '==', '!=', '>=', '>'],
                              value=persist['mnum_opr'].value,
-                             description='mnum',
                              layout=dd_layout)
 
     mnum_input = Dropdown(options=list(np.arange(0, max_month)
                                        .astype(str)),
                           value=persist['int_mnum'].value,
-                          description='value',
                           layout=dd_layout)
 
-    int_val = Text(min=0,
-                   max=max_month,
-                   value=persist['int_sel'].value,
-                   description='value', layout=dd_layout)
-
-    mnum_val = mnum_input.value
-    mnum_oper = mnum_operator.value
     measure = drop_measure.value
-    filter_measure = drop_filter.value
-    filter_operator = drop_operator.value
-    filter_val = int_val.value
 
-    cols = [measure, 'new_order']
+    a1 = dd1_attr.value
+    a2 = dd2_attr.value
+    a3 = dd3_attr.value
 
-    df = base_ds[eval('(base_ds[filter_measure]' +
-                      filter_operator +
-                      filter_val +
-                      ') & (base_ds.mnum' +
-                      mnum_oper + mnum_val +
-                      ')')][[measure, 'eg']].copy()
+    o1 = dd1_oper.value
+    o2 = dd2_oper.value
+    o3 = dd3_oper.value
+
+    v1 = txt1_val.value
+    v2 = txt2_val.value
+    v3 = txt3_val.value
+
+    base_cols = [measure, 'mnum']
+    comp_cols = [measure, 'mnum', 'new_order', 'eg']
+    # add filter columns
+    if chk_filt.value:
+        filt_cols = list(set(([x for x in
+                              [a1, a2, a3]
+                              if x])))
+        comp_cols = list(set().union(comp_cols, filt_cols))
+    #base_cols.extend(filt_cols)
+
+    mnum_oper = mnum_operator.value
+    mnum_val = mnum_input.value
+    mnum_filt_str = ' '.join(['mnum', mnum_oper, mnum_val])
+    base_str = '(base_ds.' + mnum_filt_str + ')'
+    comp_str = '(compare_ds.' + mnum_filt_str + ')'
+    if chk_ret.value:
+        ret_filt_str = 'ret_mark == 1'
+        base_ret_str = '(base_ds.' + ret_filt_str + ')'
+        comp_ret_str = '(compare_ds.' + ret_filt_str + ')'
+        base_str = ' & '.join([base_str, base_ret_str])
+        comp_str = ' & '.join([comp_str, comp_ret_str])
+
+    df = base_ds[eval(base_str)][base_cols].copy()
 
     df.rename(columns={measure: measure + '_b'}, inplace=True)
 
-    yval = 'differential'
-
     # for stripplot and squeeze:
     data_reorder = compare_ds[compare_ds.mnum == 0][['eg']].copy()
-    data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int)
+    data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int) + 1
     # for drop_eg selection widget:
     drop_eg_options = sorted(list(pd.unique(data_reorder.eg).astype(str)))
 
-    to_join_ds = compare_ds[eval('(compare_ds[filter_measure]' +
-                                 filter_operator +
-                                 filter_val +
-                                 ') & (compare_ds.mnum' +
-                                 mnum_oper +
-                                 mnum_val +
-                                 ')')][cols].copy()
-
+    to_join_ds = compare_ds[eval(comp_str)][comp_cols].copy()
+    # drop mnum column in base df to avoid duplicate columns during join
+    del df['mnum']
     to_join_ds.rename(columns={measure: measure + '_c',
                                'new_order': 'proposal_order'}, inplace=True)
+    base_ds.pop('mnum')
     df = df.join(to_join_ds)
-
     df.sort_values(by='proposal_order', inplace=True)
-    df['proposal_order'] = np.arange(len(df))
+    df['proposal_order'] = np.arange(len(df)) + 1
     x_limit = int(max(df.proposal_order) // 100) * 100 + 100
+
     df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
     eg_sep_order = np.array(df.eg_sep_order)
     eg_arr = np.array(df.eg)
@@ -3743,42 +3806,50 @@ def editor(settings_dict,
 
     df.sort_values(by='proposal_order', inplace=True)
 
-    if prop_order:
-        xval = 'proposal_order'
+    filt_str = ''
+    if chk_filt.value:
+        df_display, filt_str = filter_ds(df,
+                                         attr1=a1, oper1=o1, val1=v1,
+                                         attr2=a2, oper2=o2, val2=v2,
+                                         attr3=a3, oper3=o3, val3=v3)
 
     else:
-        xval = 'separate_eg_percentage'
+        df_display = df
 
     for eg in eg_set:
-        data = df[df.eg == eg].copy()
+        try:
+            data = df_display[df_display.eg == eg].copy()
 
-        if chk_scatter.value:
-            ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
-                           color=color_dict['eg_colors'][eg - 1],
-                           s=dot_size,
-                           label=p_dict[eg],
-                           ax=ax)
-
-        if chk_mean.value:
-            data['ma'] = data[yval].rolling(mean_len).mean()
-            ax = data.plot(x=xval, y='ma', lw=5,
-                           color=color_dict['mean_colors'][eg - 1],
-                           label=p_dict[eg],
-                           alpha=.6, ax=ax)
-
-        if chk_fit.value:
             if chk_scatter.value:
-                lin_reg_colors = color_dict['lin_reg_colors']
-            else:
-                lin_reg_colors = color_dict['lin_reg_colors2']
-            ax = sns.regplot(x=xval, y=yval, data=data,
-                             color=lin_reg_colors[eg - 1],
-                             label=p_dict[eg],
-                             scatter=False, truncate=True, ci=50,
-                             order=lin_reg_order,
-                             line_kws={'lw': 20,
-                                       'alpha': .4},
-                             ax=ax)
+                ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
+                               color=color_dict['eg_colors'][eg - 1],
+                               s=dot_size,
+                               label=p_dict[eg],
+                               ax=ax)
+
+            if chk_mean.value:
+                data['ma'] = data[yval].rolling(mean_len).mean()
+                ax = data.plot(x=xval, y='ma', lw=5,
+                               color=color_dict['mean_colors'][eg - 1],
+                               label=p_dict[eg],
+                               alpha=.6, ax=ax)
+
+            if chk_fit.value:
+                if chk_scatter.value:
+                    lin_reg_colors = color_dict['lin_reg_colors']
+                else:
+                    lin_reg_colors = color_dict['lin_reg_colors2']
+                ax = sns.regplot(x=xval, y=yval, data=data,
+                                 color=lin_reg_colors[eg - 1],
+                                 label=p_dict[eg],
+                                 scatter=False, truncate=True, ci=50,
+                                 order=lin_reg_order,
+                                 line_kws={'lw': 20,
+                                           'alpha': .4},
+                                 ax=ax)
+        except TypeError:
+            pass
+
     ax.set_xlim(0, x_limit)
 
     if measure == 'jobp':
@@ -3796,7 +3867,8 @@ def editor(settings_dict,
     for item in ([ax.xaxis.label, ax.yaxis.label]):
         item.set_fontsize(label_size)
 
-    ax.set_title(title_label + ' differential: ' + measure,
+    ax.set_title(title_label + ' ' + yval + ': ' + measure +
+                 '  (' + filt_str + ')',
                  fontsize=title_size)
     ax.set_xlim(xmin=0)
 
@@ -3854,8 +3926,10 @@ def editor(settings_dict,
                              max=400,
                              step=1,
                              description='squeeze',
-                             layout=Layout(width='90%',
-                             margin='10px'))
+                             layout=Layout(display='flex',
+                                           flex='2 1 auto',
+                                           width='100%'),
+                             margin='10px')
 
     slide_factor.style.handle_color = '#f7c3a1'
 
@@ -3946,7 +4020,7 @@ def editor(settings_dict,
 
         data_reorder['new_order'] = squeezer
         data_reorder.sort_values('new_order', inplace=True)
-        data_reorder['new_order'] = np.arange(len(data_reorder),
+        data_reorder['new_order'] = np.arange(1, len(data_reorder) + 1,
                                               dtype='int')
 
         with sns.axes_style(chart_style):
@@ -3972,7 +4046,7 @@ def editor(settings_dict,
         ax2.set_xticks(np.arange(0, len(data_reorder), 1000))
         ax2.set_ylabel('eg\n')
 
-        ax2.set_xlim(len(data_reorder), 0)
+        ax2.set_xlim(len(data_reorder) + 1, 0)
         plt.show()
 
         data_reorder[['new_order']].to_pickle('dill/p_new_order.pkl')
@@ -3987,15 +4061,24 @@ def editor(settings_dict,
                                    'slide_fac_val': slide_factor.value,
                                    'scat_val': chk_scatter.value,
                                    'fit_val': chk_fit.value,
+                                   'filt_val': chk_filt.value,
+                                   'ret_val': chk_ret.value,
                                    'mean_val': chk_mean.value,
                                    'drop_msr': drop_measure.value,
-                                   'drop_opr': drop_operator.value,
+                                   'dd1_oper': dd1_oper.value,
+                                   'dd2_oper': dd2_oper.value,
+                                   'dd3_oper': dd3_oper.value,
+                                   'drop_display': drop_display.value,
                                    'drop_mode': drop_mode.value,
                                    'drop_xax': drop_xax.value,
-                                   'drop_filter': drop_filter.value,
+                                   'dd1_attr': dd1_attr.value,
+                                   'dd2_attr': dd2_attr.value,
+                                   'dd3_attr': dd3_attr.value,
                                    'mnum_opr': mnum_operator.value,
                                    'int_mnum': mnum_input.value,
-                                   'int_sel': int_val.value,
+                                   'txt1_val': txt1_val.value,
+                                   'txt2_val': txt2_val.value,
+                                   'txt3_val': txt3_val.value,
                                    'junior': rg.value[0],
                                    'senior': rg.value[1]},
                                   index=['value'])
@@ -4005,6 +4088,7 @@ def editor(settings_dict,
     def run_cell(ev):
         # 'new_order' is simply a placeholder here.
         # This is where ds_edit.pkl is generated (compute_measures script)
+        store_vals()
         cmd = 'python compute_measures.py new_order edit'
         if cond_list:
             for cond in cond_list:
@@ -4051,29 +4135,70 @@ def editor(settings_dict,
                            width='10%',
                            justify_content='center')
 
-    dd_col_layout = Layout(display='flex',
-                           flex_flow='column',
-                           width='20%',
-                           justify_content='center',
-                           border='dotted 1px',
-                           padding='4px',
-                           margin='3px')
+    dd_col_layout1 = Layout(display='flex',
+                            flex_flow='column',
+                            width='20%',
+                            justify_content='center',
+                            border='solid 2px #e6e6e6',
+                            padding='1px',
+                            margin='2px')
+
+    dd_col_layout2 = Layout(display='flex',
+                            flex_flow='column',
+                            width='10%',
+                            justify_content='center',
+                            border='solid 2px #e6e6e6',
+                            padding='1px',
+                            margin='2px')
 
     form_layout = Layout(display='flex',
-                         width='100%',
+                         width='95%',
                          justify_content='space-around')
 
-    items = [Box([chk_scatter, chk_fit, chk_mean], layout=cb_col_layout),
-             Box([drop_mode, drop_xax], layout=dd_col_layout),
-             Box([drop_squeeze, drop_eg, drop_dir], layout=dd_col_layout),
-             Box([drop_measure, mnum_operator, mnum_input],
-                 layout=dd_col_layout),
-             Box([drop_filter, drop_operator, int_val],
-                 layout=dd_col_layout)]
+    vertcap_layout = Layout(display='flex',
+                            flex_flow='column',
+                            width='5%',
+                            justify_content='center')
 
+    filt_layout = Layout(display='flex',
+                         flex_flow='row',
+                         align_items='stretch',
+                         margin='1px')
+
+    filt1_cap = Label(value='Filter 1:', layout=dd_layout)
+    filt2_cap = Label(value='Filter 2:', layout=dd_layout)
+    filt3_cap = Label(value='Filter 3:', layout=dd_layout)
+
+    filt_cap_box = Box((filt1_cap, filt2_cap, filt3_cap),
+                       layout=vertcap_layout)
+
+    filt1_items = [dd1_attr, dd1_oper, txt1_val]
+    filt2_items = [dd2_attr, dd2_oper, txt2_val]
+    filt3_items = [dd3_attr, dd3_oper, txt3_val]
+
+    filt1_row = Box(children=filt1_items, layout=filt_layout)
+    filt2_row = Box(children=filt2_items, layout=filt_layout)
+    filt3_row = Box(children=filt3_items, layout=filt_layout)
+
+    filter_box = VBox([filt1_row, filt2_row, filt3_row])
+
+    items = [Box([chk_scatter, chk_fit, chk_mean], layout=cb_col_layout),
+             Box([drop_display, drop_mode, drop_xax], layout=dd_col_layout1),
+             Box([drop_squeeze, drop_eg, drop_dir], layout=dd_col_layout1),
+             Box([mnum_caption, mnum_operator, mnum_input],
+                 layout=dd_col_layout2),
+             filt_cap_box,
+             filter_box]
+
+    top_row_items = [drop_measure, chk_ret, chk_filt]
+    top_row = Box(children=top_row_items, layout=filt_layout)
+
+    top_widgets = HBox([slide_factor, top_row], layout=form_layout)
     hdropdowns = Box(items, layout=form_layout)
 
-    display(VBox((slide_factor, hdropdowns, hbuttons,
+    display(VBox((top_widgets,
+                  hdropdowns,
+                  hbuttons,
                   range_sel)))
 
 
@@ -4082,20 +4207,32 @@ def reset_editor():
     (for use when invalid input is selected resulting in an exception)
     '''
     def reset(x):
-        init_editor_vals = pd.DataFrame([['<<  d', '2', 'ret_mark', 'spcnt',
-                                          'log', False, '==', 'edit', 'prop',
-                                          '1', 1000, False, True, 500, 100,
-                                          '>=', '0']],
-                                        columns=['drop_dir_val', 'drop_eg_val',
-                                                 'drop_filter', 'drop_msr',
-                                                 'drop_sq_val', 'fit_val',
-                                                 'drop_opr',
-                                                 'drop_mode', 'drop_xax',
-                                                 'int_sel', 'junior',
-                                                 'mean_val',
-                                                 'scat_val', 'senior',
-                                                 'slide_fac_val',
-                                                 'mnum_opr', 'int_mnum'],
+        init_editor_vals = pd.DataFrame({'dd1_attr': '',
+                                         'dd2_attr': '',
+                                         'dd3_attr': '',
+                                         'dd1_oper': '==',
+                                         'dd2_oper': '==',
+                                         'dd3_oper': '==',
+                                         'drop_dir_val': '<<  d',
+                                         'drop_display': 'diff',
+                                         'drop_eg_val': '2',
+                                         'drop_mode': 'edit',
+                                         'drop_msr': 'spcnt',
+                                         'drop_sq_val': 'log',
+                                         'drop_xax': 'prop',
+                                         'filt_val': False,
+                                         'fit_val': False,
+                                         'int_mnum': '0',
+                                         'junior': 1000,
+                                         'mean_val': False,
+                                         'mnum_opr': '>=',
+                                         'ret_val': True,
+                                         'scat_val': True,
+                                         'senior': 500,
+                                         'slide_fac_val': 100,
+                                         'txt1_val': '',
+                                         'txt2_val': '',
+                                         'txt3_val': ''},
                                         index=['value'])
 
         init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
