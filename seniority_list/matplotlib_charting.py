@@ -3604,11 +3604,11 @@ def editor(settings_dict,
                         value=bool(persist['filt_val'].value))
 
     # -----------Chart Display Filter Widgets------------------------
-    attr_list = ['', 'jnum', 'mnum', 'eg', 'cat_order', 'jobp',
-                 'ldate', 'doh', 'retdate', 'sg', 'age',
-                 'scale', 's_lmonths', 'ylong', 'mlong',
-                 'orig_job', 'lnum', 'snum', 'mnum', 'rank_in_job',
-                 'mpay', 'cpay', 'ret_mark']
+    attr_list = ['', 'cat_order', 'jobp', 'jnum', 'mnum', 'eg',
+                 'ldate', 'doh', 'retdate', 'ylong', 'mlong',
+                 'sg', 'age', 'scale', 's_lmonths',
+                 'lnum', 'snum', 'mnum', 'rank_in_job',
+                 'mpay', 'cpay']
 
     dd1_attr = Dropdown(options=attr_list, value=persist['dd1_attr'].value,
                         layout=filt2_layout)
