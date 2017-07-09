@@ -3448,16 +3448,16 @@ def editor(settings_dict,
            base='standalone',
            compare='ds_edit',
            cond_list=None,
+           eg_list=None,
            mean_len=80,
-           attr1=None, oper1=None, val1=None,
-           attr2=None, oper2=None, val2=None,
-           attr3=None, oper3=None, val3=None,
-           dot_size=14,
+           size=18,
+           alpha=.8,
            lin_reg_order=12,
            ylim=None,
            xsize=16,
            ysize=11,
            strip_dot_size=2.5,
+           strip_dot_alpha=1,
            strip_height=1,
            title_size=16,
            label_size=14,
@@ -3469,6 +3469,8 @@ def editor(settings_dict,
            show_grid=True):
     '''compare specific proposal attributes and interactively adjust
     list order.  may be used to minimize distortions.  utilizes ipywidgets.
+
+    See the user guide for usage instructions.
 
     The function will recursively use an edited dataset so that an integrated
     list may be incrementally adjusted and examined at each step.  The edited
@@ -3520,8 +3522,10 @@ def editor(settings_dict,
             length of rolling mean if 'mean' selected for display
         eg_list (list)
             list of egs(employee groups) to compare and plot
-        dot_size (integer)
+        size (float or integer)
             chart dot size
+        alpha (float or integer)
+            chart dot transparency value (0.0 to 1.0)
         lin_reg_order (integer)
             polynomial fit order
         ylim (integer or float)
@@ -3533,6 +3537,8 @@ def editor(settings_dict,
             height of chart
         strip_dot_size (integer or float)
             dot size for stripplot
+        strip_dot_alpha (integer or float)
+            dot transparency level for stripplot dots (0.0 to 1.0)
         strip_height (integer or float)
             height of stripplot (group density display)
         title_size (integer or float)
@@ -3547,6 +3553,8 @@ def editor(settings_dict,
             seaborn chart style
         bg_clr (None or color value)
             if not None, color input for chart background
+        show_grid (boolean)
+            if True, show grid on chart
 
     '''
     persist = pd.read_pickle('dill/squeeze_vals.pkl')
@@ -3586,7 +3594,7 @@ def editor(settings_dict,
 
     drop_measure = Dropdown(options=display_attrs,
                             value=persist['drop_msr'].value,
-                            description='display attr',
+                            description='display attr:',
                             layout=Layout(width='50%',
                                           border='solid 2px #99ccff',
                                           margin='1px',
@@ -3598,7 +3606,7 @@ def editor(settings_dict,
     # -----------Chart Display Filter Widgets------------------------
     attr_list = ['', 'jnum', 'mnum', 'eg', 'cat_order', 'jobp',
                  'ldate', 'doh', 'retdate', 'sg', 'age',
-                 'scale', 's_lmonths',
+                 'scale', 's_lmonths', 'ylong', 'mlong',
                  'orig_job', 'lnum', 'snum', 'mnum', 'rank_in_job',
                  'mpay', 'cpay', 'ret_mark']
 
@@ -3622,6 +3630,10 @@ def editor(settings_dict,
 
     # ----------------------------------------------------------------
 
+    drop_display = Dropdown(options=['diff', 'abs'],
+                            value=persist['drop_display'].value,
+                            description='display', layout=dd_layout)
+
     drop_mode = Dropdown(options=['edit', 'reset'],
                          value=persist['drop_mode'].value,
                          description='mode', layout=dd_layout)
@@ -3629,10 +3641,6 @@ def editor(settings_dict,
     drop_xax = Dropdown(options=['prop', 'eg pcnt'],
                         value=persist['drop_xax'].value,
                         description='x axis', layout=dd_layout)
-
-    drop_display = Dropdown(options=['diff', 'abs'],
-                            value=persist['drop_display'].value,
-                            description='display', layout=dd_layout)
 
     if drop_xax.value == 'prop':
         prop_order = True
@@ -3695,18 +3703,18 @@ def editor(settings_dict,
             title_label = '< using ' + proposal_list[0] + ' >'
 
     # set BASELINE dataset
-    if diff:
-        base_ds = None
+    # if diff:
+    #     base_ds = None
+    try:
+        base_ds = pd.read_pickle('dill/_ds' + base + '.pkl')
+    except OSError:
         try:
-            base_ds = pd.read_pickle('dill/_ds' + base + '.pkl')
+            base_ds = pd.read_pickle('dill/standalone.pkl')
         except OSError:
-            try:
-                base_ds = pd.read_pickle('dill/standalone.pkl')
-            except OSError:
-                # exit routine if baseline dataset not found
-                print('invalid "base_ds" name input, neither ds_' +
-                      base + '.pkl nor standalone.pkl not found\n')
-                return
+            # exit routine if baseline dataset not found
+            print('invalid "base_ds" name input, neither ds_' +
+                  base + '.pkl nor standalone.pkl not found\n')
+            return
 
     max_month = max(compare_ds.mnum)
 
@@ -3743,7 +3751,6 @@ def editor(settings_dict,
                               [a1, a2, a3]
                               if x])))
         comp_cols = list(set().union(comp_cols, filt_cols))
-    #base_cols.extend(filt_cols)
 
     mnum_oper = mnum_operator.value
     mnum_val = mnum_input.value
@@ -3772,7 +3779,6 @@ def editor(settings_dict,
     del df['mnum']
     to_join_ds.rename(columns={measure: measure + '_c',
                                'new_order': 'proposal_order'}, inplace=True)
-    base_ds.pop('mnum')
     df = df.join(to_join_ds)
     df.sort_values(by='proposal_order', inplace=True)
     df['proposal_order'] = np.arange(len(df)) + 1
@@ -3791,13 +3797,16 @@ def editor(settings_dict,
 
     df['separate_eg_percentage'] = eg_sep_order / denoms
 
-    if measure in ['spcnt', 'lspcnt', 'snum', 'lnum', 'cat_order',
-                   'jobp', 'jnum']:
+    if diff:
+        if measure in ['spcnt', 'lspcnt', 'snum', 'lnum', 'cat_order',
+                       'jobp', 'jnum']:
 
-        df[yval] = df[measure + '_b'] - df[measure + '_c']
+            df[yval] = df[measure + '_b'] - df[measure + '_c']
 
+        else:
+            df[yval] = df[measure + '_c'] - df[measure + '_b']
     else:
-        df[yval] = df[measure + '_c'] - df[measure + '_b']
+        df[yval] = df[measure + '_c']
 
     p_dict = settings_dict['p_dict']
 
@@ -3816,6 +3825,13 @@ def editor(settings_dict,
     else:
         df_display = df
 
+    if eg_list is not None:
+        eg_list = [eg for eg in set(eg_list) if eg in eg_set]
+        if eg_list:
+            eg_set = eg_list
+        else:
+            print('invalid eg_list input, defaulting to all groups...')
+
     for eg in eg_set:
         try:
             data = df_display[df_display.eg == eg].copy()
@@ -3823,7 +3839,7 @@ def editor(settings_dict,
             if chk_scatter.value:
                 ax = data.plot(x=xval, y=yval, kind='scatter', linewidth=0.1,
                                color=color_dict['eg_colors'][eg - 1],
-                               s=dot_size,
+                               s=size, alpha=alpha,
                                label=p_dict[eg],
                                ax=ax)
 
@@ -3852,15 +3868,23 @@ def editor(settings_dict,
 
     ax.set_xlim(0, x_limit)
 
-    if measure == 'jobp':
-        ymin = math.floor(min(df[yval]))
-        ymax = math.ceil(max(df[yval]))
-        scale_lim = max(abs(ymin), ymax)
-        ax.set_yticks = (np.arange(-scale_lim, scale_lim + 1, 1))
-        if ylim is not None:
-            ax.set_ylim(-ylim, ylim)
+    if measure in ['jobp', 'jnum']:
+
+        if diff is True:
+            ymin = math.floor(min(df[yval]))
+            ymax = math.ceil(max(df[yval]))
+            scale_lim = max(abs(ymin), ymax)
+            ax.set_yticks(np.arange(-scale_lim, scale_lim + 1, 1))
+
+            if ylim is not None:
+                ax.set_ylim(-ylim, ylim)
+            else:
+                ax.set_ylim(-scale_lim, scale_lim)
         else:
-            ax.set_ylim(-scale_lim, scale_lim)
+            ymax = math.ceil(max(df_display[yval]))
+            ax.set_yticks(np.arange(1, ymax + 1, 1))
+            if ylim is not None:
+                ax.set_ylim(.5, ylim)
 
     ax.tick_params(labelsize=tick_size)
 
@@ -3880,7 +3904,16 @@ def editor(settings_dict,
         ax.xaxis.set_major_formatter(pct_format())
         ax.set_xticks(np.arange(0, 1.05, .05))
 
-    ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
+    if diff:
+        ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
+    else:
+        if measure in ['cat_order', 'jnum', 'jobp', 'spcnt',
+                       'lspcnt', 'snum', 'lnum']:
+            ax.invert_yaxis()
+        if measure in ['jnum', 'jobp']:
+            ax.axhline(1, c='m', ls='-', alpha=1, lw=1.5)
+        else:
+            ax.axhline(0, c='m', ls='-', alpha=1, lw=1.5)
     ax.invert_xaxis()
     ax.legend(markerscale=2, fontsize=legend_size)
     if bg_clr is not None:
@@ -4034,6 +4067,7 @@ def editor(settings_dict,
                                                         1),
                             palette=color_dict['eg_colors'],
                             size=strip_dot_size,
+                            alpha=strip_dot_alpha,
                             linewidth=0, split=True)
 
         for item in ([ax2.xaxis.label, ax2.yaxis.label] +
@@ -6599,14 +6633,18 @@ def filter_ds(ds,
             the dataframe (ds)
     '''
 
-    title_string = ''
+    # title_string = ''
 
     if any([attr1, attr2, attr3]):
 
+        str1 = ''
+        str2 = ''
+        str3 = ''
+
         if attr1:
 
-            title_string = title_string + \
-                attr1 + ' ' + oper1 + ' ' + str(val1)
+            # title_string = title_string + \
+            #     attr1 + ' ' + oper1 + ' ' + str(val1)
 
             if not numeric_test(val1):
                 val1_text = "'" + val1 + "'"
@@ -6615,13 +6653,15 @@ def filter_ds(ds,
             try:
                 # slice proposal dataset according to attr1 inputs
                 ds = ds[eval('ds[attr1]' + oper1 + val1_text)].copy()
+                str1 = attr1 + ' ' + oper1 + ' ' + str(val1)
+
             except:
                 print('''attr1 filter error - filter ignored
                       ensure filter inputs are strings''')
         if attr2:
 
-            title_string = title_string + ', ' + \
-                attr2 + ' ' + oper2 + ' ' + str(val2)
+            # title_string = title_string + ', ' + \
+            #     attr2 + ' ' + oper2 + ' ' + str(val2)
 
             if not numeric_test(val2):
                 val2_text = "'" + val2 + "'"
@@ -6629,13 +6669,15 @@ def filter_ds(ds,
                 val2_text = str(val2)
             try:
                 ds = ds[eval('ds[attr2]' + oper2 + val2_text)].copy()
+                str2 = attr2 + ' ' + oper2 + ' ' + str(val2)
+
             except:
                 print('''attr2 filter error - filter ignored
                       ensure filter inputs are strings''')
         if attr3:
 
-            title_string = title_string + ', ' + \
-                attr3 + ' ' + oper3 + ' ' + str(val3)
+            # title_string = title_string + ', ' + \
+            #     attr3 + ' ' + oper3 + ' ' + str(val3)
 
             if not numeric_test(val3):
                 val3_text = "'" + val3 + "'"
@@ -6643,11 +6685,21 @@ def filter_ds(ds,
                 val3_text = str(val3)
             try:
                 ds = ds[eval('ds[attr3]' + oper3 + val3_text)].copy()
+                str3 = attr3 + ' ' + oper3 + ' ' + str(val3)
+
             except:
                 print('''attr3 filter error - filter ignored
                       ensure filter inputs are strings''')
 
+    else:
+        if return_title_string:
+            title_string = ''
+            return ds, title_string
+        else:
+            return ds
+
     if return_title_string:
+        title_string = ', '.join([x for x in [str1, str2, str3] if x])
         return ds, title_string
     else:
         return ds
