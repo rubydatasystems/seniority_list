@@ -3590,7 +3590,8 @@ def editor(settings_dict,
                        value=bool(persist['ret_val'].value))
 
     display_attrs = ['jobp', 'cat_order', 'spcnt', 'lspcnt',
-                     'jnum', 'mpay', 'cpay', 'snum', 'lnum']
+                     'jnum', 'mpay', 'cpay', 'snum', 'lnum',
+                     'ylong', 'mlong']
 
     drop_measure = Dropdown(options=display_attrs,
                             value=persist['drop_msr'].value,
@@ -6643,9 +6644,6 @@ def filter_ds(ds,
 
         if attr1:
 
-            # title_string = title_string + \
-            #     attr1 + ' ' + oper1 + ' ' + str(val1)
-
             if not numeric_test(val1):
                 val1_text = "'" + val1 + "'"
             else:
@@ -6660,9 +6658,6 @@ def filter_ds(ds,
                       ensure filter inputs are strings''')
         if attr2:
 
-            # title_string = title_string + ', ' + \
-            #     attr2 + ' ' + oper2 + ' ' + str(val2)
-
             if not numeric_test(val2):
                 val2_text = "'" + val2 + "'"
             else:
@@ -6675,9 +6670,6 @@ def filter_ds(ds,
                 print('''attr2 filter error - filter ignored
                       ensure filter inputs are strings''')
         if attr3:
-
-            # title_string = title_string + ', ' + \
-            #     attr3 + ' ' + oper3 + ' ' + str(val3)
 
             if not numeric_test(val3):
                 val3_text = "'" + val3 + "'"
