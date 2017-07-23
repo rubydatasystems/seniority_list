@@ -4139,3 +4139,48 @@ def anon_pay_table(case,
 
     print('\nanon_pay_table routine complete')
 
+
+def find_index_val(df1, df2, df1_vals, col1=None, col2=None):
+    '''find a value in another dataframe with the same index of
+    another given value in a dataframe.
+
+    df1 index, df2 index, and the value columns must contain unique values.
+
+    inputs
+        df1 (dataframe)
+            the first dataframe containing values to index match in another
+            dataframe
+        df2 (dataframe)
+            the second dataframe with corresponding index values
+        df1_vals (list)
+            values to match
+    '''
+
+    # initiate df2_vals list
+    df2_vals = []
+
+    # set df1 value column, use first column if None
+    if col1 is not None:
+        column1 = df1[col1]
+    else:
+        column1 = df1[df1.columns[0]]
+
+    # set df2 value column, use first column if None
+    if col2 is not None:
+        column2 = df2[col2]
+    else:
+        column2 = df2[df2.columns[0]]
+
+    # find index for df1 value
+    # find value in df2 with corresponding index from df1
+    for v in df1_vals:
+        try:
+            df1_idx = df1[column1 == v].index[0]
+            result_val = column2.loc[df1_idx]
+            # append df2 value to df2_vals list
+            df2_vals.append(result_val)
+        except KeyError:
+            print('value ' + str(v) + ' error:',
+                  'no corresponding index')
+
+    return df2_vals

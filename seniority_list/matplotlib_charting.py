@@ -3704,8 +3704,6 @@ def editor(settings_dict,
             title_label = '< using ' + proposal_list[0] + ' >'
 
     # set BASELINE dataset
-    # if diff:
-    #     base_ds = None
     try:
         base_ds = pd.read_pickle('dill/_ds' + base + '.pkl')
     except OSError:
@@ -3768,10 +3766,11 @@ def editor(settings_dict,
     df = base_ds[eval(base_str)][base_cols].copy()
 
     df.rename(columns={measure: measure + '_b'}, inplace=True)
-
-    # for stripplot and squeeze:
+    # for stripplot and squeeze (month zero):
     data_reorder = compare_ds[compare_ds.mnum == 0][['eg']].copy()
+    slider_lim = len(data_reorder)
     data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int) + 1
+
     # for drop_eg selection widget:
     drop_eg_options = sorted(list(pd.unique(data_reorder.eg).astype(str)))
 
@@ -3968,7 +3967,7 @@ def editor(settings_dict,
     slide_factor.style.handle_color = '#f7c3a1'
 
     if prop_order:
-        min_val = -x_limit
+        min_val = -slider_lim
         step = 1
         rg = IntRangeSlider(min=min_val, max=0, step=step,
                             layout=Layout(width='90%'),
