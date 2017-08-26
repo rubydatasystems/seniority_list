@@ -1,39 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''Merge and order a master dataframe containing all employees (including
-inactive employees), with a proposed list dataframe which may contain all
-employees or only active (and optionally furloughed) employees.
+'''Merge and order a master dataframe containing all employees
+(including inactive employees), with a proposed list dataframe which may
+contain all employees or only active (and optionally furloughed) employees.
 
-Writes the result list/dataframe to a pickle file (within 'dill' folder) and
-an Excel file (within the case-specific folder located in
-the 'reports' folder).
+Writes the result list/dataframe to a pickle file (within 'dill' folder)
+and an Excel file (within the case-specific folder located in the 'reports'
+folder).
 
 arguments (all strings with no quotes)
-    script
-        'join inactives'
-    proposed_order_df
-        the name of the proposal to be used as the final ordering from the
-        dill folder, without the "p_" prefix and ".pkl" file extension.
-        A file named "p_p1.pkl" would have a proposed_order_df input name
-        of "p1"
-    fill_style
-        "ffill" or "bfill"
+   script
+       'join inactives'
+   proposed_order_df
+       the name of the proposal to be used as the final ordering from the
+       dill folder, without the "p_" prefix and ".pkl" file extension.
+       A file named "p_p1.pkl" would have a proposed_order_df input name
+       of "p1"
+   fill_style
+       "ffill" or "bfill"
 
-        If the proposed list ordering does not contain the inactive employees,
-        the 'fill_style' argument determines where the inactive employees will
-        be placed within the combined list relative to their same employee
-        group active cohorts, just senior to the closest junior cohort or
-        just junior to closest senior cohort.
+       If the proposed list ordering does not contain the inactive
+       employees, the 'fill_style' argument determines where the inactive
+       employees will be placed within the combined list relative to their
+       same employee group active cohorts, just senior to the closest
+       junior cohort or just junior to closest senior cohort.
 
-            "ffill" - inactives attached to just *senior* same-group cohort
+           "ffill" - inactives attached to just *senior* same-group cohort
 
-            "bfill" - inactives attached to just *junior* same-group cohort
+           "bfill" - inactives attached to just *junior* same-group cohort
 
 The output name is hardcoded as 'final'.
 
 example jupyter notebook usage:
-    %run join_inactives.py master p1 bfill
+   %run join_inactives p1 bfill
+
 '''
 
 import pandas as pd
@@ -125,4 +126,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

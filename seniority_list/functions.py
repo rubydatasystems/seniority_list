@@ -1350,7 +1350,7 @@ def squeeze_increment(data,
     eg_arr = np.array(data.eg).astype(int)
 
     np.putmask(idx_arr[L:H], eg_arr[L:H] == eg, idx_arr[L:H] + increment)
-    idx_arr[L:H] = st.rankdata(idx_arr[L:H], method='ordinal') - 1 + L
+    idx_arr[L:H] = st.rankdata(idx_arr[L:H], method='ordinal') + L
 
     return idx_arr
 

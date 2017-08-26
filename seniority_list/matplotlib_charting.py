@@ -32,7 +32,6 @@ from IPython.display import display, Javascript
 from collections import OrderedDict as od
 
 from pandas.plotting import parallel_coordinates
-from openpyxl import load_workbook
 import functions as f
 
 
@@ -3453,6 +3452,7 @@ def editor(settings_dict,
            size=18,
            alpha=.8,
            lin_reg_order=12,
+           trim_xlim=True,
            ylim=None,
            xsize=16,
            ysize=11,
@@ -3530,6 +3530,10 @@ def editor(settings_dict,
             chart dot transparency value (0.0 to 1.0)
         lin_reg_order (integer)
             polynomial fit order
+        trim_xlim (boolean)
+            if True, set x axis scale to match the length of the displayed
+            values, otherwise lock x axis chart scale to match length of
+            original integrated list length
         ylim (integer or float)
             if not None, limit the y axis scale to this input value.
             Helpful when outliers exist.
@@ -3784,7 +3788,10 @@ def editor(settings_dict,
     df = df.join(to_join_ds)
     df.sort_values(by='proposal_order', inplace=True)
     df['proposal_order'] = np.arange(len(df)) + 1
-    x_limit = int(max(df.proposal_order) // 100) * 100 + 100
+    if trim_xlim:
+        x_limit = int(max(df.proposal_order) // 100) * 100 + 100
+    else:
+        x_limit = slider_lim
 
     df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
     eg_sep_order = np.array(df.eg_sep_order)
@@ -7449,13 +7456,13 @@ def add_editor_list_to_excel(case=None):
     df.index = df.index + 1
     df.index.name = 'order'
 
-    book = load_workbook(xl_str)
-    writer = pd.ExcelWriter(xl_str, engine='openpyxl')
-    writer.book = book
+    ws_dict = pd.read_excel(xl_str, index_col=0, sheetname=None)
+    ws_dict['edit'] = df
 
-    writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
-    df.to_excel(writer, sheet_name='edit')
-    writer.save()
+    with pd.ExcelWriter(xl_str, engine='xlsxwriter') as writer:
+
+        for ws_name, df_sheet in ws_dict.items():
+            df_sheet.to_excel(writer, sheet_name=ws_name)
 
 
 # Pretty print a dictionary...
