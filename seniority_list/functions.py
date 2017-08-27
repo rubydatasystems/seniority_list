@@ -1337,8 +1337,8 @@ def squeeze_increment(data,
     the zone using scipy.stats.rankdata.
     The array is then assigned to a dataframe with empkeys as index.
     '''
-    L = senior_num
-    H = junior_num
+    L = senior_num - 1
+    H = junior_num - 1
 
     if H <= L:
         return
@@ -4140,7 +4140,7 @@ def anon_pay_table(case,
     print('\nanon_pay_table routine complete')
 
 
-def find_index_val(df1, df2, df1_vals, col1=None, col2=None):
+def find_index_val(df1, df2, df2_vals, col1=None, col2=None):
     '''find a value in another dataframe with the same index of
     another given value in a dataframe.
 
@@ -4152,12 +4152,12 @@ def find_index_val(df1, df2, df1_vals, col1=None, col2=None):
             dataframe
         df2 (dataframe)
             the second dataframe with corresponding index values
-        df1_vals (list)
+        df2_vals (list)
             values to match
     '''
 
-    # initiate df2_vals list
-    df2_vals = []
+    # initiate df1_vals list
+    df1_vals = []
 
     # set df1 value column, use first column if None
     if col1 is not None:
@@ -4173,14 +4173,87 @@ def find_index_val(df1, df2, df1_vals, col1=None, col2=None):
 
     # find index for df1 value
     # find value in df2 with corresponding index from df1
-    for v in df1_vals:
+    for v in df2_vals:
+
         try:
-            df1_idx = df1[column1 == v].index[0]
-            result_val = column2.loc[df1_idx]
-            # append df2 value to df2_vals list
-            df2_vals.append(result_val)
+            df1_idx = df2[column2 == v].index[0]
+            result_val = column1.loc[df1_idx]
+            # append df2 value to df1_vals list
+            df1_vals.append(result_val)
+
         except KeyError:
             print('value ' + str(v) + ' error:',
                   'no corresponding index')
+            return
 
-    return df2_vals
+    return df1_vals
+
+
+def find_squeeze_vals(df_m0, df_calc, cursor_vals,
+                      col1=None, col2=None):
+    '''this is a specialized version of the "find_index_val" function which
+    is used within the editor tool.  It will allow a proper squeeze range to
+    be processed when a month filter has been applied.  All squeeze operations
+    work by adjusting the original month zero integrated list order.  When
+    data resulting from a future month filter is displayed, some employees
+    will have retired and new list positions for the remaining employees have
+    been assigned due to the attrition.  To permit squeezing (a visual
+    exercise based on displayed data) with future month data displayed,
+    future month cursor line postion must be converted to the equivalent
+    original list positions within the squeeze algorithm.
+
+    This function provides the conversion, using the common empkey indexes
+    in the month zero dataframe and the data_reorder dataframe to locate the
+    matching values.
+
+    df1 index, df2 index, (both are empkey indexes) and the value (position)
+    columns must contain unique values.
+
+    inputs
+        df_m0 (dataframe)
+            month zero dataframe containing values to index match in another
+            dataframe
+        df_calc (dataframe)
+            calculated integrated dataframe with corresponding index values
+        cursor_vals (list)
+            filtered dataframe cursor position values to match with month
+            zero positions
+    '''
+
+    # initiate m0_vals list
+    m0_vals = []
+
+    # set df_m0 value column, use first column if None
+    if col1 is not None:
+        column1 = df_m0[col1]
+    else:
+        column1 = df_m0[df_m0.columns[0]]
+
+    # set df_calc value column, use first column if None
+    if col2 is not None:
+        column2 = df_calc[col2]
+    else:
+        column2 = df_calc[df_calc.columns[0]]
+
+    # find index for df_m0 value
+    # find value in df_calc with corresponding index from df_m0
+    for v in cursor_vals:
+        try:
+            # df_m0_idx = df_m0[column1 == v].index[0]
+            # print(m0_idx)
+            # result_val = column2.loc[m0_idx]
+            if v in column2.values:
+                print('yes')
+                m0_idx = df_calc[column2 == v].index[0]
+            else:
+                m0_idx = df_calc.index[-1:][0]
+            result_val = column1.loc[m0_idx]
+            # append df_calc value to m0_vals list
+            m0_vals.append(result_val)
+        except KeyError:
+            print('value ' + str(v) + ' error:',
+                  'no corresponding index')
+            return
+
+    return m0_vals
+

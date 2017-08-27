@@ -3774,6 +3774,8 @@ def editor(settings_dict,
     df.rename(columns={measure: measure + '_b'}, inplace=True)
     # for stripplot and squeeze (month zero):
     data_reorder = compare_ds[compare_ds.mnum == 0][['eg']].copy()
+    idx_df = data_reorder[[]].copy()
+    idx_df['orig_order'] = np.arange(len(idx_df)) + 1
     slider_lim = len(data_reorder)
     data_reorder['new_order'] = np.arange(len(data_reorder)).astype(int) + 1
 
@@ -3791,7 +3793,7 @@ def editor(settings_dict,
     if trim_xlim:
         x_limit = int(max(df.proposal_order) // 100) * 100 + 100
     else:
-        x_limit = slider_lim
+        x_limit = slider_lim // 100 * 100 + 100
 
     df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
     eg_sep_order = np.array(df.eg_sep_order)
@@ -3978,7 +3980,7 @@ def editor(settings_dict,
     if prop_order:
         min_val = -slider_lim
         step = 1
-        rg = IntRangeSlider(min=min_val, max=0, step=step,
+        rg = IntRangeSlider(min=min_val, max=-1, step=step,
                             layout=Layout(width='90%'),
                             value=(junior_init, senior_init),
                             continuous_update=True,
@@ -4028,8 +4030,12 @@ def editor(settings_dict,
         squeeze_eg = drop_p_dict[drop_eg.value]
 
         if prop_order:
-            jval = v2line.get_xdata()[0]
-            sval = v1line.get_xdata()[0]
+            jval_line = v2line.get_xdata()[0]
+            sval_line = v1line.get_xdata()[0]
+            jval, sval = f.find_squeeze_vals(idx_df, df,
+                                             [jval_line, sval_line],
+                                             col1='orig_order',
+                                             col2='proposal_order')
         else:
             ints = data_reorder.new_order.values
             pcnts = ints / ints.size
