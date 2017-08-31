@@ -5709,7 +5709,8 @@ def job_time_change(ds_list, ds_base,
                     label_size=13,
                     xsize=12, ysize=10,
                     image_dir=None,
-                    image_format='png'):
+                    image_format='png',
+                    experimental=False):
     '''Plots a scatter plot displaying monthly time in job
     differential, by proposal and employee group.  X axis percentage
     reflects first month within each comparative dataset, which will be the
@@ -5799,6 +5800,9 @@ def job_time_change(ds_list, ds_base,
             Examples:
 
                 'svg', 'png'
+        experimental (boolean)
+            show additional output under development consisting of a
+            table, heatmap, and bar chart
     '''
     label_dict = {}
     i = 0
@@ -5865,6 +5869,37 @@ def job_time_change(ds_list, ds_base,
         for eg in eg_list:
             # filter for eg
             eg_df = joined_dict[jk][joined_dict[jk].eg == eg]
+
+            if experimental:
+                db = eg_df.copy()
+                db.replace(np.nan, 0, inplace=True)
+                db['quantile'] = \
+                    np.clip(db[xax] * 100 // 10 + 1, 1, 10).astype(int)
+                db.drop([xax, 'eg'], axis=1, inplace=True)
+                # db = db.groupby('quantile').sum().divide(len(db) / 10)
+                db = db.groupby('quantile').sum().astype(int)
+                db = db[db.columns[::-1]]
+                db.columns.name = 'job_level'
+                print('< proposal',
+                      label_dict[jk] + ', eg ' + str(eg),
+                      '>', '\n', '--' * 10, '\n')
+                print('Job time change table (months)', '\n')
+                print(db.T.reindex(columns=list(range(10, 0, -1))))
+                sns.heatmap(db.T, cmap='seismic_r', center=0,
+                            annot=True, fmt='d')
+                plt.gca().invert_xaxis()
+                plt.gca().set_title('months-in-job change, by quantile')
+                db.plot(kind='bar', stacked=True, width=1,
+                        color=job_colors, linewidth=.5, edgecolor='k')
+                ax = plt.gca()
+                ax.invert_xaxis()
+                ax.set_title('Months in job change by quantile')
+                handles, labels = ax.get_legend_handles_labels()
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0, box.width * 0.85, box.height])
+                lgnd = ax.legend(handles, labels, loc='center left',
+                                 bbox_to_anchor=(.99, .5), borderaxespad=4,
+                                 title='job_level', fontsize=12)
 
             with sns.axes_style(chart_style):
                 fig, ax = plt.subplots()
