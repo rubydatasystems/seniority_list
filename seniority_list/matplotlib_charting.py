@@ -1,6 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# seniority_list is an analytical tool used when seniority-based work
+# groups merge. It brings modern data science to the area of labor
+# integration, utilizing the powerful data analysis capabilities of Python
+# scientific computing.
+
+# Copyright (C) 2016-2017  Robert E. Davison, Ruby Data Systems Inc.
+# Please direct consulting inquires to: rubydatasystems@fastmail.net
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 '''
 .. module:: matplotlib_charting
 
@@ -4311,6 +4332,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
                                 label_pad=110,
                                 chart_style='whitegrid',
                                 remove_ax2_border=True,
+                                lgd_h_adj=None,
                                 xsize=13, ysize=10,
                                 image_dir=None,
                                 image_format='png'):
@@ -4382,6 +4404,10 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
             if True, remove axis 2 (ax2) chart spines
         xsize, ysize (integer or float)
             width and height of chart
+        lgd_h_adj (float)
+            set to a small float value (for example: .02, -.01) to adjust
+            the horizontal position of the chart legend if required.  Use
+            negative values to move left, positive values to move right
         image_dir (string)
             if not None, name of a directory in which to save an image of the
             chart output.  If the directory does not exist, it will be
@@ -4610,9 +4636,17 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
 
     if measure in ['cat_order']:
         ax2.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        lgd_adj = 1.04
+    else:
+        lgd_adj = .99
 
-    ax1.legend(bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=7,
-               frameon=True, fancybox=True, shadow=True, markerscale=2)
+    # allow manual adjustment of legend horizontal position
+    if lgd_h_adj is not None:
+        lgd_adj = lgd_adj + lgd_h_adj
+
+    ax1.legend(bbox_to_anchor=(lgd_adj, .5), loc='center left',
+               borderaxespad=4, frameon=True, fancybox=True,
+               shadow=True, markerscale=2)
     # ---------------------
 
     ax1.set_ylabel(attr_dict[measure])

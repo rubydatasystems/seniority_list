@@ -1,23 +1,39 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-'''
-.. module:: functions
+# seniority_list is an analytical tool used when seniority-based work
+# groups merge. It brings modern data science to the area of labor
+# integration, utilizing the powerful data analysis capabilities of Python
+# scientific computing.
 
-   :synopsis: The functions module contains core program routines related
-   to building and working with the data model and associated files.
+# Copyright (C) 2016-2017  Robert E. Davison, Ruby Data Systems Inc.
+# Please direct consulting inquires to: rubydatasystems@fastmail.net
 
-   General definitions:
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 
-   dataset "month_form" is length n months in model
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-   "short_form" data has a length equal to the number of employees
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-   "long_form" data is the length of the cumulative sum non-retired employees
-   for all months in the data model (could be millions of rows,
-   depending on workgroup size and age)
+'''The functions module contains core program routines related
+to building and working with the data model and associated files.
 
-.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
+General definitions:
+
+dataset "month_form" is length n months in model
+
+"short_form" data has a length equal to the number of employees
+
+"long_form" data is the length of the cumulative sum non-retired employees
+for all months in the data model (could be millions of rows,
+depending on workgroup size and age)
 
 '''
 
@@ -72,13 +88,11 @@ def longevity_at_startdate(ldate_input,
                            return_months=False):
     ''' (Short_Form)
 
-    - determine how much longevity (years) each employee has accrued
-      as of the start date
-    - "ldate_input" (longevity dates) may be in the form of a pandas
-    dataframe, pandas series, list, or string
-    - float output is longevity in years
-      (+1 added to reflect current 1-based pay year)
-    - option for output in months
+    determine how much longevity (years) each employee has accrued as of the
+    start date
+
+    float output is longevity in years (+1 added to reflect current 1-based
+    pay year)
 
     inputs
         ldate_input (dataframe, series, list, or string)
@@ -205,7 +219,7 @@ def count_per_month(career_months_array):
     max_career = np.max(career_months_array) + 1
     emp_count_array = np.zeros(max_career)
 
-    for i in np.arange(0, max_career):
+    for i in range(0, max_career):
         emp_count_array[i] = np.sum(career_months_array >= i)
 
     return emp_count_array.astype(int)
@@ -320,7 +334,7 @@ def age_correction(month_nums_array,
     month_val = 1 / 12
     array_len = month_nums_array.size
     result_array = np.ndarray(array_len)
-    for i in np.arange(array_len):
+    for i in range(array_len):
         result_array[i] = ((month_nums_array[i] * month_val) + ages_array[i])
     result_array = np.clip(result_array, 0, retage)
 
@@ -701,7 +715,7 @@ def assign_jobs_full_flush_job_changes(monthly_nonret_counts,
     jc_skel = np.arange(job_counts_each_month[0].size)
     monthly_nonret_counts = monthly_nonret_counts.astype(int)
 
-    for i in np.arange(0, len(monthly_nonret_counts)):
+    for i in range(0, len(monthly_nonret_counts)):
 
         job_list = np.repeat(jc_skel, job_counts_each_month[i]) + 1
         np.put(long_job_array,
@@ -860,7 +874,7 @@ def assign_jobs_nbnf_job_changes(df,
         count_dict = sdict['count_ratio_dict']
         count_jobs = sorted(count_dict.keys())
         cr_mdict = {}
-        for job in count_dict.keys():
+        for job in count_jobs:
             cr_mdict[job] = set(range(count_dict[job][3],
                                       count_dict[job][4] + 1))
 
@@ -877,7 +891,7 @@ def assign_jobs_nbnf_job_changes(df,
     job_change_months = set(job_change_months)
 
     # loop through model integrated months:
-    for month in np.arange(start_month, num_of_months):
+    for month in range(start_month, num_of_months):
 
         L = lower[month]
         U = upper[month]
@@ -1091,7 +1105,7 @@ def snum_and_spcnt(jnum_arr,
     long_snum = np.zeros(all_mths)
     long_spcnt = np.zeros(all_mths)
     num_of_months = high_limits.size
-    for month in np.arange(num_of_months):
+    for month in range(num_of_months):
 
         L = low_limits[month]
         H = high_limits[month]
@@ -1136,7 +1150,7 @@ def create_snum_array(jobs_held,
     long_snum_array = np.zeros(sum(monthly_population_counts))
     tcount = 0
 
-    for i in np.arange(0, len(monthly_population_counts)):
+    for i in range(0, len(monthly_population_counts)):
         assign_range = \
             long_snum_array[tcount: monthly_population_counts[i] + tcount]
         jobs_held_range = \
@@ -1208,7 +1222,7 @@ def create_snum_and_spcnt_arrays(jnums,
 
     L = 0
 
-    for i in np.arange(0, len(monthly_population_counts)):
+    for i in range(0, len(monthly_population_counts)):
 
         this_month_count = monthly_population_counts[i]
         H = this_month_count + L
@@ -1735,7 +1749,7 @@ def assign_cond_ratio(job,
         mask_index.append(np.in1d(eg_range, grp))
 
     i = 0
-    for i in np.arange(len(ratio_groups)):
+    for i in range(len(ratio_groups)):
         # assign jobs to employees within each ratio group who already hold
         # that job (no bump no flush)
         np.put(assign_range,
@@ -1828,7 +1842,7 @@ def assign_cond_ratio_capped(job,
     cond_assign_counts = distribute(this_job_count, weights, cap)
 
     i = 0
-    for i in np.arange(len(ratio_groups)):
+    for i in range(len(ratio_groups)):
         np.put(assign_range,
                np.where((assign_range == 0) &
                         (fur_range == 0) &
@@ -2168,7 +2182,7 @@ def make_delayed_job_counts(imp_month,
     stand_job_counts = np.zeros(imp_high)
     job_numbers = sorted(list(set(delayed_jnums[:imp_high])))
 
-    for month in np.arange(imp_month + 1):
+    for month in range(imp_month + 1):
         low = lower[month]
         high = upper[month]
         jnums_range = delayed_jnums[low:high]
@@ -2265,7 +2279,7 @@ def job_gain_loss_table(months,
                       str(this_job_table[0][jnum - 1]) +
                       ' job_levels: ' + str(job_levels))
 
-        for i in np.arange(len(job_changes)):
+        for i in range(len(job_changes)):
             col = job_list[i] - 1
             col_change_range = this_job_table[start[i]:end[i], col]
             fill_down_col_range = this_job_table[end[i]:, col]
@@ -2564,8 +2578,7 @@ def assign_standalone_job_changes(eg,
 
     job_change_months = np.unique(job_change_months)
 
-    # for month in np.arange(num_of_months):
-    for month in np.arange(start_month, num_of_months):
+    for month in range(start_month, num_of_months):
 
         L = lower[month]
         U = upper[month]
@@ -3165,7 +3178,7 @@ def make_lists_from_columns(df,
         column_list.append(e)
 
     if remove_zero_values:
-        for i in np.arange(len(column_list)):
+        for i in range(len(column_list)):
             column_list[i] = [grp for grp in column_list[i]
                               if grp not in [[0], 0]]
 

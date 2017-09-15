@@ -1,6 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# seniority_list is an analytical tool used when seniority-based work
+# groups merge. It brings modern data science to the area of labor
+# integration, utilizing the powerful data analysis capabilities of Python
+# scientific computing.
+
+# Copyright (C) 2016-2017  Robert E. Davison, Ruby Data Systems Inc.
+# Please direct consulting inquires to: rubydatasystems@fastmail.net
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 '''
 .. module:: reports
 
@@ -383,7 +404,7 @@ def retirement_charts(ds_dict,
 
     if plot_init_quarter:
 
-        iq_image_dir = im_prefix + 'init_qtr/'
+        iq_image_dir = im_prefix + 'init_qntl/'
         # make directory if it does not already exist
         if not path.exists(iq_image_dir):
             makedirs(iq_image_dir)
@@ -391,7 +412,7 @@ def retirement_charts(ds_dict,
 
     if plot_init_quarter:
 
-        rq_image_dir = im_prefix + 'run_qtr/'
+        rq_image_dir = im_prefix + 'run_qntl/'
         # make directory if it does not already exist
         if not path.exists(rq_image_dir):
             makedirs(rq_image_dir)
@@ -750,7 +771,7 @@ def annual_charts(ds_dict,
 
     if plot_init_quarter:
 
-        iq_image_dir = im_prefix + 'init_qtr/'
+        iq_image_dir = im_prefix + 'init_qntl/'
         # make directory if it does not already exist
         if not path.exists(iq_image_dir):
             makedirs(iq_image_dir)
@@ -758,7 +779,7 @@ def annual_charts(ds_dict,
 
     if plot_init_quarter:
 
-        rq_image_dir = im_prefix + 'run_qtr/'
+        rq_image_dir = im_prefix + 'run_qntl/'
         # make directory if it does not already exist
         if not path.exists(rq_image_dir):
             makedirs(rq_image_dir)
