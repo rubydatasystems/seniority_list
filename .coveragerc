@@ -1,4 +1,0 @@
-[run]
-branch = True
-source = seniority_list
-include = */seniority_list/*
