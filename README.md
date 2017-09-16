@@ -1,7 +1,5 @@
 [Click here](http://rubydatasystems.com/) to open the seniority_list documentation website.
 
-![alt text](http://www.rubydatasystems.com/_images/banner.png)
-
 # seniority_list
 
   seniority_list is an analytical tool used when seniority-based work groups merge.  It brings modern data science to the area of labor integration, utilizing the powerful data analysis capabilities of Python scientific computing.  While the software was developed with an initial focus on the airline industry, seniority_list is adaptable to any industry or group where workers operate under a seniority system.
