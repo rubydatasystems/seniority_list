@@ -1,14 +1,14 @@
-# seniority_list
+[Click here](http://rubydatasystems.com/) to open the seniority_list documentation website.
 
 ![alt text](http://www.rubydatasystems.com/_images/banner.png)
 
-[Click here](http://rubydatasystems.com/) to open the seniority_list documentation website.
+# seniority_list
 
   seniority_list is an analytical tool used when seniority-based work groups merge.  It brings modern data science to the area of labor integration, utilizing the powerful data analysis capabilities of Python scientific computing.  While the software was developed with an initial focus on the airline industry, seniority_list is adaptable to any industry or group where workers operate under a seniority system.
 
   seniority_list offers an unbiased, numerical method to measure and compare the outcome of proposed combined work group seniority lists. It is able to quantify how the careers of workers would be affected under various seniority list orderings and conditions in ways that have been difficult to measure previously.
 
-  seniority_list works by generating detailed data models (datasets) for various integration scenarios as described within a few basic Excel\* spreadsheets prepared by the user.  The datasets may then be thoroughly analyzed with many customizable, built-in visualization functions and statistical reports, or other user-defined methods.  The program is also able to construct and modify lists in near real time, with full results produced within seconds.
+  seniority_list works by generating detailed data models (datasets) for various integration scenarios as described within a few basic spreadsheets prepared by the user.  The datasets may then be thoroughly analyzed with many customizable, built-in visualization functions and statistical reports, or other user-defined methods.  The program is also able to construct and modify lists in near real time, with full results produced within seconds.
 
   seniority_list does not attempt to predict the bidding preferences of individual employees.  Instead, the program focus is on utilizing variables that are fixed or that can be modeled in a quantifiable state, such as birth dates, jobs available, proposed list orderings, furlough recall schedules, and special job assignment conditions or restrictions.  The model is based on the assumption that all employees will bid for the highest paying or highest ranked jobs at all times.  In reality, employees will make choices based on individual situations.  However, the overall result of these individual choices is a group average, ultimately constrained by list positioning.  seniority_list models the effect of list ordering combined with other customizable factors to provide useful, objective information for interested parties.
 
