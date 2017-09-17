@@ -77,11 +77,6 @@ def career_months(ret_input, start_date):
     retyears = ret_list.year
     retmonths = ret_list.month
 
-    # cmths = []
-    # for retdate in ret_list:
-    #     cmths.append(((retdate.year - s_year) * 12) -
-    #                  (s_month - retdate.month))
-
     cmths = ((retyears - s_year) * 12) - (s_month - retmonths)
 
     return np.array(cmths)
