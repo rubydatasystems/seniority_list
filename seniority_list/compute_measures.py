@@ -299,11 +299,12 @@ def main():
 
     # JNUM, FUR, JOB_COUNT
     if sdict['no_bump']:
+
         # No bump, no flush option (includes conditions, furlough/recall,
         # job changes schedules)
         # this is the main job assignment function.  It loops through all of
         # the months in the model and assigns jobs
-        jobs_and_counts = \
+        nbnf, job_count, fur = \
             f.assign_jobs_nbnf_job_changes(df_align,
                                            low_limits,
                                            high_limits,
@@ -315,20 +316,21 @@ def main():
                                            tdict,
                                            fur_return=sdict['recall'])
 
-        nbnf = jobs_and_counts[0]
         ds['jnum'] = nbnf
-        ds['fur'] = jobs_and_counts[3]
-        ds['job_count'] = jobs_and_counts[1]
+        ds['job_count'] = job_count
+        ds['fur'] = fur
 
     else:
+
         # Full flush and bump option (no conditions or
         # furlough/recall schedulue considered, job changes are included)
         # No bump, no flush applied up to implementation date
-        ff_cols = f.assign_jobs_full_flush_job_changes(
+        fbff, job_count, fur = f.assign_jobs_full_flush_job_changes(
             nonret_each_month, table[0], num_of_job_levels)
-        ds['jnum'] = ff_cols[0]
-        ds['fur'] = ff_cols[1]
-        ds['job_count'] = ff_cols[2]
+
+        ds['jnum'] = fbff
+        ds['job_count'] = job_count
+        ds['fur'] = fur
 
     # SNUM, SPCNT, LNUM, LSPCNT
 

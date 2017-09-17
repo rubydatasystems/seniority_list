@@ -56,13 +56,13 @@ def career_months(ret_input, start_date):
     including retirement partial month.
 
     "ret_input" (retirement dates) may be in the form of a pandas dataframe,
-    pandas series, list, or string
+    pandas series, array, list, or string
 
     Output is a list of integers containing the number of months between the
     start_date and each date in the ret_input
 
     inputs
-        ret_input (dataframe, series, list, or string)
+        ret_input (dataframe, series, array, list, or string)
             retirement dates input
         start_date (string date)
             comparative date for the retirement dates input, normally the
@@ -74,10 +74,15 @@ def career_months(ret_input, start_date):
 
     ret_list = convert_to_datetime(ret_input, 'retdate')
 
-    cmths = []
-    for retdate in ret_list:
-        cmths.append(((retdate.year - s_year) * 12) -
-                     (s_month - retdate.month))
+    retyears = ret_list.year
+    retmonths = ret_list.month
+
+    # cmths = []
+    # for retdate in ret_list:
+    #     cmths.append(((retdate.year - s_year) * 12) -
+    #                  (s_month - retdate.month))
+
+    cmths = ((retyears - s_year) * 12) - (s_month - retmonths)
 
     return np.array(cmths)
 
@@ -159,16 +164,16 @@ def starting_age(dob_input, start_date):
 
 
 def convert_to_datetime(date_data, attribute):
-    '''Convert a dataframe column, series, list, or string input into a list
+    '''Convert a dataframe column, series, list, or string input into an array
     of datetimes
 
     inputs
-        data_data (dataframe, series, list, or string)
+        data_data (dataframe, series, array, list, or string)
             pandas dataframe with a date column containing string dates or
             datetime objects, pandas series of dates
-            (strings or datetime objects), a list of date strings or datetime
-            objects, or a single comma-separated string containing date
-            information.
+            (strings or datetime objects), a list/array of date strings or
+            datetime objects, or a single comma-separated string containing
+            date information.
         attribute (string)
             if the date_data type is a dataframe, the name of the column
             containing the date information.  Otherwise, this input is
@@ -177,10 +182,10 @@ def convert_to_datetime(date_data, attribute):
     in_type = type(date_data)
 
     if in_type == pd.core.frame.DataFrame:
-        date_list = pd.to_datetime(list(date_data[attribute]))
+        date_list = pd.to_datetime(np.array(date_data[attribute]))
     if in_type == pd.core.frame.Series:
-        date_list = pd.to_datetime(list(date_data))
-    if in_type == list:
+        date_list = pd.to_datetime(np.array(date_data))
+    if in_type in [np.ndarray, list]:
         try:
             date_list = pd.to_datetime(date_data)
         except:
@@ -216,11 +221,11 @@ def count_per_month(career_months_array):
             retirement.
 
     '''
-    max_career = np.max(career_months_array) + 1
+    max_career = max(career_months_array) + 1
     emp_count_array = np.zeros(max_career)
 
     for i in range(0, max_career):
-        emp_count_array[i] = np.sum(career_months_array >= i)
+        emp_count_array[i] = np.count_nonzero(career_months_array >= i)
 
     return emp_count_array.astype(int)
 
@@ -278,7 +283,7 @@ def gen_skel_emp_idx(monthly_count_array,
             the ouput from the count_per_month function.
         career_mths_array (numpy array)
             career length in months for each employee, output of
-            career_months or career_months functions.
+            career_months functions.
         empkey_source_array (numpy array)
             empkey column data as array
 
@@ -744,8 +749,8 @@ def assign_jobs_full_flush_job_changes(nonret_counts,
     long_fur_array[long_job_array == 0] = 1
 
     long_job_array[long_job_array == 0] = num_job_levels + 1
-    return long_job_array.astype(int), long_fur_array.astype(int), \
-        long_count_array.astype(int)
+    return long_job_array.astype(int), long_count_array.astype(int), \
+        long_fur_array.astype(int)
 
 
 # ASSIGN JOBS NBNF JOB CHANGES
@@ -1052,10 +1057,11 @@ def assign_jobs_nbnf_job_changes(df,
 
     # not part of month loops, cleaning up fur data for output
     long_assign_column[long_assign_column == 0] = num_of_job_levels + 1
-    orig[orig == num_of_job_levels + 1] = 0
+    # orig is no longer a function output...
+    # orig[orig == num_of_job_levels + 1] = 0
 
     return long_assign_column.astype(int), long_count_column.astype(int), \
-        orig.astype(int), fur_data.astype(int)
+        fur_data.astype(int)
 
 
 # MAKE LOWER SLICE LIMITS
