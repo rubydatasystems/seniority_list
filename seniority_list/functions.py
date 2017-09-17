@@ -684,48 +684,68 @@ def make_original_jobs_from_counts(jobs_arr_arr,
 
 
 # ASSIGN JOBS FULL FLUSH with JOB COUNT CHANGES
-def assign_jobs_full_flush_job_changes(monthly_nonret_counts,
-                                       job_counts_each_month,
-                                       job_level_count):
+def assign_jobs_full_flush_job_changes(nonret_counts,
+                                       job_counts,
+                                       num_job_levels):
     '''(Long_Form)
 
     Using the nonret counts for each month:
 
       a. determine the long form slice for assignment, and
-      b. slice the jobs list from the top for assignment
+      b. slice the jobs list from the top to create job assignment column
+      c. create a corresponding furlough column
+      d. create a job count column
 
-    Uses the job_counts_each_month (job_gain_loss_table function)[0] to
+    Uses the job_counts (job_gain_loss_table function)[0] to
     build stovepiped job lists allowing for job count changes each month
+    and a furlough status column
 
     Unassigned employees (not enough jobs), are left at job number zero
 
     This is the full bump and full flush version
 
     inputs
-        monthly_nonret_counts (numpy array)
+        nonret_counts (numpy array)
             array containing the number of non-retired employees
             for each month
-        job_counts_each_month (numpy array)
+        job_counts (numpy array)
             array containing the monthly counts of jobs for each job level
-        job_level_count (integer)
-            the number of job levels in the model (excluding furlough)
+        num_job_levels (integer)
+            the number of job levels in the model (excluding furlough level)
     '''
-    long_job_array = np.zeros(sum(monthly_nonret_counts)).astype(int)
-    tcount = 0
-    jc_skel = np.arange(job_counts_each_month[0].size)
-    monthly_nonret_counts = monthly_nonret_counts.astype(int)
+    long_job_array = np.zeros(sum(nonret_counts))
+    long_count_array = np.zeros(long_job_array.size)
+    jobs_arr = np.arange(1, num_job_levels + 1)
+    # build low and high array indexes
+    cumsum = nonret_counts.cumsum()
+    cumsum_w0 = np.append(np.array(0), cumsum)
+    lows = cumsum_w0[:-1]
+    highs = cumsum_w0[1:]
 
-    for i in range(0, len(monthly_nonret_counts)):
+    for i in range(nonret_counts.size):
+        # set current loop range indexes
+        L = lows[i]
+        H = highs[i]
+        job_range = long_job_array[L:H]
+        count_range = long_count_array[L:H]
+        # build stovepipe job array
+        job_list = np.repeat(jobs_arr, job_counts[i])
+        idx = min(job_range.size, job_list.size)
+        job_range[:idx] = job_list[:idx]
+        # build job count array
+        count_list = np.repeat(job_counts[i], job_counts[i])
+        count_range[:idx] = count_list[:idx]
+        # count unassigned workers
+        fur_count = np.count_nonzero(job_range == 0)
+        count_range[count_range == 0] = fur_count
 
-        job_list = np.repeat(jc_skel, job_counts_each_month[i]) + 1
-        np.put(long_job_array,
-               np.arange(tcount,
-                         monthly_nonret_counts[i] + tcount)[:job_list.size],
-               job_list)
-        tcount += monthly_nonret_counts[i]
+    long_fur_array = np.zeros(long_job_array.size).astype(int)
+    # mark unassigned workers with a 1 in furlough array
+    long_fur_array[long_job_array == 0] = 1
 
-    long_job_array[long_job_array == 0] = job_level_count + 1
-    return long_job_array.astype(int)
+    long_job_array[long_job_array == 0] = num_job_levels + 1
+    return long_job_array.astype(int), long_fur_array.astype(int), \
+        long_count_array.astype(int)
 
 
 # ASSIGN JOBS NBNF JOB CHANGES

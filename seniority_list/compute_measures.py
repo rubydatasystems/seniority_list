@@ -297,36 +297,38 @@ def main():
     # contain standalone data through the implementation month.
     df_align = ds[['eg', 'sg', 'fur', 'orig_job']].copy()
 
-    # this is the main job assignment function.  It loops through all of the
-    # months in the model and assigns jobs
-    jobs_and_counts = \
-        f.assign_jobs_nbnf_job_changes(df_align,
-                                       low_limits,
-                                       high_limits,
-                                       all_months,
-                                       reduction_months,
-                                       imp_month,
-                                       conditions,
-                                       sdict,
-                                       tdict,
-                                       fur_return=sdict['recall'])
-
-    # if job_changes, replace original fur column...
-    ds['fur'] = jobs_and_counts[3]
-
-    # JNUM, NBNF, FBFF
-
-    nbnf = jobs_and_counts[0]
-
-    job_col = f.assign_jobs_full_flush_job_changes(
-        nonret_each_month, table[1], num_of_job_levels)
-
+    # JNUM, FUR, JOB_COUNT
     if sdict['no_bump']:
+        # No bump, no flush option (includes conditions, furlough/recall,
+        # job changes schedules)
+        # this is the main job assignment function.  It loops through all of
+        # the months in the model and assigns jobs
+        jobs_and_counts = \
+            f.assign_jobs_nbnf_job_changes(df_align,
+                                           low_limits,
+                                           high_limits,
+                                           all_months,
+                                           reduction_months,
+                                           imp_month,
+                                           conditions,
+                                           sdict,
+                                           tdict,
+                                           fur_return=sdict['recall'])
+
+        nbnf = jobs_and_counts[0]
         ds['jnum'] = nbnf
-        ds['fbff'] = job_col
+        ds['fur'] = jobs_and_counts[3]
+        ds['job_count'] = jobs_and_counts[1]
+
     else:
-        ds['nbnf'] = nbnf
-        ds['jnum'] = job_col
+        # Full flush and bump option (no conditions or
+        # furlough/recall schedulue considered, job changes are included)
+        # No bump, no flush applied up to implementation date
+        ff_cols = f.assign_jobs_full_flush_job_changes(
+            nonret_each_month, table[0], num_of_job_levels)
+        ds['jnum'] = ff_cols[0]
+        ds['fur'] = ff_cols[1]
+        ds['job_count'] = ff_cols[2]
 
     # SNUM, SPCNT, LNUM, LSPCNT
 
@@ -343,10 +345,6 @@ def main():
 
     ds['rank_in_job'] = ds.groupby(['mnum', 'jnum'],
                                    sort=False).cumcount() + 1
-
-    # JOB_COUNT
-
-    ds['job_count'] = jobs_and_counts[1]
 
     # JOBP
 
