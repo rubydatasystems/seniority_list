@@ -174,7 +174,7 @@ def main():
         # SNUM, SPCNT (excludes fur)
 
         df_long['snum'], df_long['spcnt'] = \
-            f.snum_and_spcnt(np.array(df_long.jnum),
+            f.snum_and_spcnt(df_long.jnum.values,
                              num_of_job_levels,
                              low_limits,
                              high_limits,
@@ -189,7 +189,7 @@ def main():
         # JOBP
         # make last percentage position in each job category .99999 vs 1.0
         # so that jobp calculations are correct
-        jpcnt = np.array(df_long.rank_in_job / df_long.job_count)
+        jpcnt = (df_long.rank_in_job / df_long.job_count).values
         np.put(jpcnt, np.where(jpcnt == 1.0)[0], .99999)
 
         df_long['jobp'] = df_long['jnum'] + jpcnt
@@ -207,7 +207,7 @@ def main():
                     np.array(df_long.groupby([pd.Grouper('empkey')])
                              ['non_fur'].cumsum())
                 df_long.pop('non_fur')
-                starting_mlong = np.array(df_long.s_lmonths)
+                starting_mlong = df_long.s_lmonths.values
                 cum_active_months = non_fur + starting_mlong
                 df_long['mlong'] = cum_active_months
                 df_long['ylong'] = df_long['mlong'] / 12
@@ -228,7 +228,7 @@ def main():
 
             df_pt_index['monthly'] = df_pt['monthly']
 
-            df_long['monthly'] = np.array(df_pt_index.monthly)
+            df_long['monthly'] = df_pt_index.monthly.values
 
             # MPAY
             # adjust monthly pay for any raise and last month pay percent if

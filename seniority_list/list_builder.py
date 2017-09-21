@@ -108,7 +108,7 @@ def prepare_master_list(name_int_demo=False,
     master['age'] = f.starting_age(master.retdate, sdict['starting_date'])
     master['s_lmonths'] = f.longevity_at_startdate(list(master['ldate'],),
                                                    sdict['starting_date'],
-                                                   return_months=True)
+                                                   return_as_months=True)
 
     jobs_list = []
 
@@ -140,7 +140,7 @@ def prepare_master_list(name_int_demo=False,
     for job_arr in jobs:
         np.put(job_arr, np.where(job_arr == 0)[0], fur_level)
 
-    egs = np.array(master.eg)
+    egs = master.eg.values
     jnums = np.zeros(egs.size)
     job_count = np.zeros(egs.size)
 
@@ -309,10 +309,10 @@ def sort_eg_attributes(df, attributes=['doh', 'ldate'],
     except LookupError:
         df.sort_values(['eg', 'eg_order'], inplace=True)
 
-    egs = np.array(df.eg)
+    egs = df.eg.values
     i = 0
     for measure in attributes:
-        data = np.array(df[measure])
+        data = df[measure].values
         measure_col = np.empty_like(data)
         for eg in pd.unique(df.eg):
             measure_slice = data[egs == eg]
@@ -743,8 +743,8 @@ def compare_dataframes(base, compare,
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=FutureWarning)
         for col in base:
-            base_np = np.array(base[col])
-            compare_np = np.array(compare[col])
+            base_np = base[col].values
+            compare_np = compare[col].values
 
             try:
                 unequal = np.not_equal(base_np, compare_np)

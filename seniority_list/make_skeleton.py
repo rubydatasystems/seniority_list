@@ -99,7 +99,7 @@ def main():
     # grab emp index for each remaining
     # employee for each month - used for merging dfs later
 
-    empkey_arr = np.array(df.empkey)
+    empkey_arr = df.empkey.values
 
     long_index, long_emp = f.gen_skel_emp_idx(nonret_each_month,
                                               cmonths, empkey_arr)
@@ -121,7 +121,7 @@ def main():
     df.reset_index(inplace=True)
     df.set_index('empkey', inplace=True, verify_integrity=False, drop=False)
 
-    lmonth_pcnt = np.array(df.lmonth_pcnt)
+    lmonth_pcnt = df.lmonth_pcnt.values
 
     df_dict = {'mth_pcnt': lmonth_pcnt, 'final_month': cmonths}
 
@@ -202,9 +202,9 @@ def main():
     df['ret_month'] = cmonths
     # data align to long-form skel
     skel['ret_mark'] = df.ret_month
-    mnums = np.array(skel.mnum)
+    mnums = skel.mnum.values
     lmonth_arr = np.zeros(mnums.size).astype(int)
-    ret_month = np.array(skel.ret_mark)
+    ret_month = skel.ret_mark.values
     # mark array where retirement month is equal to month number
     np.put(lmonth_arr, np.where(ret_month == mnums)[0], 1)
     skel['ret_mark'] = lmonth_arr
@@ -236,14 +236,14 @@ def main():
         # ...could be an option if recalls are not part of model
         df['s_lmonths'] = f.longevity_at_startdate(list(df['ldate']),
                                                    sdict['starting_date'],
-                                                   return_months=True)
+                                                   return_as_months=True)
         skel['s_lmonths'] = df.s_lmonths
 
     # AGE
 
     # calculate monthly age using starting age and month number
 
-    age_list = np.array(skel.s_age)
+    age_list = skel.s_age.values
 
     corr_ages = f.age_correction(long_form_skeleton,
                                  age_list,
@@ -252,7 +252,7 @@ def main():
     if sdict['ret_age_increase']:
         skel['age'] = f.clip_ret_ages(sdict['ret_incr_dict'],
                                       sdict['init_ret_age'],
-                                      np.array(skel.date), corr_ages)
+                                      skel.date.values, corr_ages)
     else:
         skel['age'] = corr_ages
 

@@ -74,18 +74,18 @@ def career_months(ret_input, start_date):
 
     ret_list = convert_to_datetime(ret_input, 'retdate')
 
-    retyears = ret_list.year
-    retmonths = ret_list.month
+    retyears = ret_list.year.values
+    retmonths = ret_list.month.values
 
     cmths = ((retyears - s_year) * 12) - (s_month - retmonths)
 
-    return np.array(cmths)
+    return cmths
 
 
 # LONGEVITY AT STARTDATE (for pay purposes)
 def longevity_at_startdate(ldate_input,
                            start_date,
-                           return_months=False):
+                           return_as_months=False):
     ''' (Short_Form)
 
     determine how much longevity (years) each employee has accrued as of the
@@ -100,7 +100,7 @@ def longevity_at_startdate(ldate_input,
         start_date (string date)
             comparative date for longevity dates, normally the data model
             starting date
-        return_months (boolean)
+        return_as_months (boolean)
             option to return result as month value instead of year value
     '''
     start_date = pd.to_datetime(start_date)
@@ -113,7 +113,7 @@ def longevity_at_startdate(ldate_input,
 
     longevity_list = []
 
-    if return_months:
+    if return_as_months:
         for ldate in ldate_list:
             longevity_list.append((((s_year - ldate.year) * 12) -
                                    (ldate.month - s_month)) + 1)
@@ -177,9 +177,9 @@ def convert_to_datetime(date_data, attribute):
     in_type = type(date_data)
 
     if in_type == pd.core.frame.DataFrame:
-        date_list = pd.to_datetime(np.array(date_data[attribute]))
+        date_list = pd.to_datetime(date_data[attribute].values)
     if in_type == pd.core.frame.Series:
-        date_list = pd.to_datetime(np.array(date_data))
+        date_list = pd.to_datetime(date_data.values)
     if in_type in [np.ndarray, list]:
         try:
             date_list = pd.to_datetime(date_data)
@@ -833,11 +833,11 @@ def assign_jobs_nbnf_job_changes(df,
     treated as furloughed employees.  No jobs are assigned to
     furloughees unless furlough_return option is selected.
     '''
-    orig = np.array(df.orig_job)
-    eg_data = np.array(df.eg)
-    sg_ident = np.array(df.sg)
-    fur_data = np.array(df.fur)
-    index_data = np.array(df.index)
+    orig = df.orig_job.values
+    eg_data = df.eg.values
+    sg_ident = df.sg.values
+    fur_data = df.fur.values
+    index_data = df.index.values
 
     lower_next = lower[1:]
     lower_next = np.append(lower_next, lower_next[-1])
@@ -1005,7 +1005,7 @@ def assign_jobs_nbnf_job_changes(df,
             #     quick_stopepipe_assign()
 
             # assign no bump, no flush jobs...
-            jobs_avail = this_job_count - np.sum(assign_range == job)
+            jobs_avail = this_job_count - np.count_nonzero(assign_range == job)
 
             np.put(assign_range,
                    np.where((assign_range == 0) &
@@ -1014,7 +1014,7 @@ def assign_jobs_nbnf_job_changes(df,
                    job)
 
             # assign remaining jobs by list order
-            jobs_avail = this_job_count - np.sum(assign_range == job)
+            jobs_avail = this_job_count - np.count_nonzero(assign_range == job)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (fur_range == 0))[0][:jobs_avail],
@@ -1045,7 +1045,7 @@ def assign_jobs_nbnf_job_changes(df,
 
         np.put(job_count_range,
                np.where(fur_range == 1)[0],
-               np.sum(fur_range == 1))
+               np.count_nonzero(fur_range == 1))
 
         fur_next = align_next(index_range, index_range_next, fur_range)
         np.copyto(fur_data[L_next:U_next], fur_next)
@@ -1122,7 +1122,7 @@ def snum_and_spcnt(jnum_arr,
     '''
     fur_level = job_levels + 1
     seq_nums = np.arange(high_limits[0] + high_limits[1]) + 1
-    # all_months = np.sum(high_limits)
+
     long_snum = np.zeros(all_mths)
     long_spcnt = np.zeros(all_mths)
     num_of_months = high_limits.size
@@ -1452,7 +1452,7 @@ def squeeze_logrithmic(data,
     order_segment = order_arr[L:H]
     eg_segment = eg_arr[L:H]
 
-    eg_count = np.sum(eg_segment == eg)
+    eg_count = np.count_nonzero(eg_segment == eg)
     if eg_count == 0:
         return
 
@@ -1714,8 +1714,8 @@ def set_snapshot_weights(ratio_dict,
     for job in job_nums:
         wgt_list = []
         for ratio_group in ratio_dict[job][0]:
-            wgt_list.append(np.sum((orig_rng == job) &
-                                   (np.in1d(eg_range, ratio_group))))
+            wgt_list.append(np.count_nonzero((orig_rng == job) &
+                                             (np.in1d(eg_range, ratio_group))))
         ratio_dict[job][1] = tuple(wgt_list)
 
     return ratio_dict
@@ -1781,8 +1781,8 @@ def assign_cond_ratio(job,
                job)
         # count how many jobs were assigned to this ratio group by no bump
         # no flush
-        used = np.sum((assign_range == job) &
-                      (np.in1d(eg_range, ratio_groups[i])))
+        used = np.count_nonzero((assign_range == job) &
+                                (np.in1d(eg_range, ratio_groups[i])))
         # determine how many remain for assignment within the ratio group
         remaining = cond_assign_counts[i] - used
         # assign the remaining jobs by seniority within the ratio group
@@ -1931,7 +1931,7 @@ def mark_for_recall(orig_range,
             set stride if stride option for recall selected.
             default is 2.
     '''
-    active_count = np.sum(fur_range == 0)
+    active_count = np.count_nonzero(fur_range == 0)
     excess_job_slots = jobs_avail[month] - active_count
 
     if excess_job_slots > 0:
@@ -2013,7 +2013,7 @@ def mark_for_furlough(orig_range,
             from settings dictionary, used to mark fur job level as
             num_of_job_levels + 1
     '''
-    active_count = np.sum(fur_range == 0)
+    active_count = np.count_nonzero(fur_range == 0)
 
     excess_job_slots = jobs_avail[month] - active_count
 
@@ -2092,7 +2092,7 @@ def align_fill_down(l, u,
     chopped_df = long_indexed_df[l:].copy()
     # data align short_df to chopped_df
     chopped_df['x'] = short_df['x']
-    result_array = np.array(chopped_df.x)
+    result_array = chopped_df.x.values
     result_size = result_array.size
     np.copyto(long_array[-result_size:], result_array)
 
@@ -2100,8 +2100,8 @@ def align_fill_down(l, u,
 
 
 # ALIGN NEXT (month)
-def align_next(long_index_arr,
-               short_index_arr,
+def align_next(this_index_arr,
+               next_index_arr,
                arr):
     '''"Carry forward" data from one month to the next.
 
@@ -2114,16 +2114,16 @@ def align_next(long_index_arr,
     next month.
 
     inputs
-        long_index_arr (array)
+        this_index_arr (array)
             current month index of unique employee keys
-        short_index_arr (array)
+        next_index_arr (array)
             next month index of unique employee keys
-            (a subset of long_index_arr)
+            (a subset of this_index_arr)
         arr (array)
             the data column segment (attribute) to carry forward
     '''
 
-    arr = arr[np.in1d(long_index_arr, short_index_arr, assume_unique=True)]
+    arr = arr[np.in1d(this_index_arr, next_index_arr, assume_unique=True)]
 
     return arr
 
@@ -2555,9 +2555,9 @@ def assign_standalone_job_changes(eg,
     sg_rights = sdict['sg_rights']
     recalls = sdict['recalls']
 
-    sg_ident = np.array(df_align.sg)
-    fur_data = np.array(df_align.fur)
-    index_data = np.array(df_align.index)
+    sg_ident = df_align.sg.values
+    fur_data = df_align.fur.values
+    index_data = df_align.index.values
 
     lower_next = lower[1:]
     lower_next = np.append(lower_next, lower_next[-1])
@@ -2658,14 +2658,14 @@ def assign_standalone_job_changes(eg,
             # and monotonic(assign_range):
             #     quick_stopepipe_assign()
 
-            jobs_avail = this_job_count - np.sum(assign_range == job)
+            jobs_avail = this_job_count - np.count_nonzero(assign_range == job)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (held_job_range <= job) &
                             (fur_range == 0))[0][:jobs_avail],
                    job)
 
-            jobs_avail = this_job_count - np.sum(assign_range == job)
+            jobs_avail = this_job_count - np.count_nonzero(assign_range == job)
             np.put(assign_range,
                    np.where((assign_range == 0) &
                             (fur_range == 0))[0][:jobs_avail],
@@ -2697,7 +2697,7 @@ def assign_standalone_job_changes(eg,
 
         np.put(job_count_range,
                np.where(fur_range == 1)[0],
-               np.sum(fur_range == 1))
+               np.count_nonzero(fur_range == 1))
 
         # fur_data = align_fill_down(L, U, long_df, fur_range, fur_data)
         fur_next = align_next(index_range, index_range_next, fur_range)
@@ -2951,10 +2951,10 @@ def make_preimp_array(ds_stand,
     ds_temp = ds_integrated[key_cols][:imp_high].copy()
 
     # make numpy arrays out of column values for fast 'key' column generation
-    stand_emp = np.array(ds_stand.empkey) * 1000
-    stand_mnum = np.array(ds_stand.mnum)
-    temp_emp = np.array(ds_temp.empkey) * 1000
-    temp_mnum = np.array(ds_temp.mnum)
+    stand_emp = ds_stand.empkey.values * 1000
+    stand_mnum = ds_stand.mnum.values
+    temp_emp = ds_temp.empkey.values * 1000
+    temp_mnum = ds_temp.mnum.values
     # make the 'key' columns
     stand_key = stand_emp + stand_mnum
     temp_key = temp_emp + temp_mnum
@@ -3063,9 +3063,9 @@ def make_cat_order(ds,
     cat_add[-1] = np.nan
     cat_counts[-1] = np.nan
 
-    mnum_arr = np.array(ds.mnum)
-    jnum_arr = np.array(ds.jnum) - 1
-    jpcnt_arr = np.array(ds.jobp % 1)
+    mnum_arr = ds.mnum.values
+    jnum_arr = ds.jnum.values - 1
+    jpcnt_arr = ds.jobp.values % 1
 
     cnt_arr = cat_counts[jnum_arr, mnum_arr]
     add_arr = cat_add[jnum_arr, mnum_arr]
@@ -3803,8 +3803,8 @@ def anon_empkeys(df,
     df0['new_emp'] = (df0.groupby('eg').cumcount() + seq_start) +\
         (df0.eg * frame_num)
 
-    eg = np.array(df0.eg)
-    emp = np.array(df0.new_emp)
+    eg = df0.eg.values
+    emp = df0.new_emp.values
 
     for eg_num in np.unique(eg):
         emp_slice = emp[np.where(eg == eg_num)[0]]
@@ -4277,7 +4277,6 @@ def find_squeeze_vals(df_m0, df_calc, cursor_vals,
             # print(m0_idx)
             # result_val = column2.loc[m0_idx]
             if v in column2.values:
-                print('yes')
                 m0_idx = df_calc[column2 == v].index[0]
             else:
                 m0_idx = df_calc.index[-1:][0]

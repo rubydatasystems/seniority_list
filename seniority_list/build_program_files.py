@@ -831,10 +831,12 @@ def main():
                                      'txt3_val': ''
                                      },
                                     index=['value'])
+
+    init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
+
     # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     # WRITE DICTIONARIES TO DISC ==========================================
-    init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
 
     with open('dill/dict_settings.pkl', 'wb') as handle:
         pickle.dump(settings,

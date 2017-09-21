@@ -350,10 +350,10 @@ def main():
 
     # JOBP
 
-    jpcnt = np.array(ds.rank_in_job / ds.job_count)
+    jpcnt = (ds.rank_in_job / ds.job_count).values
     np.put(jpcnt, np.where(jpcnt == 1.0)[0], .99999)
 
-    ds['jobp'] = ds['jnum'].values + jpcnt
+    ds['jobp'] = ds['jnum'] + jpcnt
 
     # PAY - merge with pay table - provides monthly pay
     if sdict['compute_pay_measures']:

@@ -1140,8 +1140,8 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
         # create ordered dictionary containing input dataframes with
         # columns to create 'key' and the measure column for comparisons
         if exclude_fur:
-            idx = np.array(ds.index)
-            fur = np.array(ds.fur)
+            idx = ds.index.values
+            fur = ds.fur.values
             furs = np.where(fur == 1)[0]
             ds_nofur = ds[~np.in1d(ds.index, pd.unique(idx[furs]))]
             ds_dict[str(i)] = ds_nofur[['empkey', 'mnum', measure]].copy()
@@ -1442,7 +1442,7 @@ def eg_boxplot(df_list, eg_list,
     temp_frame['year'] = temp_frame.date.dt.year
     temp_frame['key'] = (temp_frame.empkey * 1000) + temp_frame.mnum
 
-    data = {'eg': np.array(temp_frame.eg), 'year': np.array(temp_frame.year)}
+    data = {'eg': temp_frame.eg.values, 'year': temp_frame.year.values}
     frame = pd.DataFrame(data=data, index=temp_frame.key)
     # filter frame to only include desired employee groups
     frame = frame[frame['eg'].isin(eg_list)]
@@ -1456,8 +1456,8 @@ def eg_boxplot(df_list, eg_list,
         if exclude_fur:
             ds = ds[ds['eg'].isin(eg_list)][['empkey',
                                              'mnum', 'fur', measure]].copy()
-            idx = np.array(ds.index)
-            fur = np.array(ds.fur)
+            idx = ds.index.values
+            fur = ds.fur.values
             furs = np.where(fur == 1)[0]
             ds = ds[~np.in1d(ds.index, pd.unique(idx[furs]))]
 
@@ -2143,10 +2143,10 @@ def differential_scatter(df_list, dfb,
 
     eg_grouped = df.groupby('eg')
     df['eg_sep_order'] = eg_grouped.cumcount() + 1
-    eg_sep_order = np.array(df.eg_sep_order)
+    eg_sep_order = df.eg_sep_order.values
     eg_denom_dict = eg_grouped.eg_sep_order.max().to_dict()
 
-    eg_arr = np.array(df.eg)
+    eg_arr = df.eg.values
     eg_set = pd.unique(eg_arr)
     denoms = np.zeros(eg_arr.size)
 
@@ -2808,12 +2808,12 @@ def rows_of_color(df, mnum, measure_list,
     if fur_color:
         plot_colors[-1] = fur_color
 
-    eg = np.array(joined.eg)
+    eg = joined.eg.values
     egs = pd.unique(eg)
 
     if job_only:
 
-        jnums = np.array(joined.jnum)
+        jnums = joined.jnum.values
 
         for eg_num in egs:
             np.put(heat_data, np.where(eg == eg_num)[0], eg_num)
@@ -2832,19 +2832,19 @@ def rows_of_color(df, mnum, measure_list,
 
             if measure in ['eg', 'jnum']:
 
-                measure = np.array(joined[measure])
+                measure = joined[measure].values
                 for val in pd.unique(measure):
                     np.put(heat_data, np.where(measure == val)[0], val)
 
             else:
 
                 if measure == 'fur':
-                    measure = np.array(joined[measure])
+                    measure = joined[measure].values
                     np.put(heat_data, np.where(measure == 1)[0],
                            fur_integer)
 
                 else:
-                    measure = np.array(joined[measure])
+                    measure = joined[measure].values
                     for v in pd.unique(measure):
                         np.put(heat_data, np.where(measure == v)[0], v)
 
@@ -3817,8 +3817,8 @@ def editor(settings_dict,
         x_limit = slider_lim // 100 * 100 + 100
 
     df['eg_sep_order'] = df.groupby('eg').cumcount() + 1
-    eg_sep_order = np.array(df.eg_sep_order)
-    eg_arr = np.array(df.eg)
+    eg_sep_order = df.eg_sep_order.values
+    eg_arr = df.eg.values
     eg_denom_dict = df.groupby('eg').eg_sep_order.max().to_dict()
     eg_set = sorted(list(pd.unique(df.eg)))
     max_eg_plus_one = max(eg_set) + 1
@@ -5443,7 +5443,7 @@ def cond_test(df, grp_sel,
             mdate = df[df.mnum == month]['date'].iloc[0].strftime('%m-%d-%Y')
             print('\nmonth ' + str(month), '(' + mdate + ') ' +
                   title + ' job count:')
-            jnum_seg = np.array(df[df.mnum == month]['jnum'])
+            jnum_seg = df[df.mnum == month]['jnum'].values
             for job in job_list:
                 job_count = jnum_seg[jnum_seg == job].size
                 print(int(job), int(job_count))
@@ -6834,10 +6834,10 @@ def slice_ds_by_filtered_index(df, ds_dict=None,
 
     # get the indexes (employee numbers) of the filtered data
     month_slice_indexes = \
-        np.array(ds[eval('(ds[attr]' + attr_oper + attr_val +
-                         ') & (ds.mnum == ' + mnum + ')')].index)
+        ds[eval('(ds[attr]' + attr_oper + attr_val +
+                ') & (ds.mnum == ' + mnum + ')')].index.values
 
-    ds_index = np.array(ds.index)
+    ds_index = ds.index.values
     # get all of the dataset rows with an index (employee number) which exists
     # within the month_slice_indexes array
     ds_filter = ds[np.in1d(ds_index, month_slice_indexes)]
@@ -6881,7 +6881,7 @@ def mark_quantiles(df, quantiles=10):
     mod = mult / quantiles
     aligned_df = df.copy()
     df = df[df.mnum == 0][['eg']].copy()
-    eg_arr = np.array(df.eg)
+    eg_arr = df.eg.values
     bins_arr = np.zeros_like(eg_arr)
     unique_egs = np.arange(eg_arr.max()) + 1
     for eg in unique_egs:
@@ -7522,8 +7522,7 @@ def add_editor_list_to_excel(case=None):
             print('case variable not found,',
                   'tried to find it in "dill/case_dill.pkl"',
                   'without success\n')
-            import sys
-            sys.exit()
+            return
 
     xl_str = 'excel/' + case + '/proposals.xlsx'
     df = pd.read_pickle('dill/p_new_order.pkl')
