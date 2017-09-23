@@ -26,6 +26,6 @@
   - *easy adaptation* - the design of the program and the simple data input interface via spreadsheets makes it easy to use seniority_list with many different integration cases
   - *open source* - all programming code is open and available for examination and usage
 
-  seniority_list was developed independently. The program is not affiliated with any labor or industry organization and is licensed under the GNU General Public License v3.0.  Please direct any consulting inquiries to rubydatasystems@fastmail.net.
+  seniority_list was developed independently. The program is not affiliated with any labor or industry organization and is licensed under the GNU General Public License v3.0.  Please direct consulting inquiries to rubydatasystems@fastmail.net.
 
 [Click here](http://rubydatasystems.com/) to open the seniority_list documentation website.
