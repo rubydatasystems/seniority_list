@@ -2032,7 +2032,7 @@ def mark_for_furlough(orig_range,
                num_of_job_levels + 1)
 
 
-# MARK_FUR_RANGE
+@jit(nopython=True, cache=True)
 def mark_fur_range(assign_range,
                    fur_range,
                    job_levels):
@@ -2048,9 +2048,13 @@ def mark_fur_range(assign_range,
         job_levels
             number of job levels in model (from settings dictionary)
     '''
-    np.put(fur_range, np.where(assign_range == 0)[0], 1)
-    np.put(fur_range, np.where((assign_range > 0) &
-                               (assign_range <= job_levels))[0], 0)
+
+    for i in range(assign_range.size):
+        if assign_range[i] == 0:
+            fur_range[i] = 1
+        if assign_range[i] > 0:
+            if assign_range[i] <= job_levels:
+                fur_range[i] = 0
 
 
 # ALIGN FILL DOWN (all future months)
@@ -2100,9 +2104,10 @@ def align_fill_down(l, u,
 
 
 # ALIGN NEXT (month)
+@jit
 def align_next(this_index_arr,
                next_index_arr,
-               arr):
+               these_vals_arr):
     '''"Carry forward" data from one month to the next.
 
     Use the numpy in1d function to compare indexes (empkeys) from one month
@@ -2122,10 +2127,15 @@ def align_next(this_index_arr,
         arr (array)
             the data column segment (attribute) to carry forward
     '''
-
-    arr = arr[np.in1d(this_index_arr, next_index_arr, assume_unique=True)]
-
-    return arr
+    this_len = this_index_arr.size
+    next_len = next_index_arr.size
+    result = np.empty(next_len, dtype=int)
+    j = 0
+    for i in range(this_len):
+        if this_index_arr[i] == next_index_arr[j]:
+            result[j] = these_vals_arr[i]
+            j += 1
+    return result
 
 
 # DISTRIBUTE (simple)
@@ -3065,7 +3075,7 @@ def make_cat_order(ds,
 
     mnum_arr = ds.mnum.values
     jnum_arr = ds.jnum.values - 1
-    jpcnt_arr = ds.jobp.values % 1
+    jpcnt_arr = np.array(ds.jobp % 1)
 
     cnt_arr = cat_counts[jnum_arr, mnum_arr]
     add_arr = cat_add[jnum_arr, mnum_arr]
