@@ -23,10 +23,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '''create the standalone dataset
-
 output is a single dataset containing independent results for each
 employee group
-
 'prex' may be included as a condition argument if the dataset should be
 constructed with pre-existing job rights conditions
 '''
@@ -41,7 +39,6 @@ from sys import argv, exit
 
 
 def main():
-
 
     script, *conditions = argv
 
