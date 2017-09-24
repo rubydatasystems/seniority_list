@@ -22,8 +22,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''produces a dataframe with information for each employee that is not
-dependent on the ORDER of the list...
+'''produces a dataframe with information for each employee that
+is not dependent on the ORDER of the list...
 
 some column(s) are dependent on the settings dictionary values, such as
 pay raise beyond the contract last year.
@@ -72,7 +72,7 @@ def main():
     # calculate the number of career months for each employee (short_form)
     # cmonths is used for mnum, idx, and mth_pcnt calculations
 
-    cmonths = f.career_months(df, sdict['starting_date'])
+    cmonths = f.career_months(df, start_date)
     # convert the python cmonths list to a numpy array and
     # use that array as input for the count_per_month function.
     # The count_per_month function output array is input for
@@ -141,13 +141,9 @@ def main():
 
     # set up date_range - end of month dates
 
-    df_dates = pd.DataFrame(pd.date_range(sdict['starting_date'],
+    df_dates = pd.DataFrame(pd.date_range(start_date,
                                           periods=len(nonret_each_month),
                                           freq='M'), columns=['date'])
-
-    # This is an input for the contract_pay_and_year_and_raise function
-
-    # date_series = pd.to_datetime(list(df_dates['date']))
 
     # this function produces a 2-column array.
     # First column is the year value of the date list passed as an input.
@@ -171,7 +167,7 @@ def main():
     # Merged here so that they could be done together
     # after setting indexes to match.
 
-    s_age = f.starting_age(dobs, sdict['starting_date'])
+    s_age = f.starting_age(dobs, start_date)
     df['s_age'] = s_age
 
     # data alignment magic...set index to empkey
@@ -214,7 +210,7 @@ def main():
     if sdict['compute_pay_measures']:
 
         df['s_lyears'] = f.longevity_at_startdate(list(df['ldate']),
-                                                  sdict['starting_date'])
+                                                  start_date)
         skel['s_lyears'] = df.s_lyears
 
         month_inc = (1 / 12)

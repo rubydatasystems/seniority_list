@@ -58,8 +58,17 @@ def main():
         df_master = pd.read_pickle(pre + 'master' + suf)
     except OSError:
         print('Master list not found.  Run build_program_files script?')
+        exit()
 
-    ds = pd.read_pickle(skeleton_path_string)
+    try:
+        ds = pd.read_pickle(skeleton_path_string)
+    except OSError:
+        print('\nSkeleton file not found. ' +
+              'Run build_program_files script?\n\n' +
+              'Standalone build failed.\n\n' +
+              '  >>> exiting routine.\n')
+        exit()
+
     try:
         df_order = pd.read_pickle(proposal_order_string)
     except OSError:

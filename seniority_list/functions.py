@@ -47,11 +47,15 @@ from collections import OrderedDict as od
 def career_months(ret_input, start_date):
     '''(Short_Form)
     Determine how many months each employee will work
-    including retirement partial month.
+    including retirement partial month
+
     "ret_input" (retirement dates) may be in the form of a pandas dataframe,
     pandas series, array, list, or string
-    Output is a list of integers containing the number of months between the
-    start_date and each date in the ret_input
+
+    Output is a numpy array of integers containing the number of months
+    between the start_date and each date in the ret_input (months from
+    start date to retirement for each employee)
+
     inputs
         ret_input (dataframe, series, array, list, or string)
             retirement dates input
@@ -196,7 +200,7 @@ def count_per_month(career_months_array):
             containing the number of months each employee will work until
             retirement.
     '''
-    max_career = max(career_months_array) + 1
+    max_career = career_months_array.max() + 1
     emp_count_array = np.zeros(max_career)
 
     for i in range(0, max_career):
@@ -266,7 +270,7 @@ def gen_skel_emp_idx(monthly_count_array,
 
     k = 0
     # look in career months list for each month
-    for j in np.arange(0, int(np.max(career_mths_array)) + 1):
+    for j in range(int(np.max(career_mths_array)) + 1):
         idx = 0
         for i in emp_idx:
             if career_mths_array[i] >= j:
@@ -279,7 +283,6 @@ def gen_skel_emp_idx(monthly_count_array,
 
 
 # AGE FOR EACH MONTH (correction to starting age)
-# @jit  (jit broken with numba version update 0.28.1, np111py35_0)
 def age_correction(month_nums_array,
                    ages_array,
                    retage):
@@ -302,10 +305,7 @@ def age_correction(month_nums_array,
     (this is candidate for np.put refactored function)
     '''
     month_val = 1 / 12
-    array_len = month_nums_array.size
-    result_array = np.ndarray(array_len)
-    for i in range(array_len):
-        result_array[i] = ((month_nums_array[i] * month_val) + ages_array[i])
+    result_array = (month_nums_array * month_val) + ages_array
     result_array = np.clip(result_array, 0, retage)
 
     return result_array

@@ -67,7 +67,6 @@ def main():
     tdict = pd.read_pickle('dill/dict_job_tables.pkl')
 
     num_of_job_levels = sdict['num_of_job_levels']
-    # num_of_months = pd.unique(ds.mnum).size
     egs = np.unique(ds.eg)
     start_month = 0
 
@@ -149,10 +148,8 @@ def main():
         # JOB_COUNT
         df_long['job_count'] = count_col
 
-        df_short['orig_job'] = orig_jobs
-
         # ORIG_JOB
-
+        df_short['orig_job'] = orig_jobs
         df_long['orig_job'] = df_short['orig_job']
 
         # ASSIGN JOBS - (stovepipe method only since only
@@ -201,8 +198,8 @@ def main():
                 df_long['fur'] = fur
 
                 non_fur = \
-                    np.array(df_long.groupby([pd.Grouper('empkey')])
-                             ['non_fur'].cumsum())
+                    (df_long.groupby([pd.Grouper('empkey')])
+                     ['non_fur'].cumsum().values)
                 df_long.pop('non_fur')
                 starting_mlong = df_long.s_lmonths.values
                 cum_active_months = non_fur + starting_mlong
@@ -212,6 +209,7 @@ def main():
                     np.clip((cum_active_months / 12) + 1, 1,
                             sdict['top_of_scale']).astype(int)
 
+            # SCALE
             df_pt_index = pd.DataFrame(
                 index=(df_long['scale'] * 100) + df_long['jnum'] +
                 (df_long['year'] * 100000))
