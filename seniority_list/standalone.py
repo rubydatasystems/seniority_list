@@ -159,21 +159,17 @@ def main():
 
         df_long['jnum'] = jnums
 
-        # LNUM, LSPCNT (includes fur)
+        # SNUM, SPCNT, LNUM, LSPCNT
 
-        df_long['lnum'] = f.create_snum_array(jnums, this_ds_nonret_each_month)
+        monthly_job_counts = table[1][eg - 1]
+        lspcnt_calc = sdict['lspcnt_calc_on_remaining_population']
 
-        df_long['lspcnt'] = df_long['lnum'] / max(df_long.lnum)
-
-        # SNUM, SPCNT (excludes fur)
-
-        df_long['snum'], df_long['spcnt'] = \
-            f.snum_and_spcnt(df_long.jnum.values,
-                             num_of_job_levels,
-                             low_limits,
-                             high_limits,
-                             this_eg_month_counts,
-                             all_months)
+        df_long['snum'], df_long['spcnt'], \
+            df_long['lnum'], df_long['lspcnt'] = \
+            f.create_snum_and_spcnt_arrays(jnums, num_of_job_levels,
+                                           this_ds_nonret_each_month,
+                                           monthly_job_counts,
+                                           lspcnt_calc)
 
         # RANK in JOB
 

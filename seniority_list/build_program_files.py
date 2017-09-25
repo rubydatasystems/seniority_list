@@ -452,10 +452,24 @@ def main():
     else:
         settings['num_of_job_levels'] = settings['job_levels_basic']
 
+    # ## eg_counts
+
     df = xl['job_counts']
-    filter_cols = \
-        [col for col in df.columns.values.tolist() if col.startswith('eg')]
+    filter_cols = [col for col in df.columns.values.tolist()
+                   if str(col).startswith('eg')]
+    # if user fails to use "eg" prefix with eg numbers and uses integer
+    # headers instead:
+    if not filter_cols:
+        try:
+            filter_cols = [col for col in df.columns.values.tolist()
+                           if type(int(col)) == int]
+        except ValueError:
+            print('error: eg_counts.  Check that job_count worksheet ' +
+                  'headers start with "eg".')
     df_filt = df[filter_cols]
+    # sort the columns to ensure proper reference order for standalone counts
+    # (in case user input coulumns are not sorted)
+    df_filt.sort_index(axis=1, inplace=True)
     eg_counts = []
     for col in df_filt:
         eg_counts.append(list(df_filt[col]))

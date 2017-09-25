@@ -1150,7 +1150,7 @@ def create_snum_and_spcnt_arrays(jnums,
 
     L = 0
 
-    for i in range(0, len(monthly_population_counts)):
+    for i in range(len(monthly_population_counts)):
 
         this_month_count = monthly_population_counts[i]
         H = this_month_count + L
@@ -1173,7 +1173,7 @@ def create_snum_and_spcnt_arrays(jnums,
 
         np.put(snum_range,
                non_fur_indexes,
-               seq_nums[0: this_month_count])
+               seq_nums[:this_month_count])
         np.copyto(denom_range,
                   monthly_job_counts[i])
         np.copyto(posit_range,
@@ -1201,9 +1201,10 @@ def make_jcnts(job_count_lists):
     of eg job count input lists
     2. array of one summation list of first array
     (total count of all eg jobs)
-    (old function name: make_job_counts_without_fur)
+
     The arrays above will not contain a furlough count.
     Returns tuple (eg_job_counts, combined_job_count)
+
     inputs
         job_count_lists
             list of the employee job count list(s).
@@ -1211,6 +1212,7 @@ def make_jcnts(job_count_lists):
             will be the output of the convert_jcnts_to_enhanced function.
             Otherwise, it will be the eg_counts variable from the
             settings dictionary.
+
     Example return:
     .. code:: python
       (array([

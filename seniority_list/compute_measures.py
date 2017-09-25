@@ -328,6 +328,8 @@ def main():
         ds['jnum'] = nbnf
         ds['job_count'] = job_count
         ds['fur'] = fur
+        # for create_snum_and_spcnt_arrays function input...
+        jnum_jobs = nbnf
 
     else:
 
@@ -340,16 +342,17 @@ def main():
         ds['jnum'] = fbff
         ds['job_count'] = job_count
         ds['fur'] = fur
+        # for create_snum_and_spcnt_arrays function input...
+        jnum_jobs = fbff
 
     # SNUM, SPCNT, LNUM, LSPCNT
 
-    jnum_jobs = ds['jnum'].values.astype(int)
-    job_count_each_month = table[1]
+    monthly_job_counts = table[1]
 
     ds['snum'], ds['spcnt'], ds['lnum'], ds['lspcnt'] = \
         f.create_snum_and_spcnt_arrays(jnum_jobs, num_of_job_levels,
                                        nonret_each_month,
-                                       job_count_each_month,
+                                       monthly_job_counts,
                                        lspcnt_calc)
 
     # RANK in JOB
