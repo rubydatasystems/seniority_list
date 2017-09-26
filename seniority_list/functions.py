@@ -427,7 +427,17 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr,
     '''Month_Form
     Compute an integrated job list built from multiple
     independent eg stovepiped job lists.
-    (old name: make_jobs_arr_from_job_lists)
+
+    This function is for multiple egs (employee groups) - multiple lists in
+    one job_lists_arr.
+    Creates an ndarray of job numbers.
+    Function takes independent job number lists and an array of eg codes
+    which represent the eg ordering in the proposed list.
+    Job numbers from the separate lists are added to the result array
+    according to the eg_arr order.  Jobs on each list do not have to be
+    in any sort of order.  The routine simply adds items from the list(s)
+    to the result array slots in list order.
+
     inputs
         job_lists_arr
             array of the input job number arrays.
@@ -444,21 +454,15 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr,
             sums of total jobs available for each eg, form: [n,n,n]
         num_levels
             number of job levels in model (excluding furlough level)
-        skip_fur (option)
-            ignore or skip furloughs when assigning stovepipe jobs
-    This function is for multiple egs (employee groups) - multiple lists in
-    one job_lists_arr.
-    Creates an ndarray of job numbers.
-    Function takes independent job number lists and an array of eg codes
-    which represent the eg ordering in the proposed list.
-    Job numbers from the separate lists are added to the result array
-    according to the eg_arr order.  Jobs on each list do not have to be
-    in any sort of order.  The routine simply adds items from the list(s)
-    to the result array slots in list order.
-    skip_fur option:
-        Employees who are originally marked as furloughed are
-        assigned the furlough level number which is 1 greater
-        than the number of job levels.
+        skip_fur (boolean)
+        skip_fur option:
+            ignore or skip furloughs when assigning stovepipe jobs.
+            If True, employees who are originally marked as furloughed are
+            assigned the furlough level number which is 1 greater
+            than the number of job levels.
+            If False, jobs are assigned within each employee group in a
+            stovepipe fashion, including those employees who are marked
+            as furloughed
     '''
     result_jobs_arr = np.zeros(eg_arr.size)
 
@@ -500,13 +504,28 @@ def make_stovepipe_prex_shortform(job_list,
                                   sg_rights,
                                   fur_codes):
     '''Short_Form
+
     Creates a 'stovepipe' job assignment within a single eg including a
     special job assignment condition for a subgroup.  The subgroup is
     identified with a 1 in the sg_codes array input, originating with
-    the sg column in the master list.  This function applies a pre-existing
-    (prior to the merger) contractual job condition, which is likely the
-    result of a previous seniority integration.
-    *old name: make_amer_stovepipe_short_prex*
+    the sg column in the master list.
+
+    This function applies a pre-existing (prior to the merger)
+    contractual job condition, which is likely the result of a previous
+    seniority integration.
+
+    The subset group will have proirity assignment for the first n jobs
+    in the affected job category, the remainding jobs
+    are assigned in seniority order.
+
+    The subgroup jobs are assigned in subgroup stovepipe order.
+
+    This function is applicable to a condition with known job counts.
+
+    The result of this function is used with standalone calculations or
+    combined with other eg lists to form an integrated original
+    job assignment list.
+
     inputs
         job_list
             list of job counts for eg, like [23,34,0,54,...]
@@ -521,14 +540,6 @@ def make_stovepipe_prex_shortform(job_list,
             Columns 2 and 3 are extracted for use.
         fur_codes
             array of ones and zeros, one indicates furlough status
-    The subset group will have proirity assignment for the first n jobs
-    in the affected job category, the remainding jobs
-    are assigned in seniority order.
-    The subgroup jobs are assigned in subgroup stovepipe order.
-    This function is applicable to a condition with known job counts.
-    The result of this function is used with standalone calculations or
-    combined with other eg lists to form an integrated original
-    job assignment list.
     '''
     o_job = np.zeros(sg_codes.size)
     this_count = 0
@@ -572,25 +583,34 @@ def make_original_jobs_from_counts(jobs_arr_arr,
                                    fur_array,
                                    num_levels):
     '''Short_Form
+
     This function grabs jobs from standalone job count
     arrays (normally stovepiped) for each employee group and inserts
     those jobs into a proposed integrated list, or a standalone list.
     Each eg (employee group) is assigned jobs from their standalone
     list in order top to bottom.
+
     Result is a combined list of jobs with each eg maintaining ordered
     independent stovepipe jobs within the combined list of jobs
+
     jobs_arr_arr is an array of arrays, likely output[0] from
     make_array_of_job_lists function.
+
     Order of job count arrays within jobs_arr_arr input
     must match emp group codes order (1, 2, 3, etc.).
+
     If total group counts of job(s) is less than slots available to that group,
     remaining slots will be assigned (remain) a zero job number (0).
+
     eg_array is list (order sequence) of employee group codes from proposed
     list with length equal to length of proposed list.
+
     Result of this function is ultimately merged into long form
     for no bump no flush routine.
+
     employees who are originally marked as furloughed are assigned the furlough
     level number which is 1 greater than the number of job levels.
+
     inputs
         jobs_arr_arr (numpy array of arrays)
             lists of job counts for each job level within each employee
@@ -620,6 +640,262 @@ def make_original_jobs_from_counts(jobs_arr_arr,
                num_levels + 1)
 
     return result_jobs_arr.astype(int)
+
+
+# ASSIGN JOBS STANDALONE WITH JOB CHANGES and prex option
+def assign_standalone_job_changes(eg,
+                                  df_align,
+                                  lower,
+                                  upper,
+                                  total_months,
+                                  job_counts_each_month,
+                                  total_monthly_job_count,
+                                  nonret_each_month,
+                                  job_change_months,
+                                  job_reduction_months,
+                                  start_month,
+                                  sdict,
+                                  tdict,
+                                  apply_sg_cond=True):
+    '''(Long_Form)
+    Uses the job_gain_or_loss_table job count array for job assignments.
+    Jobs counts may change up or down in any category for any time period.
+    Handles furlough and return of employees.
+    Handles prior rights/conditions and restrictions.
+    Handles recall of initially furloughed employees.
+    Inputs are precalculated outside of function to the extent possible.
+    Returns tuple (long_assign_column, long_count_column, held_jobs,
+    fur_data, orig_jobs)
+    inputs
+        eg (integer)
+            input from an incremental loop which is used to select the proper
+            employee group recall scedule
+        df_align (dataframe)
+            dataframe with ['sg', 'fur'] columns
+        num_of_job_levels (integer)
+            number of job levels in the data model (excluding a furlough
+            level)
+        lower (1d array)
+            ndarry from make_lower_slice_limits function
+            (calculation derived from cumsum of count_per_month function)
+        upper (1d array)
+            cumsum of count_per_month function
+        total_months (integer or float)
+            sum of count_per_month function output
+        job_counts_each_month (array)
+            output of job_gain_loss_table function[0]
+            (precalculated monthly count of jobs in each job category,
+            size (months,jobs))
+        total_monthly_job_count (array)
+            output of job_gain_loss_table function[1]
+            (precalculated monthly total count of all job categories,
+            size (months))
+        nonret_each_month (1d array)
+            output of count_per_month function
+        job_change_months (list)
+            the min start month and max ending month found within the
+            array of job_counts_each_month inputs
+            (find the range of months to apply consideration for
+            any job changes - prevents unnecessary looping)
+        job_reduction_months (list)
+            months in which the number of jobs is decreased (list).
+            from the get_job_reduction_months function
+        start_month (integer)
+            starting month for calculations, likely implementation month
+            from settings dictionary
+        sdict (dictionary)
+            the program settings dictionary (produced by the
+            build_program_files script)
+        tdict (dictionary)
+            job tables dictionary (produced by the build_program_files script)
+        apply_sg_cond (boolean)
+            compute with pre-existing special job quotas for certain
+            employees marked with a one in the sg column (special group)
+            according to a schedule defined in the settings dictionary
+    Assigns jobs so that original standalone jobs are assigned
+    each month (if available) unless a better job is available
+    through attrition of employees.
+    Each month loop starts with the lowest job number.
+    For each month and for each job level:
+        1. assigns nbnf (orig) job if job array (long_assign_column) element
+        is zero (unassigned) and orig job number is less than or
+        equal to the job level in current loop, then
+        2. assigns job level in current loop to unassigned slots from
+        top to bottom in the job array (up to the count of that
+        job level remaining after step one above)
+    Each month range is determined by slicing using the lower and upper inputs.
+    A comparison is made each month between the original job numbers and the
+    current job loop number.
+    Job assignments are placed into the monthly segment
+    (assign_range) of the long_assign_column.
+    The long_assign_column eventually becomes the job number (jnum) column
+    in the dataset.
+    Original job numbers of 0 indicate no original job and are
+    treated as furloughed employees - no jobs are assigned
+    to furloughees unless furlough_return option is selected.
+    '''
+    num_of_job_levels = sdict['num_of_job_levels']
+    fur_return = sdict['recall']
+    sg_rights = sdict['sg_rights']
+    recalls = sdict['recalls']
+
+    sg_ident = df_align.sg.values
+    fur_data = df_align.fur.values
+    index_data = df_align.index.values
+
+    lower_next = lower[1:]
+    lower_next = np.append(lower_next, lower_next[-1])
+
+    upper_next = upper[1:]
+    upper_next = np.append(upper_next, upper_next[-1])
+
+    # job assignment result array/column
+    long_assign_column = np.zeros(total_months, dtype=int)
+    # job counts result array/column
+    long_count_column = np.zeros(total_months, dtype=int)
+    # job held col
+    held_jobs = np.zeros(total_months, dtype=int)
+
+    num_of_months = upper.size
+    this_eg_sg = None
+
+    if apply_sg_cond:
+
+        sg_rights = np.array(sg_rights)
+        sg_egs = np.unique(np.transpose(sg_rights)[0])
+        if eg in sg_egs:
+            this_eg_sg = True
+            sg_jobs = np.transpose(sg_rights)[1]
+            sg_counts = np.transpose(sg_rights)[2]
+            sg_dict = dict(zip(sg_jobs, sg_counts))
+
+            # calc sg prex condition month range and concat
+            sg_month_range = np.arange(np.min(sg_rights[:, 3]),
+                                       np.max(sg_rights[:, 4]))
+            job_change_months = np.concatenate((job_change_months,
+                                                sg_month_range))
+
+    if fur_return:
+
+        recall_months = get_recall_months(recalls)
+        job_change_months = np.concatenate((job_change_months,
+                                            recall_months))
+
+    job_change_months = np.unique(job_change_months)
+
+    for month in range(start_month, num_of_months):
+
+        L = lower[month]
+        U = upper[month]
+
+        L_next = lower_next[month]
+        U_next = upper_next[month]
+
+        held_job_range = held_jobs[L:U]
+        assign_range = long_assign_column[L:U]
+        job_count_range = long_count_column[L:U]
+        fur_range = fur_data[L:U]
+        sg_range = sg_ident[L:U]
+        index_range = index_data[L:U]
+        index_range_next = index_data[L_next:U_next]
+
+        # use numpy arrays for job assignment process for each month
+        # use pandas for data alignment 'job position forwarding'
+        # to future months
+
+        # this_job_col = 0
+        job = 1
+
+        if month in job_reduction_months:
+            mark_for_furlough(held_job_range, fur_range, month,
+                              total_monthly_job_count, num_of_job_levels)
+
+        if fur_return and (month in recall_months):
+            mark_for_recall(held_job_range, num_of_job_levels,
+                            fur_range, month, recalls,
+                            total_monthly_job_count,
+                            standalone=True,
+                            eg_index=eg - 1)
+
+        while job <= num_of_job_levels:
+
+            this_job_count = job_counts_each_month[month, job]
+
+            if month in job_change_months:
+
+                if this_eg_sg:
+
+                    if month in sg_month_range and job in sg_jobs:
+
+                        # assign prex condition jobs to sg employees
+                        sg_jobs_avail = min(sg_dict[job], this_job_count)
+                        np.put(assign_range,
+                               np.where((assign_range == 0) &
+                                        (sg_range == 1) &
+                                        (fur_range == 0))[0][:sg_jobs_avail],
+                               job)
+
+            # TODO, (for developer) code speedup...
+            # use when not in condition month and monotonic is true
+            # (all nbnf distortions gone, no job count changes)
+            # if (month > max(job_change_months))
+            # and monotonic(assign_range):
+            #     quick_stopepipe_assign()
+
+            jobs_avail = count_avail_jobs(assign_range,
+                                          job,
+                                          this_job_count)
+            np.put(assign_range,
+                   np.where((assign_range == 0) &
+                            (held_job_range <= job) &
+                            (fur_range == 0))[0][:jobs_avail],
+                   job)
+
+            jobs_avail = count_avail_jobs(assign_range,
+                                          job,
+                                          this_job_count)
+            np.put(assign_range,
+                   np.where((assign_range == 0) &
+                            (fur_range == 0))[0][:jobs_avail],
+                   job)
+
+            assign_job_counts(job_count_range,
+                              assign_range,
+                              job,
+                              this_job_count)
+
+            # this_job_col += 1
+            job += 1
+
+        # AFTER MONTHLY JOB LOOPS DONE, PRIOR TO NEXT MONTH:
+
+        # pass down assign_range
+        held_jobs[L_next:U_next] = \
+            align_next(index_range, index_range_next, assign_range)
+
+        # pass down fur_range
+        #  TODO (for developer)**
+        # eliminate this furlough pass down...
+        # all fur data including future month fur status
+        # can be precalculated with headcount,
+        # job counts and fur return schedule
+
+        # unassigned marked as fur
+        mark_fur_range(assign_range, fur_range, num_of_job_levels)
+
+        np.put(job_count_range,
+               np.where(fur_range == 1)[0],
+               np.count_nonzero(fur_range == 1))
+
+        fur_data[L_next:U_next] = \
+            align_next(index_range, index_range_next, fur_range)
+
+    long_assign_column[long_assign_column == 0] = num_of_job_levels + 1
+    held_jobs[held_jobs == num_of_job_levels + 1] = 0
+    orig_jobs = long_assign_column[lower[0]:upper[0]]
+
+    return long_assign_column.astype(int), long_count_column.astype(int), \
+        held_jobs.astype(int), fur_data.astype(int), orig_jobs.astype(int)
 
 
 # ASSIGN JOBS FULL FLUSH with JOB COUNT CHANGES
@@ -2219,262 +2495,6 @@ def convert_to_enhanced(eg_job_counts,
         enhanced_job_counts.append(this_list)
 
     return enhanced_job_counts, enhanced_job_changes
-
-
-# ASSIGN JOBS STANDALONE WITH JOB CHANGES and prex option
-def assign_standalone_job_changes(eg,
-                                  df_align,
-                                  lower,
-                                  upper,
-                                  total_months,
-                                  job_counts_each_month,
-                                  total_monthly_job_count,
-                                  nonret_each_month,
-                                  job_change_months,
-                                  job_reduction_months,
-                                  start_month,
-                                  sdict,
-                                  tdict,
-                                  apply_sg_cond=True):
-    '''(Long_Form)
-    Uses the job_gain_or_loss_table job count array for job assignments.
-    Jobs counts may change up or down in any category for any time period.
-    Handles furlough and return of employees.
-    Handles prior rights/conditions and restrictions.
-    Handles recall of initially furloughed employees.
-    Inputs are precalculated outside of function to the extent possible.
-    Returns tuple (long_assign_column, long_count_column, held_jobs,
-    fur_data, orig_jobs)
-    inputs
-        eg (integer)
-            input from an incremental loop which is used to select the proper
-            employee group recall scedule
-        df_align (dataframe)
-            dataframe with ['sg', 'fur'] columns
-        num_of_job_levels (integer)
-            number of job levels in the data model (excluding a furlough
-            level)
-        lower (1d array)
-            ndarry from make_lower_slice_limits function
-            (calculation derived from cumsum of count_per_month function)
-        upper (1d array)
-            cumsum of count_per_month function
-        total_months (integer or float)
-            sum of count_per_month function output
-        job_counts_each_month (array)
-            output of job_gain_loss_table function[0]
-            (precalculated monthly count of jobs in each job category,
-            size (months,jobs))
-        total_monthly_job_count (array)
-            output of job_gain_loss_table function[1]
-            (precalculated monthly total count of all job categories,
-            size (months))
-        nonret_each_month (1d array)
-            output of count_per_month function
-        job_change_months (list)
-            the min start month and max ending month found within the
-            array of job_counts_each_month inputs
-            (find the range of months to apply consideration for
-            any job changes - prevents unnecessary looping)
-        job_reduction_months (list)
-            months in which the number of jobs is decreased (list).
-            from the get_job_reduction_months function
-        start_month (integer)
-            starting month for calculations, likely implementation month
-            from settings dictionary
-        sdict (dictionary)
-            the program settings dictionary (produced by the
-            build_program_files script)
-        tdict (dictionary)
-            job tables dictionary (produced by the build_program_files script)
-        apply_sg_cond (boolean)
-            compute with pre-existing special job quotas for certain
-            employees marked with a one in the sg column (special group)
-            according to a schedule defined in the settings dictionary
-    Assigns jobs so that original standalone jobs are assigned
-    each month (if available) unless a better job is available
-    through attrition of employees.
-    Each month loop starts with the lowest job number.
-    For each month and for each job level:
-        1. assigns nbnf (orig) job if job array (long_assign_column) element
-        is zero (unassigned) and orig job number is less than or
-        equal to the job level in current loop, then
-        2. assigns job level in current loop to unassigned slots from
-        top to bottom in the job array (up to the count of that
-        job level remaining after step one above)
-    Each month range is determined by slicing using the lower and upper inputs.
-    A comparison is made each month between the original job numbers and the
-    current job loop number.
-    Job assignments are placed into the monthly segment
-    (assign_range) of the long_assign_column.
-    The long_assign_column eventually becomes the job number (jnum) column
-    in the dataset.
-    Original job numbers of 0 indicate no original job and are
-    treated as furloughed employees - no jobs are assigned
-    to furloughees unless furlough_return option is selected.
-    '''
-    num_of_job_levels = sdict['num_of_job_levels']
-    fur_return = sdict['recall']
-    sg_rights = sdict['sg_rights']
-    recalls = sdict['recalls']
-
-    sg_ident = df_align.sg.values
-    fur_data = df_align.fur.values
-    index_data = df_align.index.values
-
-    lower_next = lower[1:]
-    lower_next = np.append(lower_next, lower_next[-1])
-
-    upper_next = upper[1:]
-    upper_next = np.append(upper_next, upper_next[-1])
-
-    # job assignment result array/column
-    long_assign_column = np.zeros(total_months, dtype=int)
-    # job counts result array/column
-    long_count_column = np.zeros(total_months, dtype=int)
-    # job held col
-    held_jobs = np.zeros(total_months, dtype=int)
-
-    num_of_months = upper.size
-    this_eg_sg = None
-
-    if apply_sg_cond:
-
-        sg_rights = np.array(sg_rights)
-        sg_egs = np.unique(np.transpose(sg_rights)[0])
-        if eg in sg_egs:
-            this_eg_sg = True
-            sg_jobs = np.transpose(sg_rights)[1]
-            sg_counts = np.transpose(sg_rights)[2]
-            sg_dict = dict(zip(sg_jobs, sg_counts))
-
-            # calc sg prex condition month range and concat
-            sg_month_range = np.arange(np.min(sg_rights[:, 3]),
-                                       np.max(sg_rights[:, 4]))
-            job_change_months = np.concatenate((job_change_months,
-                                                sg_month_range))
-
-    if fur_return:
-
-        recall_months = get_recall_months(recalls)
-        job_change_months = np.concatenate((job_change_months,
-                                            recall_months))
-
-    job_change_months = np.unique(job_change_months)
-
-    for month in range(start_month, num_of_months):
-
-        L = lower[month]
-        U = upper[month]
-
-        L_next = lower_next[month]
-        U_next = upper_next[month]
-
-        held_job_range = held_jobs[L:U]
-        assign_range = long_assign_column[L:U]
-        job_count_range = long_count_column[L:U]
-        fur_range = fur_data[L:U]
-        sg_range = sg_ident[L:U]
-        index_range = index_data[L:U]
-        index_range_next = index_data[L_next:U_next]
-
-        # use numpy arrays for job assignment process for each month
-        # use pandas for data alignment 'job position forwarding'
-        # to future months
-
-        # this_job_col = 0
-        job = 1
-
-        if month in job_reduction_months:
-            mark_for_furlough(held_job_range, fur_range, month,
-                              total_monthly_job_count, num_of_job_levels)
-
-        if fur_return and (month in recall_months):
-            mark_for_recall(held_job_range, num_of_job_levels,
-                            fur_range, month, recalls,
-                            total_monthly_job_count,
-                            standalone=True,
-                            eg_index=eg - 1)
-
-        while job <= num_of_job_levels:
-
-            this_job_count = job_counts_each_month[month, job]
-
-            if month in job_change_months:
-
-                if this_eg_sg:
-
-                    if month in sg_month_range and job in sg_jobs:
-
-                        # assign prex condition jobs to sg employees
-                        sg_jobs_avail = min(sg_dict[job], this_job_count)
-                        np.put(assign_range,
-                               np.where((assign_range == 0) &
-                                        (sg_range == 1) &
-                                        (fur_range == 0))[0][:sg_jobs_avail],
-                               job)
-
-            # TODO, (for developer) code speedup...
-            # use when not in condition month and monotonic is true
-            # (all nbnf distortions gone, no job count changes)
-            # if (month > max(job_change_months))
-            # and monotonic(assign_range):
-            #     quick_stopepipe_assign()
-
-            jobs_avail = count_avail_jobs(assign_range,
-                                          job,
-                                          this_job_count)
-            np.put(assign_range,
-                   np.where((assign_range == 0) &
-                            (held_job_range <= job) &
-                            (fur_range == 0))[0][:jobs_avail],
-                   job)
-
-            jobs_avail = count_avail_jobs(assign_range,
-                                          job,
-                                          this_job_count)
-            np.put(assign_range,
-                   np.where((assign_range == 0) &
-                            (fur_range == 0))[0][:jobs_avail],
-                   job)
-
-            assign_job_counts(job_count_range,
-                              assign_range,
-                              job,
-                              this_job_count)
-
-            # this_job_col += 1
-            job += 1
-
-        # AFTER MONTHLY JOB LOOPS DONE, PRIOR TO NEXT MONTH:
-
-        # pass down assign_range
-        held_jobs[L_next:U_next] = \
-            align_next(index_range, index_range_next, assign_range)
-
-        # pass down fur_range
-        #  TODO (for developer)**
-        # eliminate this furlough pass down...
-        # all fur data including future month fur status
-        # can be precalculated with headcount,
-        # job counts and fur return schedule
-
-        # unassigned marked as fur
-        mark_fur_range(assign_range, fur_range, num_of_job_levels)
-
-        np.put(job_count_range,
-               np.where(fur_range == 1)[0],
-               np.count_nonzero(fur_range == 1))
-
-        fur_data[L_next:U_next] = \
-            align_next(index_range, index_range_next, fur_range)
-
-    long_assign_column[long_assign_column == 0] = num_of_job_levels + 1
-    held_jobs[held_jobs == num_of_job_levels + 1] = 0
-    orig_jobs = held_jobs[lower[0]:upper[0]]
-
-    return long_assign_column.astype(int), long_count_column.astype(int), \
-        held_jobs.astype(int), fur_data.astype(int), orig_jobs.astype(int)
 
 
 def print_config_selections():
