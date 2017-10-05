@@ -490,6 +490,8 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
                  attr2=None, oper2='>=', val2=0,
                  attr3=None, oper3='>=', val3=0,
                  chart_style='darkgrid',
+                 size=20,
+                 alpha=.8,
                  suptitle_size=14,
                  title_size=12,
                  legend_size=12,
@@ -529,6 +531,10 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
             attr(n) limiting value (combined with oper(n)) as string
         chart_style (string)
             any valid seaborn plotting style
+        size (integer)
+            size of scatter points
+        alpha (float)
+            scatter point alpha (0.0 to 1.0)
         suptitle_size (integer or font)
             text size of chart super title
         title_size (integer or float)
@@ -567,7 +573,7 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
         x = d_for_plot['age']
         y = d_for_plot['spcnt']
         ax.scatter(x, y, c=color_list[grp - 1],
-                   s=20, linewidth=0.1, edgecolors='w',
+                   s=size, alpha=alpha, linewidth=0.1, edgecolors='w',
                    label=p_dict[grp])
 
     ax.set_ylim(1, 0)
@@ -1562,6 +1568,7 @@ def stripplot_dist_in_category(df, job_levels,
                                fur_color=None,
                                show_part_time_lvl=True,
                                size=3,
+                               alpha=1,
                                title_size=14,
                                label_pad=110,
                                label_size=13,
@@ -1616,6 +1623,8 @@ def stripplot_dist_in_category(df, job_levels,
             between full and part-time jobs
         size (integer or float)
             size of density markers
+        alpha (float)
+            alpha of density markers (0.0 to 1.0)
         title_size (integer or float)
             text size of chart title
         label_size (integer or float)
@@ -1677,8 +1686,8 @@ def stripplot_dist_in_category(df, job_levels,
 
     ax1 = sns.stripplot(y=rank_metric, x='eg', data=data, jitter=.5,
                         order=np.arange(1, max_eg_plus_one),
-                        palette=eg_colors, size=size,
-                        linewidth=0, split=True)
+                        palette=eg_colors, size=size, alpha=alpha,
+                        linewidth=0, dodge=True)
 
     ax1.set_yticks = (np.arange(0, ((len(df) + 1000) % 1000) * 1000, 1000))
     ax1.set_ylim(y_count, 0)
@@ -4039,12 +4048,12 @@ def editor(settings_dict,
         v2line.set_xdata((-rg.value[0], -rg.value[0]))
         range_list[0] = -rg.value[1]
         range_list[1] = -rg.value[0]
-        sleep(.05)
+        #sleep(.15)
         display(fig)
 
-    rg.observe(range_slider_change, names='value')
-
     range_sel = interactive(set_cursor, edit_zone=rg)
+
+    rg.observe(range_slider_change, names='value')
 
     def perform_squeeze(b):
 
@@ -4104,7 +4113,7 @@ def editor(settings_dict,
                             palette=color_dict['eg_colors'],
                             size=strip_dot_size,
                             alpha=strip_dot_alpha,
-                            linewidth=0, split=True)
+                            linewidth=0, dodge=True)
 
         for item in ([ax2.xaxis.label, ax2.yaxis.label] +
                      ax2.get_xticklabels() + ax2.get_yticklabels()):
@@ -6401,7 +6410,7 @@ def stripplot_eg_density(df, mnum,
         sns.stripplot(y='new_order', x='eg', data=mnum_p, jitter=.5,
                       order=np.arange(min_eg, max_eg + 1),
                       palette=eg_colors, size=3, linewidth=0,
-                      split=True, ax=ax)
+                      dodge=True, ax=ax)
         ax.set_facecolor(bg_color)
 
     except:

@@ -2689,9 +2689,10 @@ def make_preimp_array(ds_stand,
                       compute_pay):
     '''Create an ordered numpy array of pre-implementation data gathered from
     the pre-calculated standalone dataset and a dictionary to keep track of the
-    information.  This data will be joined by post_implementation integrated
+    information.  This data will be joined with post_implementation integrated
     data and then copied into the appropriate columns of the final integrated
     dataset.
+
     inputs
         ds_stand (dataframe)
             standalone dataset
@@ -2731,18 +2732,19 @@ def make_preimp_array(ds_stand,
     stand_mnum = ds_stand.mnum.values
     temp_emp = ds_temp.empkey.values * 1000
     temp_mnum = ds_temp.mnum.values
-    # make the 'key' columns
-    stand_key = stand_emp + stand_mnum
-    temp_key = temp_emp + temp_mnum
-    # assign to 'key' columns
-    ds_stand['key'] = stand_key
-    ds_temp['key'] = temp_key
+
+    # assign 'key' columns
+    ds_stand['key'] = stand_emp + stand_mnum
+    ds_temp['key'] = temp_emp + temp_mnum
+
     # now that the 'key' columns are in place, we don't need or
     # want the key making columns.
     # get ds_stand columns except for key making columns ('mnum', 'empkey')
     stand_cols = list(set(ds_stand.columns).difference(key_cols))
+
     # redefine ds_stand to include original columns less key making columns
     ds_stand = ds_stand[stand_cols]
+
     # redefine ds_temp to only include 'key' column (retains index)
     ds_temp = ds_temp[['key']]
 
@@ -2751,8 +2753,10 @@ def make_preimp_array(ds_stand,
     # this will generate standalone data ordered to match the employee order
     # from the integrated dataset
     ds_temp = pd.merge(ds_temp, ds_stand, on='key')
+
     # now get rid of the 'key' column
     temp_cols = list(set(ds_temp.columns).difference(['key']))
+
     # re-order the ds_temp columns according to the imp_cols order
     ordered_cols = []
     for col in imp_cols:

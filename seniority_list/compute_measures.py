@@ -294,9 +294,6 @@ def main():
         # developer note:  test to verify this is not instantiated elsewhere...
         ds['fur'] = df_master['fur']
 
-    # grab long_form indexed stovepipe jobs (int)
-    orig = ds['orig_job'].values
-
     table = tdict['table']
     j_changes = tdict['j_changes']
 
