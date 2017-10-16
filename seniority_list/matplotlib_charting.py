@@ -7,7 +7,7 @@
 # scientific computing.
 
 # Copyright (C) 2016-2017  Robert E. Davison, Ruby Data Systems Inc.
-# Please direct consulting inquires to: rubydatasystems@fastmail.net
+# Please direct inquires to: rubydatasystems@fastmail.net
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -3485,7 +3485,7 @@ def editor(settings_dict,
            trim_xlim=True,
            ylim=None,
            xsize=16,
-           ysize=11,
+           ysize=9,
            strip_dot_size=2.5,
            strip_dot_alpha=1,
            strip_height=1,
@@ -3596,34 +3596,32 @@ def editor(settings_dict,
     persist = pd.read_pickle('dill/squeeze_vals.pkl')
 
     # ipywidgets layout for dropdowns, text boxes and checkboxes
-    cb_layout = Layout(display='flex',
-                       flex_flow='row',
-                       width='60%',
-                       justify_content='center')
-
     dd_layout = Layout(display='flex',
                        flex_flow='row',
-                       width='90%',
-                       justify_content='center')
+                       width='95%')
 
     filt1_layout = Layout(width='20%')
     filt2_layout = Layout(width='40%')
 
     # --------display style checkboxes-----------------------
 
-    chk_scatter = Checkbox(description='scatter', layout=cb_layout,
-                           value=bool(persist['scat_val'].value))
+    chk_scatter = Checkbox(description='scatter', layout=dd_layout,
+                           value=bool(persist['scat_val'].value),
+                           indent=False)
 
-    chk_fit = Checkbox(description='poly_fit', layout=cb_layout,
-                       value=bool(persist['fit_val'].value))
+    chk_fit = Checkbox(description='poly_fit', layout=dd_layout,
+                       value=bool(persist['fit_val'].value),
+                       indent=False)
 
-    chk_mean = Checkbox(description='mean', layout=cb_layout,
-                        value=bool(persist['mean_val'].value))
+    chk_mean = Checkbox(description='mean', layout=dd_layout,
+                        value=bool(persist['mean_val'].value),
+                        indent=False)
 
     # --------top row checkboxes and dropdown-----------------
 
-    chk_ret = Checkbox(description='ret only', layout=Layout(width='25%'),
-                       value=bool(persist['ret_val'].value))
+    chk_ret = Checkbox(description='ret only', layout=Layout(width='100px'),
+                       value=bool(persist['ret_val'].value),
+                       indent=False, padding='30px')
 
     display_attrs = ['jobp', 'cat_order', 'spcnt', 'lspcnt',
                      'jnum', 'mpay', 'cpay', 'snum', 'lnum',
@@ -3632,13 +3630,14 @@ def editor(settings_dict,
     drop_measure = Dropdown(options=display_attrs,
                             value=persist['drop_msr'].value,
                             description='display attr:',
-                            layout=Layout(width='50%',
+                            layout=Layout(width='190px',
                                           border='solid 2px #99ccff',
                                           margin='1px',
                                           padding='1px'))
 
-    chk_filt = Checkbox(description='filter', layout=Layout(width='25%'),
-                        value=bool(persist['filt_val'].value))
+    chk_filt = Checkbox(description='filter', layout=Layout(width='100px'),
+                        value=bool(persist['filt_val'].value),
+                        indent=False)
 
     # -----------Chart Display Filter Widgets------------------------
     attr_list = ['', 'cat_order', 'jobp', 'jnum', 'mnum', 'eg',
@@ -3749,11 +3748,11 @@ def editor(settings_dict,
             # exit routine if baseline dataset not found
             print('invalid "base_ds" name input, neither ds_' +
                   base + '.pkl nor standalone.pkl not found\n')
-            return
+            pass
 
     max_month = max(compare_ds.mnum)
 
-    mnum_caption = Label(value='Month', layout=dd_layout)
+    mnum_caption = Label(value='Month:', layout=dd_layout)
 
     mnum_operator = Dropdown(options=['<', '<=', '==', '!=', '>=', '>'],
                              value=persist['mnum_opr'].value,
@@ -4000,18 +3999,15 @@ def editor(settings_dict,
                              max=400,
                              step=1,
                              description='squeeze',
-                             layout=Layout(display='flex',
-                                           flex='2 1 auto',
-                                           width='100%'),
+                             layout={'width': '550px'},
+                             style={'handle_color': '#f7c3a1'},
                              margin='10px')
-
-    slide_factor.style.handle_color = '#f7c3a1'
 
     if prop_order:
         min_val = -slider_lim
         step = 1
         rg = IntRangeSlider(min=min_val, max=-1, step=step,
-                            layout=Layout(width='90%'),
+                            layout=Layout(width='900px'),
                             value=(junior_init, senior_init),
                             continuous_update=True,
                             readout=False)
@@ -4025,7 +4021,7 @@ def editor(settings_dict,
         min_val = -1
         step = .001
         rg = FloatRangeSlider(min=min_val, max=0, step=step,
-                              layout=Layout(width='90%'),
+                              layout=Layout(width='900px'),
                               value=(junior_init, senior_init),
                               continuous_update=True,
                               readout=False)
@@ -4036,8 +4032,8 @@ def editor(settings_dict,
             j_caption.value = "{:.1%}".format(-rg.value[0])
             s_caption.value = "{:.1%}".format(-rg.value[1])
 
-    j_caption = Label(value=jun_caption, layout=Layout(width='10%'))
-    s_caption = Label(value=sen_caption, layout=Layout(width='10%'))
+    j_caption = Label(value=jun_caption, layout=Layout(width='40px'))
+    s_caption = Label(value=sen_caption, layout=Layout(width='40px'))
 
     v1line = ax.axvline(2, color='c', lw=2, ls='dashed')
     v2line = ax.axvline(200, color='m', lw=2, ls='dashed')
@@ -4181,7 +4177,7 @@ def editor(settings_dict,
         store_vals()
         display(Javascript('IPython.notebook.execute_cell()'))
 
-    button_layout = Layout(width='16%', margin='5px')
+    button_layout = Layout(width='150px', margin='10px')
     buttons_layout = Layout(display='flex', flex_flow='row',
                             justify_content='space-around')
 
@@ -4205,51 +4201,44 @@ def editor(settings_dict,
                          button_plot, s_caption],
                         layout=buttons_layout)]
 
-    hbuttons = Box(button_items, layout=Layout(display='flex',
-                   flex_flow='column', align_items='stretch', width='95%',
-                   margin='5px'))
-
-    cb_col_layout = Layout(display='flex',
-                           flex_flow='column',
-                           width='10%',
-                           justify_content='center')
-
     dd_col_layout1 = Layout(display='flex',
                             flex_flow='column',
-                            width='20%',
-                            justify_content='center',
+                            width='180px',
+                            align_items='stretch',
                             border='solid 2px #e6e6e6',
-                            padding='1px',
-                            margin='2px')
+                            margin='1px')
 
     dd_col_layout2 = Layout(display='flex',
                             flex_flow='column',
-                            width='10%',
-                            justify_content='center',
+                            width='85px',
+                            align_items='stretch',
                             border='solid 2px #e6e6e6',
-                            padding='1px',
-                            margin='2px')
+                            margin='1px')
 
-    form_layout = Layout(display='flex',
-                         width='95%',
-                         justify_content='space-around')
+    top_layout = Layout(display='flex',
+                        margin='5px',
+                        align_items='stretch')
 
-    vertcap_layout = Layout(display='flex',
+    box_layout = Layout(display='flex',
+                        flex_flow='row',
+                        align_items='stretch',
+                        width='100%')
+
+    caption_layout = Layout(display='flex',
                             flex_flow='column',
-                            width='5%',
-                            justify_content='center')
+                            width='50px',
+                            margin='2px')
 
     filt_layout = Layout(display='flex',
                          flex_flow='row',
-                         align_items='stretch',
-                         margin='1px')
+                         margin='2px')
 
     filt1_cap = Label(value='Filter 1:', layout=dd_layout)
     filt2_cap = Label(value='Filter 2:', layout=dd_layout)
     filt3_cap = Label(value='Filter 3:', layout=dd_layout)
 
-    filt_cap_box = Box((filt1_cap, filt2_cap, filt3_cap),
-                       layout=vertcap_layout)
+    caption_box = Box((filt1_cap, filt2_cap, filt3_cap),
+                      layout=caption_layout)
 
     filt1_items = [dd1_attr, dd1_oper, txt1_val]
     filt2_items = [dd2_attr, dd2_oper, txt2_val]
@@ -4261,24 +4250,26 @@ def editor(settings_dict,
 
     filter_box = VBox([filt1_row, filt2_row, filt3_row])
 
-    items = [Box([chk_scatter, chk_fit, chk_mean], layout=cb_col_layout),
+    items = [Box([chk_scatter, chk_fit, chk_mean], layout=dd_col_layout2),
              Box([drop_display, drop_mode, drop_xax], layout=dd_col_layout1),
              Box([drop_squeeze, drop_eg, drop_dir], layout=dd_col_layout1),
              Box([mnum_caption, mnum_operator, mnum_input],
                  layout=dd_col_layout2),
-             filt_cap_box,
+             caption_box,
              filter_box]
 
-    top_row_items = [drop_measure, chk_ret, chk_filt]
-    top_row = Box(children=top_row_items, layout=filt_layout)
+    top_row_items = [chk_ret, chk_filt]
+    top_row = HBox(children=top_row_items, layout=top_layout)
 
-    top_widgets = HBox([slide_factor, top_row], layout=form_layout)
-    hdropdowns = Box(items, layout=form_layout)
+    top_widgets = HBox([slide_factor, drop_measure, top_row])
+    hdropdowns = Box(items, layout=box_layout)
+    hbuttons = Box(button_items, layout=box_layout)
+    edit_widget = Box((range_sel,), layout=top_layout)
 
     display(VBox((top_widgets,
                   hdropdowns,
                   hbuttons,
-                  range_sel)))
+                  edit_widget)))
 
 
 def reset_editor():

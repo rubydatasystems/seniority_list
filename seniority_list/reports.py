@@ -7,7 +7,7 @@
 # scientific computing.
 
 # Copyright (C) 2016-2017  Robert E. Davison, Ruby Data Systems Inc.
-# Please direct consulting inquires to: rubydatasystems@fastmail.net
+# Please direct inquires to: rubydatasystems@fastmail.net
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -501,8 +501,10 @@ def retirement_charts(ds_dict,
                                   running_col_name=running_col_name)
             # make grouping values
             ds['yr'] = ds.date.dt.year
+            # running quantile:
             ds['rq'] = ((ds[running_col_name] *
                          quantiles // 1) + 1).astype(int)
+            # initial quantile:
             ds['iq'] = ((ds[fixed_col_name] * quantiles // 1) + 1).astype(int)
             # create a dataframe containing each employee in retirement month
             ret_df = ds[ds.ret_mark == 1]

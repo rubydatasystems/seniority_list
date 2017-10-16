@@ -7,7 +7,7 @@
 # scientific computing.
 
 # Copyright (C) 2016-2017  Robert E. Davison, Ruby Data Systems Inc.
-# Please direct consulting inquires to: rubydatasystems@fastmail.net
+# Please direct inquires to: rubydatasystems@fastmail.net
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

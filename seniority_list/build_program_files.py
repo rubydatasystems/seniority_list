@@ -7,7 +7,7 @@
 # scientific computing.
 
 # Copyright (C) 2016-2017  Robert E. Davison, Ruby Data Systems Inc.
-# Please direct consulting inquires to: rubydatasystems@fastmail.net
+# Please direct inquires to: rubydatasystems@fastmail.net
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -817,7 +817,9 @@ def main():
     jun_val = int(.8 * -rows)
     sen_val = int(.2 * -rows)
 
-    init_editor_vals = pd.DataFrame({'dd1_attr': '',
+    init_editor_vals = pd.DataFrame({'chk_filter_val': [[1]],
+                                     'chk_display_val': [[0]],
+                                     'dd1_attr': '',
                                      'dd2_attr': '',
                                      'dd3_attr': '',
                                      'dd1_oper': '==',
