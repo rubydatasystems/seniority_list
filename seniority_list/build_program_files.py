@@ -121,7 +121,7 @@ def main():
     # settings dictionary
 
     xl = pd.read_excel('excel/' + case + '/settings.xlsx',
-                       sheetname=None)
+                       sheet_name=None)
     settings = defaultdict(int)
     # ## scalars
     settings.update(f.make_dict_from_columns(xl['scalars'], 'option', 'value'))
@@ -131,9 +131,9 @@ def main():
     xl_pay_path = 'excel/' + case + '/pay_tables.xlsx'
 
     # read pay table data from excel file
-    pay_rates = pd.read_excel(xl_pay_path, sheetname='rates')
+    pay_rates = pd.read_excel(xl_pay_path, sheet_name='rates')
     # read monthly pay hours per job level and job description from excel file
-    pay_hours = pd.read_excel(xl_pay_path, sheetname='hours')
+    pay_hours = pd.read_excel(xl_pay_path, sheet_name='hours')
 
     # inputs to determine global sorting master year and
     # longevity...function parameters
@@ -380,7 +380,7 @@ def main():
     # just use variables from above...
 
     xl_pay = pd.read_excel('reports/' + case + '/pay_table_data.xlsx',
-                           sheetname=['basic job order',
+                           sheet_name=['basic job order',
                                       'enhanced job order',
                                       'job dict'])
     df_jd = xl_pay['job dict']
@@ -816,39 +816,111 @@ def main():
     rows = len(master)
     jun_val = int(.8 * -rows)
     sen_val = int(.2 * -rows)
+    # initial max range for edit slider
+    edit_max = len(df_actives) + len(df_fur)
+    x_low = int(.35 * edit_max)
+    x_high = int(.65 * edit_max)
 
-    init_editor_vals = pd.DataFrame({'chk_filter_val': [[1]],
-                                     'chk_display_val': [[0]],
-                                     'dd1_attr': '',
-                                     'dd2_attr': '',
-                                     'dd3_attr': '',
-                                     'dd1_oper': '==',
-                                     'dd2_oper': '==',
-                                     'dd3_oper': '==',
-                                     'drop_dir_val': '<<  d',
-                                     'drop_display': 'diff',
-                                     'drop_eg_val': '2',
-                                     'drop_mode': 'edit',
-                                     'drop_msr': 'spcnt',
-                                     'drop_sq_val': 'log',
-                                     'drop_xax': 'prop',
-                                     'filt_val': False,
-                                     'fit_val': False,
-                                     'int_mnum': '0',
-                                     'junior': jun_val,
-                                     'mean_val': False,
-                                     'mnum_opr': '>=',
-                                     'ret_val': True,
-                                     'scat_val': True,
-                                     'senior': sen_val,
-                                     'slide_fac_val': 100,
-                                     'txt1_val': '',
-                                     'txt2_val': '',
-                                     'txt3_val': ''
-                                     },
-                                    index=['value'])
+    init_editor_vals1 = pd.DataFrame({'chk_filter_val': [[1]],
+                                      'chk_display_val': [[0]],
+                                      'dd1_attr': '',
+                                      'dd2_attr': '',
+                                      'dd3_attr': '',
+                                      'dd1_oper': '==',
+                                      'dd2_oper': '==',
+                                      'dd3_oper': '==',
+                                      'drop_dir_val': '<<  d',
+                                      'drop_display': 'diff',
+                                      'drop_eg_val': '2',
+                                      'drop_mode': 'edit',
+                                      'drop_msr': 'spcnt',
+                                      'drop_sq_val': 'log',
+                                      'drop_xax': 'prop',
+                                      'filt_val': False,
+                                      'fit_val': False,
+                                      'int_mnum': '0',
+                                      'junior': jun_val,
+                                      'mean_val': False,
+                                      'mnum_opr': '>=',
+                                      'num_of_months': num_of_months,
+                                      'ret_val': True,
+                                      'scat_val': True,
+                                      'senior': sen_val,
+                                      'slide_fac_val': 100,
+                                      'txt1_val': '',
+                                      'txt2_val': '',
+                                      'txt3_val': '',
+                                      },
+                                     index=['value'])
 
-    init_editor_vals.to_pickle('dill/squeeze_vals.pkl')
+    init_editor_vals1.to_pickle('dill/squeeze_vals1.pkl')
+
+    tools = 'save, pan, wheel_zoom, box_zoom, reset, undo, redo'
+
+    editor_dict = {
+        'base_ds_name': '',
+        'case': case,
+        'chk_display': [0],
+        'chk_filter': [1],
+        'chk_hover_sel': [],
+        'chk_hover_on': [],
+        'chk_minor_grid': [],
+        'chk_scatter': True,
+        'chk_poly_fit': False,
+        'chk_trails': [],
+        'chk_mean': False,
+        'chk_sagov': False,
+        'cht_xsize': 1200,
+        'cht_ysize': 580,
+        'cht_xflipped': False,
+        'cht_yflipped': False,
+        'cht_title': 'spcnt',
+        'cht_tools': tools,
+        'cht_xformat': '0',
+        'cht_yformat': '0.0%',
+        'edit_max': edit_max,
+        'ez_end': edit_max,
+        'ez_step': 5,
+        'minor_grid_alpha': 0.0,
+        'num_of_months': num_of_months,
+        'p2_marker_alpha': .8,
+        'p2_marker_size': 2.2,
+        'sel_base': 'standalone',
+        'sel_bgc': 'White',
+        'sel_bgc_alpha': '.10',
+        'sel_cond': 'none',
+        'sel_emp_grp': '1',
+        'sel_filt1': '',
+        'sel_filt2': '',
+        'sel_filt3': '',
+        'sel_gridc': 'Gray',
+        'sel_gridc_alpha': '.20',
+        'sel_measure': 'spcnt',
+        'sel_proposal': 'edit',
+        'sel_mth_oper': '>=',
+        'sel_mth_num': '0',
+        'sel_oper1': '==',
+        'sel_oper2': '==',
+        'sel_oper3': '==',
+        'sel_sqz_dir': '<<  d',
+        'sel_sqz_type': 'log',
+        'sel_trails': '0',
+        'sel_xtype': 'prop_s',
+        'sel_ytype': 'diff',
+        'slider_squeeze': 100,
+        'total_count': edit_max,
+        'txt_input1': '',
+        'txt_input2': '',
+        'txt_input3': '',
+        'x_high': x_high,
+        'x_low': x_low}
+
+    # editor_dict.to_pickle('dill/editor_dict.pkl')
+
+    with open('dill/editor_dict.pkl', 'wb') as handle:
+        pickle.dump(editor_dict,
+                    handle,
+                    protocol=pickle.HIGHEST_PROTOCOL)
 
     # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

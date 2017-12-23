@@ -3498,7 +3498,8 @@ def editor(settings_dict,
            bg_clr='white',
            show_grid=True):
     '''compare specific proposal attributes and interactively adjust
-    list order.  may be used to minimize distortions.  utilizes ipywidgets.
+    list order.  may be used to minimize outcome distortions.  utilizes
+    ipywidgets.
 
     See the user guide for usage instructions.
 
@@ -3507,7 +3508,7 @@ def editor(settings_dict,
     dataset is created the first time a calculation is run.  Prior to the
     creation of the edited dataset ('dill/ds_edit.pkl'), the function will use
     the compare_ds input to select a previously calculated dataset for
-    initial comparison.  The function then will revert to the new edited
+    initial calculations.  The function then will revert to the new edited
     dataset for all subsequent calculations.
 
     If the user desires to save an edited dataset for further
@@ -3533,7 +3534,7 @@ def editor(settings_dict,
 
         ds_edit.pkl
         squeeze_vals.pkl
-        p_new_order.pkl
+        p_edit.pkl
 
     inputs
         settings_dict (dictionary)
@@ -3593,7 +3594,7 @@ def editor(settings_dict,
             if True, show grid on chart
 
     '''
-    persist = pd.read_pickle('dill/squeeze_vals.pkl')
+    persist = pd.read_pickle('dill/squeeze_vals1.pkl')
 
     # ipywidgets layout for dropdowns, text boxes and checkboxes
     dd_layout = Layout(display='flex',
@@ -4124,7 +4125,7 @@ def editor(settings_dict,
         ax2.set_xlim(len(data_reorder) + 1, 0)
         plt.show()
 
-        data_reorder[['new_order']].to_pickle('dill/p_new_order.pkl')
+        data_reorder[['new_order']].to_pickle('dill/p_edit.pkl')
 
         store_vals()
 
@@ -4158,13 +4159,13 @@ def editor(settings_dict,
                                    'senior': rg.value[1]},
                                   index=['value'])
 
-        persist_df.to_pickle('dill/squeeze_vals.pkl')
+        persist_df.to_pickle('dill/squeeze_vals1.pkl')
 
     def run_cell(ev):
         # 'new_order' is simply a placeholder here.
         # This is where ds_edit.pkl is generated (compute_measures script)
         store_vals()
-        cmd = 'python compute_measures.py new_order edit'
+        cmd = 'python compute_measures.py edit edit'
         if cond_list:
             for cond in cond_list:
                 cmd = cmd + ' ' + cond
@@ -7525,12 +7526,12 @@ def add_editor_list_to_excel(case=None):
             return
 
     xl_str = 'excel/' + case + '/proposals.xlsx'
-    df = pd.read_pickle('dill/p_new_order.pkl')
+    df = pd.read_pickle('dill/p_edit.pkl')
     df = df.reset_index()[['empkey']]
     df.index = df.index + 1
     df.index.name = 'order'
 
-    ws_dict = pd.read_excel(xl_str, index_col=0, sheetname=None)
+    ws_dict = pd.read_excel(xl_str, index_col=0, sheet_name=None)
     ws_dict['edit'] = df
 
     with pd.ExcelWriter(xl_str, engine='xlsxwriter') as writer:

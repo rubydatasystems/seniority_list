@@ -58,6 +58,7 @@ def main():
         df_master = pd.read_pickle(pre + 'master' + suf)
     except OSError:
         print('Master list not found.  Run build_program_files script?')
+        print('\n  >>> exiting routine.\n')
         exit()
 
     try:
@@ -86,13 +87,13 @@ def main():
     sdict = pd.read_pickle('dill/dict_settings.pkl')
     tdict = pd.read_pickle('dill/dict_job_tables.pkl')
 
-    start_date = pd.to_datetime(sdict['starting_date'])
+    # start_date = pd.to_datetime(sdict['starting_date'])
 
     # do not include inactive employees (other than furlough) in data model
     df_master = df_master[
         (df_master.line == 1) | (df_master.fur == 1)].copy()
 
-    population = len(df_master)
+    # population = len(df_master)
     num_of_job_levels = sdict['num_of_job_levels']
     lspcnt_calc = sdict['lspcnt_calc_on_remaining_population']
 
@@ -211,7 +212,7 @@ def main():
     high_limits = nonret_each_month.cumsum()
     low_limits = f.make_lower_slice_limits(high_limits)
 
-    job_level_counts = np.array(jcnts_arr[1])
+    # job_level_counts = np.array(jcnts_arr[1])
 
     if sdict['delayed_implementation']:
 
