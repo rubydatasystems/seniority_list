@@ -1033,6 +1033,7 @@ def editor(doc,
                           conditions=cond_dict[ed.sel_cond],
                           ds=skel.data,
                           ds_stand=ds_stand.data)
+
         calc_ds.update_data(ds)  # set to instance of Data class
 
     def update_axis_formats():
@@ -1643,9 +1644,9 @@ def editor(doc,
             hover_tool.data.tooltips = tool_tips.data
 
         else:
-            hover_tool.data.tooltips = []
+            hover_tool.data.tooltips = None
             # p1.toolbar.update(active_inspect = None)
-            tool_tips.data = ''
+            tool_tips.data = None
             hover_cols.data = []
 
     # density (jitter stripplot)
@@ -1964,7 +1965,9 @@ def editor(doc,
 
 
 def color_list():
-
+    '''provides a list of string color names for editor grid/bg tab
+    color selectors
+    '''
     colors = ['AliceBlue', 'AntiqueWhite', 'Aqua', 'Aquamarine',
               'Azure', 'Beige', 'Bisque', 'Black', 'BlanchedAlmond',
               'Blue', 'BlueViolet', 'Brown', 'BurlyWood', 'CadetBlue',
@@ -2005,7 +2008,9 @@ def color_list():
 
 
 def alpha_list():
-
+    '''provides a list of string decimals for editor grid/bg tab
+    alpha selectors
+    '''
     alphas = ['.00', '.01', '.02', '.03', '.04', '.05', '.06', '.07',
               '.08', '.09', '.10', '.11', '.12', '.13', '.14', '.15',
               '.16', '.17', '.18', '.19', '.20', '.21', '.22', '.23',
@@ -2021,6 +2026,14 @@ def alpha_list():
 
 
 def use_first_proposal_found(proposal_name):
+    '''find and return the first list order found in 'dill/proposal_names.pkl'.
+    This function is used when another proposal name is designated by another
+    section of the program but does not exist.
+
+    inputs
+        proposal_name (string)
+            the name of the proposal which was not found
+    '''
     try:
         prop_names = \
             pd.read_pickle('dill/proposal_names.pkl').proposals.tolist()
@@ -2104,11 +2117,6 @@ def make_dataset(proposal_name='',
 
     # sort the skeleton by month and proposed list order
     ds.sort_values(['mnum', 'new_order'], inplace=True)
-
-    # try:
-    #     os.remove(dataset_file)
-    # except OSError:
-    #     pass
 
     # ORIG_JOB*
 
