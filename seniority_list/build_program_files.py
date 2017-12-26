@@ -859,7 +859,13 @@ def main():
 
     editor_dict = {
         'base_ds_name': '',
+        'box_line_color': 'black',
+        'box_line_alpha': '.8',
+        'box_fill_color': 'black',
+        'box_fill_alpha': '.05',
+        'box_line_width': '1.0',
         'case': case,
+        'chk_color_apply': [0],
         'chk_display': [0],
         'chk_filter': [1],
         'chk_hover_sel': [],

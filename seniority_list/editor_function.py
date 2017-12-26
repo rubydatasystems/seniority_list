@@ -50,7 +50,8 @@ from bokeh.models import ColumnDataSource, DataRange1d, \
 from bokeh.models.layouts import Spacer
 from bokeh.models.widgets import Slider, Button, Select, \
     RangeSlider, TextInput, CheckboxGroup
-from bokeh.models.glyphs import Quad, Line
+from bokeh.models.glyphs import Line
+from bokeh.models.annotations import BoxAnnotation
 
 import functions as f
 from matplotlib_charting import filter_ds
@@ -107,11 +108,6 @@ def editor(doc,
            plot_width=1100,
            plot_height=500,
            strip_eg_height=50,
-           patch_color='black',
-           patch_alpha=.04,
-           edit_zone_line_color='#862d86',
-           edit_line_width=1.5,
-           edit_line_alpha=.5,
            start_dot_size=4.75,
            max_dot_size=25,
            start_marker_alpha=.65,
@@ -164,10 +160,6 @@ def editor(doc,
     num_dots = ed.total_count
     str_eg_list = [str(eg) for eg in eg_list]
 
-    # jitter stripplot y axis formatting
-    strip_ylow = 0.5
-    strip_yhigh = len(eg_list) + .5
-
     # desc = Div(text=open(os.path.join(os.path.dirname(__file__),
     #                                   'description.html')).read(),
     #            width=800)
@@ -186,6 +178,7 @@ def editor(doc,
 
     all_colors = color_list()
     alphas = alpha_list()
+    widths = line_widths()
 
     # layout variables
     controls_height = 220
@@ -274,7 +267,7 @@ def editor(doc,
                      'ylong', 'mlong', 'age', 's_lmonths',
                      'ldate', 'doh']
 
-    # size/alpha tab vars
+    # size_alpha tab vars
     sl_size_dict = {}
     sl_alpha_dict = {}
     slider_list = []
@@ -368,11 +361,11 @@ def editor(doc,
     slider_animate = Slider(start=0, end=max_month - 1,
                             value=int(ed.sel_mth_num),
                             step=1, title='Month',
-                            width=250,
+                            width=350,
                             orientation='horizontal',
                             tooltips=False,
                             show_value=True,
-                            bar_color='#b3b3b3')
+                            bar_color='#b3ffd9')
 
     but_play = Button(label='► Play', width=90)
     but_reset = Button(label='Reset', width=90)
@@ -391,7 +384,7 @@ def editor(doc,
     but_fwd = Button(label='FWD', width=90)
     but_back = Button(label='BACK', width=90)
 
-    but_refresh = Button(label='refresh size/alpha',
+    but_refresh = Button(label='refresh size_alpha',
                          width=120)
 
     label = Label(x=20, y=plot_height - 150,
@@ -400,7 +393,7 @@ def editor(doc,
                   text_color='#b3b3b3',
                   text_font_size='70pt')
 
-    # proposal/save tab
+    # proposal_save tab
     but_save_edit = Button(label='SAVE EDITED DATASET',
                            button_type='warning',
                            width=but_save_width)
@@ -470,7 +463,7 @@ def editor(doc,
                        title='xtype',
                        **SEL_DIMENSIONS)
 
-    # size/alpha tab:
+    # size_alpha tab:
     for eg in eg_list:
         sl_size_dict[eg] = Slider(start=.5,
                                   end=max_dot_size,
@@ -494,15 +487,15 @@ def editor(doc,
     but_slider_aup = Button(label='A >', width=30, height=20)
     but_slider_adn = Button(label='< A', width=30, height=20)
 
-    # grid/bg tab
+    # grid_bg tab
     sel_bgc = Select(options=all_colors,
                      value=ed.sel_bgc,
-                     title='background color',
+                     title='chart / edit_fill',
                      width=115, height=sel_height)
 
     sel_gridc = Select(options=all_colors,
                        value=ed.sel_gridc,
-                       title='grid_color',
+                       title='grid / edit_line',
                        width=115, height=sel_height)
 
     sel_bgc_alpha = Select(options=alphas,
@@ -519,6 +512,16 @@ def editor(doc,
 
     chk_minor_grid = CheckboxGroup(labels=['minor grid lines'],
                                    active=ed.chk_minor_grid)
+
+    chk_color_apply = CheckboxGroup(labels=['chart bg/grid',
+                                            'edit zone'],
+                                    active=ed.chk_color_apply,
+                                    height=50)
+
+    sel_box_line_width = Select(options=widths,
+                                value=ed.box_line_width,
+                                title='edit_line_width',
+                                width=60, height=sel_height)
 
     # hover tab
     chk_hover_on = CheckboxGroup(labels=['hover ON'],
@@ -582,20 +585,22 @@ def editor(doc,
     # animate tab (commented for future use)
     # spacer_anim = Spacer(width=40, height=aux_slider_height)
 
-    # proposal/save tab
+    # proposal_save tab
     spacer_top_save1 = Spacer(width=but_save_width, height=85)
     spacer_middle_save = Spacer(width=50, height=aux_slider_height)
 
     # above sel_measure dropdown (center column)
     spacer_top_center_col = Spacer(height=80, width=sel_width)
 
-    # size/alpha tab
+    # size_alpha tab
     spacer_top_size_alpha = Spacer(width=50, height=50)
     spacer_size_buts = Spacer(width=30)
     spacer_alpha_buts = Spacer(width=30)
 
-    # grid/bg tab
+    # grid_bg tab
     spacer_linesbg_col = Spacer(width=75)
+    spacer_linesbg_col2 = Spacer(width=5)
+    spacer_top_color_apply = Spacer(width=70, height=40)
     spacer_linesbg_bottom = Spacer(width=75)
 
     # animate tab
@@ -651,7 +656,7 @@ def editor(doc,
     p1 = figure(min_border_left=50, tools=p1_tools)
     p2 = figure(width=plot_width, height=strip_height,
                 x_range=DataRange1d(flipped=True, range_padding=0.0),
-                y_range=DataRange1d(flipped=True, range_padding=0.0),
+                y_range=DataRange1d(flipped=True, range_padding=0.05),
                 tools=p2_tools)
 
     source1 = ColumnDataSource(data=dict(a=[], c=[], s=[], x=[], y=[]))
@@ -659,22 +664,16 @@ def editor(doc,
 
     # --------------------------------------------------------------
 
-    quad_cds_kwargs = dict(left=[], top=[],
-                           right=[], bottom=[])
+    box_kwargs = dict(fill_alpha=float(ed.box_fill_alpha),
+                      fill_color=ed.box_fill_color,
+                      line_color=ed.box_line_color,
+                      line_alpha=float(ed.box_line_alpha),
+                      line_width=float(ed.box_line_width),
+                      level='underlay',
+                      )
 
-    quad_kwargs = dict(left="left", right="right",
-                       top="top", bottom="bottom",
-                       fill_alpha=.04,
-                       fill_color='black',
-                       line_color='black',
-                       line_alpha=.85,
-                       line_width=.8)
-
-    quad1_source = ColumnDataSource(data=quad_cds_kwargs.copy())
-    quad2_source = ColumnDataSource(data=quad_cds_kwargs.copy())
-
-    quad1 = Quad(**quad_kwargs.copy())
-    quad2 = Quad(**quad_kwargs.copy())
+    box1 = BoxAnnotation(**box_kwargs.copy())
+    box2 = BoxAnnotation(**box_kwargs.copy())
 
     # ------polyfit, mean, and savgol smoothing line glyphs-------
     # dummy nan dict
@@ -879,9 +878,10 @@ def editor(doc,
 
             source1.update(data=s1_dict)
             label.text = date_list[new]
+            sel_mth_num.value = str(new)
 
     def animate():
-        quad1_source.data['left'] = [np.nan]
+        box1.right, box1.left = None, None
         if but_play.label == '► Play':
             but_play.label = '❚❚ Pause'
             doc.add_periodic_callback(animate_update, animate_speed)
@@ -890,7 +890,7 @@ def editor(doc,
             doc.remove_periodic_callback(animate_update)
 
     def reset():
-        quad1_source.data['left'] = [np.nan]
+        box1.right, box1.left = None, None
         slider_animate.value = 0
         sel_mth_num.value = '0'
         sel_mth_oper.value = '=='
@@ -904,21 +904,21 @@ def editor(doc,
         mgrps_gb.update_data(anim_df.data.groupby('mnum'))
 
     def fwd1():
-        quad1_source.data['left'] = [np.nan]
+        box1.right, box1.left = None, None
         new_val = slider_animate.value + 1
         if new_val < max_month:
             slider_animate.value = new_val
             sel_mth_num.value = str(new_val)
 
     def back1():
-        quad1_source.data['left'] = [np.nan]
+        box1.right, box1.left = None, None
         new_val = slider_animate.value - 1
         if new_val >= 0:
             slider_animate.value = new_val
             sel_mth_num.value = str(new_val)
 
     def animate_update():
-        quad1_source.data['left'] = [np.nan]
+        box1.right, box1.left = None, None
         mth = slider_animate.value + 1
         if mth > max_month:
             mth = 0
@@ -929,7 +929,7 @@ def editor(doc,
     #     pass
         # future development...trails
 
-    # proposal/save
+    # proposal_save
     # grab the widget values, create a dictionary, pickle
     def store_vals():
 
@@ -1296,37 +1296,12 @@ def editor(doc,
         xl = float(ed.x_low)
         xh = float(ed.x_high)
 
-        yb1 = filt_df.data[ed.sel_ytype].min()
-        yt1 = filt_df.data[ed.sel_ytype].max()
-        if yb1 == 0 and yt1 == 0:
-            if ed.sel_measure in pcnt_cols:
-                yb1 = -.01
-                yt1 = .01
-            else:
-                yb1 = -1
-                yt1 = 1
-
-        # make rect y limits, add pad if not a date format
-        if ed.sel_measure not in date_cols:
-            yb1 = -abs(yb1)
-            yt1, yb1 = add_pad(yt1, yb1, .01)
-            ed.y_high, ed.y_low = add_pad(yt1, yb1, .01)
-        else:
-            ed.y_high, ed.y_low = yt1, yb1
-
-        yb2 = strip_ylow - .21
-        yt2 = strip_yhigh + .20
-
-        quad1_source.data = dict(left=[xh], top=[yt1],
-                                 right=[xl], bottom=[yb1])
+        box1.left, box1.right = xh, xl
 
         xl2 = f.cross_val(filt_xax.data, xl, idx_xax.data)
         xh2 = f.cross_val(filt_xax.data, xh, idx_xax.data)
 
-        quad2_source.data = dict(left=[xh2], top=[yt2],
-                                 right=[xl2], bottom=[yb2])
-        ed.y_high = yt1
-        ed.y_low = yb1
+        box2.left, box2.right = xh2, xl2
 
         clear_line_data()
         update_axis_formats()
@@ -1348,20 +1323,12 @@ def editor(doc,
         p1.add_tools(crosshair_tool.data)
         p1.add_tools(hover_tool.data)
         # p1.output_backend = 'webgl'
-        yb1 = -abs(filt_df.data[ed.sel_ytype].min())
-        yt1 = filt_df.data[ed.sel_ytype].max()
-        ed.y_high, ed.y_low = add_pad(yt1, yb1, .01)
-        quad1_source.data = dict(left=[ed.x_high], top=[ed.y_high],
-                                 right=[ed.x_low], bottom=[ed.y_low])
+        box1.left, box1.right = ed.x_high, ed.x_low
 
         p2.background_fill_color = ed.sel_bgc
         p2.background_fill_alpha = float(ed.sel_bgc_alpha)
         # p2.output_backend = 'webgl'
-        yb2 = strip_ylow - .21
-        yt2 = strip_yhigh + .20
-        quad2_source.data = dict(left=[ed.x_high], top=[yt2],
-                                 right=[ed.x_low], bottom=[yb2])
-        p2.add_glyph(quad2_source, quad2)
+        box2.left, box2.right = ed.x_high, ed.x_low
 
         # source1 dictionary assignment
         src1_dict = {'x': filt_df.data[ed.sel_xtype],
@@ -1409,22 +1376,23 @@ def editor(doc,
                   source=source1)
 
         p2.circle(x='x',
-                  y={'field': 'eg', 'transform': Jitter(width=0.95)},
+                  y={'field': 'eg', 'transform': Jitter(width=0.92)},
                   color='c',
                   size='s',
                   alpha='a',
                   line_color=None,
                   source=source2)
 
-        p2.yaxis[0].ticker.desired_num_ticks = 3
+        p2.yaxis[0].ticker.desired_num_ticks = len(eg_list)
         p2.yaxis.minor_tick_line_color = None
         p2.ygrid.grid_line_color = None
         p2.xgrid.grid_line_color = ed.sel_gridc
         p2.xgrid.grid_line_alpha = float(sel_gridc_alpha.value)
         p2.toolbar.logo = None
 
-        p1.add_glyph(quad1_source, quad1)
-        p2.add_glyph(quad2_source, quad2)
+        p1.add_layout(box1)
+        p2.add_layout(box2)
+        # p2.add_glyph(quad2_source, quad2)
 
         add_line_glyphs(eg_list)
         update_line_data()
@@ -1536,7 +1504,7 @@ def editor(doc,
     def xtype_change(attr, old, new):
         ed.sel_xtype = new
 
-    # size/alpha
+    # size_alpha
     def reset_sliders():
         for s_slider in sl_size_dict.values():
             s_slider.value = start_dot_size
@@ -1563,7 +1531,7 @@ def editor(doc,
             if slider.value > 0:
                 slider.value -= alpha_step
 
-    # size/alpha source
+    # size_alpha source
     def update_scat_size_p1(attr, old, new, eg):
         s = sl_size_dict[eg].value
         s_arr = np.array(source1.data['s'])
@@ -1578,24 +1546,44 @@ def editor(doc,
         np.put(a_arr, np.where(eg_arr == eg)[0], a)
         source1.data.update({'a': a_arr})
 
-    # grid/bg
-    def update_grid_color(attr, old, new):
-        p1.grid.grid_line_color = sel_gridc.value
-        p1.grid.grid_line_alpha = float(sel_gridc_alpha.value)
-        p2.xgrid.grid_line_color = sel_gridc.value
-        p2.xgrid.grid_line_alpha = float(sel_gridc_alpha.value)
-        ed.sel_gridc = sel_gridc.value
-        ed.sel_gridc_alpha = sel_gridc_alpha.value
-
+    # grid_bg
     def update_bg_color(attr, old, new):
-        p1.background_fill_color = sel_bgc.value
-        p1.background_fill_alpha = float(sel_bgc_alpha.value)
-        p2.background_fill_color = sel_bgc.value
-        p2.background_fill_alpha = float(sel_bgc_alpha.value)
-        ed.sel_bgc = sel_bgc.value
-        ed.sel_bgc_alpha = sel_bgc_alpha.value
+        float_alpha = float(sel_bgc_alpha.value)
+        if 0 in ed.chk_color_apply:
+            p1.background_fill_color = sel_bgc.value
+            p1.background_fill_alpha = float_alpha
+            p2.background_fill_color = sel_bgc.value
+            p2.background_fill_alpha = float_alpha
+            ed.sel_bgc = sel_bgc.value
+            ed.sel_bgc_alpha = sel_bgc_alpha.value
+        if 1 in ed.chk_color_apply:
+            box1.fill_color = sel_bgc.value
+            box1.fill_alpha = float_alpha
+            box2.fill_color = sel_bgc.value
+            box2.fill_alpha = float_alpha
+            ed.box_fill_color = sel_bgc.value
+            ed.box_fill_alpha = float_alpha
+
+    def update_grid_color(attr, old, new):
+        float_alpha = float(sel_gridc_alpha.value)
+        if 0 in ed.chk_color_apply:
+            p1.grid.grid_line_color = sel_gridc.value
+            p1.grid.grid_line_alpha = float_alpha
+            p2.xgrid.grid_line_color = sel_gridc.value
+            p2.xgrid.grid_line_alpha = float_alpha
+            ed.sel_gridc = sel_gridc.value
+            ed.sel_gridc_alpha = sel_gridc_alpha.value
+        if 1 in ed.chk_color_apply:
+            box1.line_color = sel_gridc.value
+            box1.line_alpha = float_alpha
+            box2.line_color = sel_gridc.value
+            box2.line_alpha = float_alpha
+            ed.box_line_color = sel_gridc.value
+            ed.box_line_alpha = float_alpha
 
     def reset_colors():
+        temp_chk_color_apply = ed.chk_color_apply
+        ed.chk_color_apply = [0, 1]
         sel_bgc.value = 'White'
         sel_bgc_alpha.value = '.10'
         sel_gridc.value = 'Gray'
@@ -1604,11 +1592,23 @@ def editor(doc,
         ed.sel_bgc_alpha = '.10'
         ed.sel_gridc = 'Gray'
         ed.sel_gridc_alpha = '.20'
+
         if chk_minor_grid.active:
             p1.grid.minor_grid_line_color = 'Gray'
             p1.grid.minor_grid_line_alpha = .20
         else:
             p1.grid.minor_grid_line_alpha = 0.0
+
+        sel_box_line_width.value = '1.0'
+        box1.line_color = 'black'
+        box1.line_alpha = .8
+        box2.line_color = 'black'
+        box2.line_alpha = .8
+        box1.fill_color = 'black'
+        box1.fill_alpha = .05
+        box2.fill_color = 'black'
+        box2.fill_alpha = .05
+        ed.chk_color_apply = temp_chk_color_apply
 
     def minor_grid(attr, old, new):
         if chk_minor_grid.active:
@@ -1617,6 +1617,14 @@ def editor(doc,
         else:
             p1.grid.minor_grid_line_alpha = 0.0
         ed.chk_minor_grid = list(chk_minor_grid.active)
+
+    def color_apply(attr, old, new):
+        ed.chk_color_apply = list(chk_color_apply.active)
+
+    def edit_line_width(attr, old, new):
+        ed.box_line_width = sel_box_line_width.value
+        box1.line_width = float(new)
+        box2.line_width = float(new)
 
     # hover
     def hover_tool_control(attr, old, new):
@@ -1628,7 +1636,6 @@ def editor(doc,
     def manage_hover_tool():
         if ed.chk_hover_on and ed.chk_hover_sel:
 
-            # p1.toolbar.active_inspect = 'auto'
             pre_div = ('<div style="background-color:' +
                        'rgba(0, 0, 0, 0.03);' +
                        'overflow: auto;">')
@@ -1645,7 +1652,6 @@ def editor(doc,
 
         else:
             hover_tool.data.tooltips = None
-            # p1.toolbar.update(active_inspect = None)
             tool_tips.data = None
             hover_cols.data = []
 
@@ -1682,19 +1688,12 @@ def editor(doc,
         xl = slider_edit_zone.value[0]
         xh = slider_edit_zone.value[1]
 
-        yb1 = ed.y_low
-        yt1 = ed.y_high
-        yb2 = strip_ylow - .21
-        yt2 = strip_yhigh + .20
-
-        quad1_source.data = dict(left=[xh], top=[yt1],
-                                 right=[xl], bottom=[yb1])
+        box1.left, box1.right = xh, xl
 
         xl2 = f.cross_val(filt_xax.data, xl, idx_xax.data)
         xh2 = f.cross_val(filt_xax.data, xh, idx_xax.data)
 
-        quad2_source.data = dict(left=[xh2], top=[yt2],
-                                 right=[xl2], bottom=[yb2])
+        box2.left, box2.right = xl2, xh2
 
         # update editor dict namespace
         ed.x_low = xl
@@ -1737,7 +1736,7 @@ def editor(doc,
     # commented for future development...
     # chk_trails.on_change('active', prepare_animate)
 
-    # proposal/save
+    # proposal_save
     but_save_edit.on_click(save_edited_df)
     but_save_order.on_click(save_order_to_excel)
     sel_base.on_change('value', base_change)
@@ -1757,7 +1756,7 @@ def editor(doc,
     sel_ytype.on_change('value', ytype_change)
     sel_xtype.on_change('value', xtype_change)
 
-    # size/alpha
+    # size_alpha
     for eg, slider in sl_size_dict.items():
         slider.on_change('value', partial(update_scat_size_p1, eg=eg))
 
@@ -1770,13 +1769,15 @@ def editor(doc,
     but_slider_aup.on_click(slider_aup)
     but_slider_adn.on_click(slider_adn)
 
-    # grid/bg
-    sel_gridc.on_change('value', update_grid_color)
-    sel_gridc_alpha.on_change('value', update_grid_color)
+    # grid_bg
     sel_bgc.on_change('value', update_bg_color)
     sel_bgc_alpha.on_change('value', update_bg_color)
+    sel_gridc.on_change('value', update_grid_color)
+    sel_gridc_alpha.on_change('value', update_grid_color)
     but_reset_colors.on_click(reset_colors)
     chk_minor_grid.on_change('active', minor_grid)
+    chk_color_apply.on_change('active', color_apply)
+    sel_box_line_width.on_change('value', edit_line_width)
 
     # hover
     chk_hover_on.on_change('active', hover_tool_control)
@@ -1865,7 +1866,7 @@ def editor(doc,
     # anim_items = row(anim_col1, spacer_anim, anim_col2)
     anim_items = row(anim_col1)
 
-    # proposal/save
+    # proposal_save
     save_widgets = row(column(spacer_top_save1, but_save_edit, but_save_order),
                        column(spacer_middle_save),
                        column(sel_base, sel_cond, sel_proposal))
@@ -1874,7 +1875,7 @@ def editor(doc,
     panel1_tab1 = Panel(child=squeeze_widgets, title='squeeze')
     panel1_tab2 = Panel(child=filter_widgets, title='extra filters')
     panel1_tab3 = Panel(child=anim_items, title='animate')
-    panel1_tab4 = Panel(child=save_widgets, title='proposal/save')
+    panel1_tab4 = Panel(child=save_widgets, title='proposal_save')
     # combine main panels into panel1 tab object
     panel1 = Tabs(tabs=[panel1_tab1, panel1_tab2,
                         panel1_tab3, panel1_tab4], width=panel1_width,
@@ -1901,7 +1902,7 @@ def editor(doc,
     # display tab items
     display_widgets = row(chk_col, but_col)
 
-    # size/alpha tab items
+    # size_alpha tab items
     szal_sliders = row(slider_list)
 
     sz_buttons = row(but_slider_sml, spacer_size_buts, but_slider_big)
@@ -1912,25 +1913,30 @@ def editor(doc,
                           width=120)
     szal_items = row(szal_sliders, szal_but_col)
 
-    # grid/bg tab items
+    # grid_bg tab items
     gbg_col1 = column(sel_bgc, sel_gridc,
                       height=chart_sel_height)
 
     gbg_col2 = column(sel_bgc_alpha, sel_gridc_alpha,
                       height=chart_sel_height)
-    gbg_sel_items = row(gbg_col1, spacer_linesbg_col, gbg_col2)
+    gbg_col12 = row(gbg_col1, spacer_linesbg_col,
+                    gbg_col2, spacer_linesbg_col2)
     gbg_bottom_row = row(but_reset_colors,
                          spacer_linesbg_bottom,
-                         chk_minor_grid)
-    gbg_items = column(gbg_sel_items, gbg_bottom_row)
+                         chk_minor_grid, width=200)
+    gbg_left = column(gbg_col12, gbg_bottom_row, width=300)
+    gbg_col3 = column(spacer_top_color_apply, chk_color_apply,
+                      sel_box_line_width)
+
+    gbg_items = row(gbg_left, gbg_col3)
 
     # hover tab items
     hover_row = row(chk_hover_on, chk_hover_sel)
 
     # make panels for aux tab group
     panel2_tab1 = Panel(child=display_widgets, title='display')
-    panel2_tab2 = Panel(child=szal_items, title='size/alpha')
-    panel2_tab3 = Panel(child=gbg_items, title='grid/bg')
+    panel2_tab2 = Panel(child=szal_items, title='size_alpha')
+    panel2_tab3 = Panel(child=gbg_items, title='grid_bg')
     panel2_tab4 = Panel(child=hover_row, title='hover')
     panel2_tab5 = Panel(child=column(slider_strip_size, slider_strip_alpha),
                         title='density')
@@ -1965,7 +1971,7 @@ def editor(doc,
 
 
 def color_list():
-    '''provides a list of string color names for editor grid/bg tab
+    '''provides a list of string color names for editor grid_bg tab
     color selectors
     '''
     colors = ['AliceBlue', 'AntiqueWhite', 'Aqua', 'Aquamarine',
@@ -2008,7 +2014,7 @@ def color_list():
 
 
 def alpha_list():
-    '''provides a list of string decimals for editor grid/bg tab
+    '''provides a list of string decimals for editor grid_bg tab
     alpha selectors
     '''
     alphas = ['.00', '.01', '.02', '.03', '.04', '.05', '.06', '.07',
@@ -2023,6 +2029,18 @@ def alpha_list():
               '.82', '.85', '.87', '.90', '.92', '.95', '.97', '1.0']
 
     return alphas
+
+
+def line_widths():
+    '''provides a list of string decimals for editor grid_bg tab
+    edit line width selector
+    '''
+    widths = ['0.1', '0.2', '0.3', '0.4', '0.5',
+              '0.6', '0.7', '0.8', '0.9', '1.0',
+              '1.1', '1.2', '1.3', '1.4', '1.5',
+              '1.6', '1.7', '1.8', '1.9', '2.0']
+
+    return widths
 
 
 def use_first_proposal_found(proposal_name):
