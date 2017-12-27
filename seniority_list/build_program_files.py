@@ -813,47 +813,11 @@ def main():
     # initial values for editor tool widgets.
     # The values stored within this file will be replaced and
     # updated by the editor tool when it is utilized.
-    # rows = len(master)
-    # jun_val = int(.8 * -rows)
-    # sen_val = int(.2 * -rows)
+
     # initial max range for edit slider
     edit_max = len(df_actives) + len(df_fur)
     x_low = int(.35 * edit_max)
     x_high = int(.65 * edit_max)
-
-    # init_editor_vals1 = pd.DataFrame({'chk_filter_val': [[1]],
-    #                                   'chk_display_val': [[0]],
-    #                                   'dd1_attr': '',
-    #                                   'dd2_attr': '',
-    #                                   'dd3_attr': '',
-    #                                   'dd1_oper': '==',
-    #                                   'dd2_oper': '==',
-    #                                   'dd3_oper': '==',
-    #                                   'drop_dir_val': '<<  d',
-    #                                   'drop_display': 'diff',
-    #                                   'drop_eg_val': '2',
-    #                                   'drop_mode': 'edit',
-    #                                   'drop_msr': 'spcnt',
-    #                                   'drop_sq_val': 'log',
-    #                                   'drop_xax': 'prop',
-    #                                   'filt_val': False,
-    #                                   'fit_val': False,
-    #                                   'int_mnum': '0',
-    #                                   'junior': jun_val,
-    #                                   'mean_val': False,
-    #                                   'mnum_opr': '>=',
-    #                                   'num_of_months': num_of_months,
-    #                                   'ret_val': True,
-    #                                   'scat_val': True,
-    #                                   'senior': sen_val,
-    #                                   'slide_fac_val': 100,
-    #                                   'txt1_val': '',
-    #                                   'txt2_val': '',
-    #                                   'txt3_val': '',
-    #                                   },
-    #                                  index=['value'])
-
-    # init_editor_vals1.to_pickle('dill/squeeze_vals1.pkl')
 
     tools = 'save, pan, wheel_zoom, box_zoom, reset, undo, redo'
 

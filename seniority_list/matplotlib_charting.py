@@ -39,7 +39,7 @@ from os import path, makedirs
 import sys
 
 import matplotlib.pyplot as plt
-from matplotlib import ticker
+from matplotlib import cm, ticker
 from matplotlib import colors as mplclrs
 from matplotlib import dates as mdate
 import matplotlib.patches as mpatches

@@ -1322,6 +1322,7 @@ def editor(doc,
         p1.background_fill_alpha = float(ed.sel_bgc_alpha)
         p1.add_tools(crosshair_tool.data)
         p1.add_tools(hover_tool.data)
+        p1.toolbar.active_inspect = [hover_tool.data]
         # p1.output_backend = 'webgl'
         box1.left, box1.right = ed.x_high, ed.x_low
 
