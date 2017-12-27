@@ -1581,65 +1581,19 @@ def squeeze_logrithmic(data,
     return order_arr.astype(int)
 
 
-# GET_INDEXES_UP
-@jit(nopython=True, cache=True)
-def get_indexes_up(position_array):
-    '''fit a sample array to a list of unique index positions
-    by incrementing any duplicates by one
-
-    example:
-    input > ([0,0,1,2,5,9])
-    output > ([0,1,2,3,5,9])
-
-    input
-        position_array (array)
-            array of index numbers
-    '''
-    for i in np.arange(1, position_array.size):
-        if position_array[i] <= position_array[i - 1]:
-            position_array[i] = position_array[i - 1] + 1
-    return position_array
-
-
-# GET_INDEXES_DOWN
-@jit(nopython=True, cache=True)
-def get_indexes_down(position_array):
-    '''fit a sample array to a list of unique index positions
-    by reducing any duplicates by one
-
-    example:
-    input > ([0,1,2,8,9,9])
-    output > ([0,1,2,7,8,9])
-
-    input
-        position_array (array)
-            array of index numbers
-    '''
-    for i in np.arange(position_array.size - 2, -1, -1):
-        if position_array[i] >= position_array[i + 1]:
-            position_array[i] = position_array[i + 1] - 1
-    return position_array
-
-
 # GET_INDEXES
 @jit(nopython=True, cache=True)
 def get_indexes(in_arr):
     rank_bot_up = np.arange(in_arr.size) + np.min(in_arr)
     rank_top_dn = np.arange(in_arr.size - 1, -1, -1)
-    # max_idx = max(in_arr)
 
-    # c_up = np.clip((rank_bot_up - in_arr), 0, max_idx)
     c_up_arr = rank_bot_up - in_arr
     c_up = np.maximum(c_up_arr, 0)
     r_up = in_arr + c_up
-    # print('c_up:', c_up)
-    # print('max_idx:', max_idx)
 
-    # c_dn = np.clip(r_up + rank_top_dn - max(r_up), 0, max_idx)
     c_dn_arr = r_up + rank_top_dn - np.max(r_up)
     c_dn = np.maximum(c_dn_arr, 0)
     idx_arr = r_up - c_dn
-    # print('c_dn:', c_dn)
 
     return idx_arr
 
@@ -3999,73 +3953,6 @@ def find_index_val(df1, df2, df2_vals, col1=None, col2=None):
             return
 
     return df1_vals
-
-
-def find_squeeze_vals(df_m0, df_calc, cursor_vals,
-                      col1=None, col2=None):
-    '''this is a specialized version of the "find_index_val" function. It is
-    used within the editor tool.  It will allow a proper squeeze range to
-    be processed when a month filter has been applied.  All squeeze operations
-    are applied to the original month zero integrated list order.  When
-    data resulting from a future month filter is displayed, some employees
-    will have retired and new list positions for the remaining employees have
-    been assigned due to the attrition.  To permit squeezing (a visual
-    exercise based on displayed data) with future month data displayed,
-    future month cursor line postion must be converted to the equivalent
-    original list positions within the squeeze algorithm.
-    This function provides the conversion, using the common empkey indexes
-    in the month zero dataframe and the data_reorder dataframe to locate the
-    matching values.
-    df1 index, df2 index, (both are empkey indexes) and the value (position)
-    columns must contain unique values.
-
-    inputs
-        df_m0 (dataframe)
-            month zero dataframe containing values to index match in another
-            dataframe
-        df_calc (dataframe)
-            calculated integrated dataframe with corresponding index values
-        cursor_vals (list)
-            filtered dataframe cursor position values to match with month
-            zero positions
-    '''
-
-    # initiate m0_vals list
-    cursor_validate = []
-    m0_vals = []
-
-    # set df_m0 value column, use first column if None
-    if col1 is not None:
-        column1 = df_m0[col1]
-    else:
-        column1 = df_m0[df_m0.columns[0]]
-
-    # set df_calc value column, use first column if None
-    if col2 is not None:
-        column2 = df_calc[col2]
-    else:
-        column2 = df_calc[df_calc.columns[0]]
-
-    arr_col1 = column1.values
-
-    for cv in cursor_vals:
-        if cv in arr_col1:
-            cursor_validate.append(cv)
-        else:
-            cursor_validate.append(arr_col1[np.abs(arr_col1 - cv).argmin()])
-
-    for cv in cursor_validate:
-        try:
-            m0_idx = df_calc[column2 == cv].index[0]
-            result_val = column1.loc[m0_idx]
-            # append df_calc value to m0_vals list
-            m0_vals.append(result_val)
-        except KeyError:
-            print('value ' + str(cv) + ' error:',
-                  'no corresponding index')
-            return
-
-    return m0_vals
 
 
 def convert_to_hex(rgba_input):

@@ -365,7 +365,7 @@ def editor(doc,
                             orientation='horizontal',
                             tooltips=False,
                             show_value=True,
-                            bar_color='#b3ffd9')
+                            bar_color='#a6a6a6')
 
     but_play = Button(label='► Play', width=90)
     but_reset = Button(label='Reset', width=90)
@@ -1672,15 +1672,6 @@ def editor(doc,
         size_arr = np.full(num_dots, new)
         source2.data.update({'a': size_arr})
         ed.p2_marker_alpha = new
-
-    def add_pad(top, bottom, pcnt):
-        r = top - bottom
-        pad = r * pcnt
-        mid = np.mean([top, bottom])
-        var = np.abs(top - mid)
-        new_top = mid + var + pad
-        new_bot = mid - var - pad
-        return new_top, new_bot
 
     # edit range
     def update_edit_range(attr, old, new):
