@@ -858,7 +858,12 @@ def editor(doc,
         use_hover = ed.chk_hover_on and ed.chk_hover_sel
         if mgrps_gb.data:
             hover_dict = {}
-            mth = mgrps_gb.data.get_group(new)
+            # try to find data for selected month group, if none found, stop
+            try:
+                mth = mgrps_gb.data.get_group(new)
+            except:
+                label.text = 'NO DATA'
+                return
             x = mth[ed.sel_xtype].values
             y = mth[ed.sel_ytype].values
             c = mth['c'].values
@@ -1044,46 +1049,48 @@ def editor(doc,
         calc_ds.update_data(ds)  # set to instance of Data class
 
     def update_axis_formats():
-        if ed.sel_ytype == 'abs':
-            if ed.sel_measure in ['cpay', 'mpay', 'ylong', 'mlong',
-                                  'age', 'scale', 's_lmonths']:
+        if len(filt_df.data):
+            if ed.sel_ytype == 'abs':
+                if ed.sel_measure in ['cpay', 'mpay', 'ylong', 'mlong',
+                                      'age', 'scale', 's_lmonths']:
+                    ed.cht_yflipped = False
+                else:
+                    ed.cht_yflipped = True
+            else:
                 ed.cht_yflipped = False
-            else:
-                ed.cht_yflipped = True
-        else:
-            ed.cht_yflipped = False
 
-        p1.y_range.update(flipped=ed.cht_yflipped)
-        if ed.sel_measure in pcnt_cols:
-            p1.yaxis[0].formatter = NumeralTickFormatter(format="0.0%")
-        else:
-            if ed.sel_measure in float_cols:
-                p1.yaxis[0].formatter = NumeralTickFormatter(format="0.0")
-            elif ed.sel_measure in date_cols:
-                p1.yaxis[0].formatter = DatetimeTickFormatter(years=['%Y'])
+            p1.y_range.update(flipped=ed.cht_yflipped)
+            if ed.sel_measure in pcnt_cols:
+                p1.yaxis[0].formatter = NumeralTickFormatter(format="0.0%")
             else:
-                p1.yaxis[0].formatter = NumeralTickFormatter(format="0")
+                if ed.sel_measure in float_cols:
+                    p1.yaxis[0].formatter = NumeralTickFormatter(format="0.0")
+                elif ed.sel_measure in date_cols:
+                    p1.yaxis[0].formatter = DatetimeTickFormatter(years=['%Y'])
+                else:
+                    p1.yaxis[0].formatter = NumeralTickFormatter(format="0")
 
-        if ed.sel_xtype in ['pcnt_s', 'pcnt_r']:
-            p1.xaxis[0].formatter = NumeralTickFormatter(format="0.0%")
-            if (slider_edit_zone.value[1] > 1 or
-                    slider_edit_zone.value[1] > max(filt_xax.data)):
-                ed.x_high = .65 * max(filt_xax.data)
-                ed.x_low = .45 * max(filt_xax.data)
-                ed.ez_step = .001
-        else:
-            p1.xaxis[0].formatter = NumeralTickFormatter(format="0")
-            if (slider_edit_zone.value[1] <= 1 or
-                    slider_edit_zone.value[1] > max(filt_xax.data)):
-                ed.x_high = int(.65 * max(filt_xax.data))
-                ed.x_low = int(.45 * max(filt_xax.data))
-                ed.ez_step = 1
-        slider_edit_zone.update(end=max(filt_xax.data),
-                                step=ed.ez_step,
-                                value=(ed.x_low, ed.x_high))
+            if ed.sel_xtype in ['pcnt_s', 'pcnt_r']:
+                p1.xaxis[0].formatter = NumeralTickFormatter(format="0.0%")
+                if (slider_edit_zone.value[1] > 1 or
+                        slider_edit_zone.value[1] > max(filt_xax.data)):
+                    ed.x_high = .65 * max(filt_xax.data)
+                    ed.x_low = .45 * max(filt_xax.data)
+                    ed.ez_step = .001
+            else:
+                p1.xaxis[0].formatter = NumeralTickFormatter(format="0")
+                if (slider_edit_zone.value[1] <= 1 or
+                        slider_edit_zone.value[1] > max(filt_xax.data)):
+                    ed.x_high = int(.65 * max(filt_xax.data))
+                    ed.x_low = int(.45 * max(filt_xax.data))
+                    ed.ez_step = 1
+            slider_edit_zone.update(end=max(filt_xax.data),
+                                    step=ed.ez_step,
+                                    value=(ed.x_low, ed.x_high))
 
     def join_dataset():
 
+        label.text = ''
         ret_only = 1 in ed.chk_filter
         extra_filter = 0 in ed.chk_filter
 
@@ -1232,17 +1239,22 @@ def editor(doc,
         mnum_str = '(df.' + mnum_filt_str + ')'
         df_display = df[eval(mnum_str)].copy()
 
-        filt_df.update_data(df_display)
+        if len(df_display):
 
-        # make arrays from filt_df
-        filt_xax.update_data(filt_df.data[ed.sel_xtype].values)
-        idx_xax.update_data(filt_df.data['prop_s'].values)
-        alpha_filt_arr.update_data(filt_df.data['a'].values)
-        eg_filt_arr.update_data(filt_df.data['eg'].values)
-        zero_filt_arr.update_data(np.full(len(filt_df.data), 0.0))
-        size_filt_arr.update_data(filt_df.data['s'].values)
+            filt_df.update_data(df_display)
 
-        slider_edit_zone.update(end=max(filt_xax.data))
+            # make arrays from filt_df
+            filt_xax.update_data(filt_df.data[ed.sel_xtype].values)
+            idx_xax.update_data(filt_df.data['prop_s'].values)
+            alpha_filt_arr.update_data(filt_df.data['a'].values)
+            eg_filt_arr.update_data(filt_df.data['eg'].values)
+            zero_filt_arr.update_data(np.full(len(filt_df.data), 0.0))
+            size_filt_arr.update_data(filt_df.data['s'].values)
+            slider_edit_zone.update(end=max(filt_xax.data))
+
+        else:
+
+            label.text = 'NO DATA: mth ' + ed.sel_mth_num
 
     def add_source_columns(df):
         # set up color column - Note rgba values do not work with this
