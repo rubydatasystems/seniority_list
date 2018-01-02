@@ -738,7 +738,8 @@ def editor(doc,
         if ed.sel_xtype in ['prop_s', 'prop_r']:
             high_slider += 1
         else:
-            high_slider += .001
+            if high_slider < 1.0:
+                high_slider += .001
         slider_edit_zone.value = (low_slider, high_slider)
 
     def line1_sub():
@@ -767,14 +768,14 @@ def editor(doc,
         if ed.sel_xtype in ['prop_s', 'prop_r']:
             low_slider -= 1
         else:
-            low_slider -= .001
+            if low_slider > 0.0:
+                low_slider -= .001
         slider_edit_zone.value = (low_slider, high_slider)
 
-    def determine_mode():
-        if ed.sel_proposal == 'edit':
-            perform_squeeze()
-
     def perform_squeeze():  # make new order for sripplot and/or skeleton
+
+        if ed.sel_proposal != 'edit':
+            sel_proposal.value = 'edit'
 
         squeeze_eg = int(ed.sel_emp_grp)
 
@@ -879,6 +880,12 @@ def editor(doc,
             source1.update(data=s1_dict)
             label.text = date_list[new]
             sel_mth_num.value = str(new)
+            # reset "running" values for edit zone value conversion using
+            # the cross_val function (use current month values, not
+            # the values from the last time the "plot" button was used)
+            if ed.sel_xtype in ['prop_r', 'pcnt_r']:
+                filt_xax.data = x
+                idx_xax.data = mth['prop_s'].values
 
     def animate():
         box1.right, box1.left = None, None
@@ -1700,7 +1707,7 @@ def editor(doc,
     sel_sqz_dir.on_change('value', sqz_dir_change)
     sel_emp_grp.on_change('value', emp_group_change)
     slider_squeeze.on_change('value', update_squeeze)
-    but_squeeze.on_click(determine_mode)
+    but_squeeze.on_click(perform_squeeze)
 
     but_0add.on_click(line0_add)
     but_0sub.on_click(line0_sub)
