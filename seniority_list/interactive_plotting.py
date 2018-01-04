@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 '''
-.. module:: bokeh_plotting
+.. module:: interactive_plotting
 
-   :synopsis: The bokeh module contains plotting functions utilizing the
-   bokeh plotting library.
+   :synopsis: The bokeh module contains interactive plotting functions.
 
 .. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
 
