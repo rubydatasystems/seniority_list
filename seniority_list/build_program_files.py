@@ -819,8 +819,6 @@ def main():
     x_low = int(.35 * edit_max)
     x_high = int(.65 * edit_max)
 
-    tools = 'save, pan, wheel_zoom, box_zoom, reset, undo, redo'
-
     editor_dict = {
         'base_ds_name': '',
         'box_line_color': 'black',
@@ -845,7 +843,6 @@ def main():
         'cht_xflipped': False,
         'cht_yflipped': False,
         'cht_title': 'spcnt',
-        'cht_tools': tools,
         'cht_xformat': '0',
         'cht_yformat': '0.0%',
         'edit_max': edit_max,
@@ -874,7 +871,6 @@ def main():
         'sel_oper3': '==',
         'sel_sqz_dir': '<<  d',
         'sel_sqz_type': 'log',
-        'sel_trails': '0',
         'sel_xtype': 'prop_s',
         'sel_ytype': 'diff',
         'slider_squeeze': 100,
@@ -884,8 +880,6 @@ def main():
         'txt_input3': '',
         'x_high': x_high,
         'x_low': x_low}
-
-    # editor_dict.to_pickle('dill/editor_dict.pkl')
 
     with open('dill/editor_dict.pkl', 'wb') as handle:
         pickle.dump(editor_dict,

@@ -112,7 +112,66 @@ def editor(doc,
            max_dot_size=25,
            start_marker_alpha=.65,
            marker_edge_color=None,
-           marker_edge_width=0):
+           marker_edge_width=0.0):
+    '''create the editor tool
+
+    use the following code to run within the notebook:
+
+    .. code:: python
+
+        import editor_function as ef
+        from functools import partial
+
+        from bokeh.io import show, output_notebook
+        from bokeh.application.handlers import FunctionHandler
+        from bokeh.application import Application
+
+        output_notebook()
+
+        handler = FunctionHandler(partial(ef.editor,
+                                  # optional kwargs,
+                                  ))
+
+        app = Application(handler)
+        show(app)
+
+    inputs
+        doc (variable)
+            a variable representing the bokeh document, do not modify
+        poly_dim (integer)
+            the order of the polynomial fit line
+        ema_len (integer)
+            the smoothing length to use when constructing the exponential
+            moving average line
+        savgol_window (positive odd integer)
+            Savitzky-Golay filter window length
+        savgol_fit (integer)
+            The order of the polynomial used to fit the samples.
+            This value must be less than the savgol_window value.
+        animate_speed (integer)
+            Number of milliseconds between each animated month display
+        plot_width (integer)
+            width of main and density charts in pixels
+        plot_height (integer)
+            height of main chart in pixels
+        strip_eg_height (integer)
+            height alloted for each employee group when constructing
+            the density chart
+        start_dot_size (float)
+            initial scatter marker size for main chart
+        max_dot_size (integer)
+            maximum scatter marker size for the main chart display, set
+            to size sliders
+        start_marker_alpha (float)
+            initial scatter marker alpha (transparency) for main chart
+            display
+        marker_edge_color (color value string or None)
+            color of scatter marker edge color for main chart when
+            marker edge width value is greater than zero
+        marker_edge_width (float)
+            width of scatter marker edge width when marker_edge_color is
+            not None
+    '''
 
     # ------START variable assignment------------------------------
     try:
@@ -221,15 +280,18 @@ def editor(doc,
     p2_tools = 'wheel_zoom, box_zoom, reset, save'
 
     # Select widget arguments
-    SEL_DIMENSIONS = {'width': sel_width, 'height': sel_height}
+    sel_size_kwargs = {'width': sel_width, 'height': sel_height}
 
     # density tab
-    AUX_SLDR_ARGS = {'height': aux_slider_height,
-                     'width': aux_slider_width,
-                     'direction': 'rtl',
-                     'orientation': 'vertical',
-                     'tooltips': False,
-                     'show_value': False}
+    aux_slider_kwargs = {'height': aux_slider_height,
+                         'width': aux_slider_width,
+                         'direction': 'rtl',
+                         'orientation': 'vertical',
+                         'tooltips': False,
+                         'show_value': False}
+
+    size_alpha_kwargs = {'width': 30,
+                         'height': 20}
 
     # extra filters and display tabs
     opers = ['<', '<=', '==', '!=', '>=', '>']
@@ -297,17 +359,17 @@ def editor(doc,
     sel_sqz_type = Select(options=['log', 'slide'],
                           value=ed.sel_sqz_type,
                           title='sqz type',
-                          **SEL_DIMENSIONS)
+                          **sel_size_kwargs)
 
     sel_emp_grp = Select(options=str_eg_list,
                          value=ed.sel_emp_grp,
                          title='emp group',
-                         **SEL_DIMENSIONS)
+                         **sel_size_kwargs)
 
     sel_sqz_dir = Select(options=['u  >>', '<<  d'],
                          value=ed.sel_sqz_dir,
                          title='sqz dir',
-                         **SEL_DIMENSIONS)
+                         **sel_size_kwargs)
 
     slider_squeeze = Slider(start=1, end=400,
                             value=ed.slider_squeeze,
@@ -340,15 +402,15 @@ def editor(doc,
 
     sel_oper1 = Select(options=opers2,
                        value=ed.sel_oper1,
-                       title='Oper 1', **SEL_DIMENSIONS)
+                       title='Oper 1', **sel_size_kwargs)
 
     sel_oper2 = Select(options=opers2,
                        value=ed.sel_oper2,
-                       title='Oper 2', **SEL_DIMENSIONS)
+                       title='Oper 2', **sel_size_kwargs)
 
     sel_oper3 = Select(options=opers2,
                        value=ed.sel_oper3,
-                       title='Oper 3', **SEL_DIMENSIONS)
+                       title='Oper 3', **sel_size_kwargs)
 
     txt_input1 = TextInput(value=ed.txt_input1,
                            title='Val 1', height=txt_height)
@@ -416,7 +478,7 @@ def editor(doc,
     sel_proposal = Select(options=p_list,
                           value=ed.sel_proposal,
                           title='proposal:',
-                          **SEL_DIMENSIONS)
+                          **sel_size_kwargs)
 
     # center column
     sel_measure = Select(options=display_attrs,
@@ -438,12 +500,12 @@ def editor(doc,
     sel_mth_oper = Select(options=opers,
                           value=ed.sel_mth_oper,
                           title='month oper',
-                          **SEL_DIMENSIONS)
+                          **sel_size_kwargs)
 
     sel_mth_num = Select(options=mth_str_list,
                          value=ed.sel_mth_num,
                          title='month num',
-                         **SEL_DIMENSIONS)
+                         **sel_size_kwargs)
 
     chk_display = CheckboxGroup(labels=['scatter', 'poly_fit',
                                         'mean', 'savgol'],
@@ -455,13 +517,13 @@ def editor(doc,
     sel_ytype = Select(options=['diff', 'abs'],
                        value=ed.sel_ytype,
                        title='ytype',
-                       **SEL_DIMENSIONS)
+                       **sel_size_kwargs)
 
     sel_xtype = Select(options=['prop_s', 'prop_r',
                                 'pcnt_s', 'pcnt_r'],
                        value=ed.sel_xtype,
                        title='xtype',
-                       **SEL_DIMENSIONS)
+                       **sel_size_kwargs)
 
     # size_alpha tab:
     for eg in eg_list:
@@ -470,22 +532,22 @@ def editor(doc,
                                   value=start_dot_size,
                                   step=size_step, title='S',
                                   bar_color=eg_cdict[eg],
-                                  **AUX_SLDR_ARGS)
+                                  **aux_slider_kwargs)
 
         sl_alpha_dict[eg] = Slider(start=0.0, end=1.0,
                                    value=start_marker_alpha,
                                    step=alpha_step, title='A',
                                    bar_color=eg_cdict[eg],
-                                   **AUX_SLDR_ARGS)
+                                   **aux_slider_kwargs)
 
         slider_list.extend([sl_size_dict[eg], sl_alpha_dict[eg]])
 
     but_slider_reset = Button(label='Reset', width=50)
 
-    but_slider_big = Button(label='S >', width=30, height=20)
-    but_slider_sml = Button(label='< S', width=30, height=20)
-    but_slider_aup = Button(label='A >', width=30, height=20)
-    but_slider_adn = Button(label='< A', width=30, height=20)
+    but_slider_big = Button(label='S >', **size_alpha_kwargs)
+    but_slider_sml = Button(label='< S', **size_alpha_kwargs)
+    but_slider_aup = Button(label='A >', **size_alpha_kwargs)
+    but_slider_adn = Button(label='< A', **size_alpha_kwargs)
 
     # grid_bg tab
     sel_bgc = Select(options=all_colors,
@@ -913,6 +975,7 @@ def editor(doc,
             np.put(anim_df.data['s'], np.where(eg_arr == eg)[0], slider.value)
         for eg, slider in sl_alpha_dict.items():
             np.put(anim_df.data['a'], np.where(eg_arr == eg)[0], slider.value)
+        # capture the new size and alpha values for the month groupby data
         mgrps_gb.update_data(anim_df.data.groupby('mnum'))
 
     def fwd1():
@@ -1253,7 +1316,7 @@ def editor(doc,
             slider_edit_zone.update(end=max(filt_xax.data))
 
         else:
-
+            # if df_display is empty (through use of extra filters):
             label.text = 'NO DATA: mth ' + ed.sel_mth_num
 
     def add_source_columns(df):
@@ -1666,9 +1729,8 @@ def editor(doc,
                 col = hdict[key][0]
                 if col != ed.sel_measure:
                     mid_div += html_str % (col, ' ' + hdict[key][1])
-            tool_tips.data = pre_div + mid_div + suf_div
 
-            hover_tool.data.tooltips = tool_tips.data
+            hover_tool.data.tooltips = pre_div + mid_div + suf_div
 
         else:
             hover_tool.data.tooltips = None
@@ -1977,6 +2039,7 @@ def editor(doc,
                  p2_row)
 
     doc.add_root(l_o)
+    return doc
 
     # --------END Main Layout----------------------------------------
 

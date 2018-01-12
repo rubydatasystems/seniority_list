@@ -13,9 +13,10 @@
 from bokeh.plotting import figure, ColumnDataSource
 # from bokeh.models import (HoverTool, BoxZoomTool, WheelZoomTool, ResetTool,
 #                           PanTool, SaveTool, UndoTool, RedoTool)
-from bokeh.models import NumeralTickFormatter, Range1d
+from bokeh.models import NumeralTickFormatter, Range1d, Label
 from bokeh.models.widgets import Slider, Button, Select
 from bokeh.layouts import column, row, widgetbox
+from bokeh.models.layouts import Spacer
 
 import numpy as np
 import pandas as pd
@@ -72,7 +73,8 @@ def bk_basic_interactive(doc, df=None,
         show(app)
 
     inputs
-        doc (required, do not change)
+        doc (required input)
+            do not change this input
 
         df (dataframe)
             calculated dataset input, this is a required input
@@ -100,6 +102,7 @@ def bk_basic_interactive(doc, df=None,
     max_month = df['mnum'].max()
     # set up color column
     egs = df['eg'].values
+    sdict = pd.read_pickle('dill/dict_settings.pkl')
     cdict = pd.read_pickle('dill/dict_color.pkl')
     eg_cdict = cdict['eg_color_dict']
     clr = np.empty(len(df), dtype='object')
@@ -109,13 +112,18 @@ def bk_basic_interactive(doc, df=None,
     df['a'] = .7
     df['s'] = 5
 
+    # date list for animation label background
+    date_list = list(pd.date_range(start=sdict['starting_date'],
+                                   periods=max_month, freq='M'))
+    date_list = [x.strftime('%Y %b') for x in date_list]
+
     # create empty data source template
     source = ColumnDataSource(data=dict(x=[], y=[], c=[], s=[], a=[]))
 
     slider_month = Slider(start=0, end=max_month,
                           value=0, step=1,
                           title='month',
-                          height=int(plot_height * .6),
+                          height=int(plot_height - 200),
                           tooltips=False,
                           bar_color='#ffe6cc',
                           direction='rtl',
@@ -135,11 +143,17 @@ def bk_basic_interactive(doc, df=None,
                    title='y axis attribute:',
                    width=115, height=45)
 
+    label = Label(x=20, y=plot_height - 150,
+                  x_units='screen', y_units='screen',
+                  text='', text_alpha=.25,
+                  text_color='#b3b3b3',
+                  text_font_size='70pt')
+
+    spacer1 = Spacer(height=plot_height, width=30)
+
     but_1add = Button(label='FWD', width=60)
     but_1sub = Button(label='BACK', width=60)
     add_sub = widgetbox(but_1add, but_1sub)
-
-    # x_range = Range1d(df[sel_x].min(), df[sel_x].max())
 
     def make_plot():
         this_df = get_df()
@@ -167,7 +181,6 @@ def bk_basic_interactive(doc, df=None,
                    plot_height=plot_height,
                    x_range=xrng,
                    y_range=yrng,
-                   # output_backend="webgl",
                    title='')
 
         p.circle(x='x', y='y', color='c', size='s', alpha='a',
@@ -193,6 +206,9 @@ def bk_basic_interactive(doc, df=None,
 
         p.xaxis.axis_label = sel_x.value
         p.yaxis.axis_label = sel_y.value
+        label.plot = None
+        p.add_layout(label)
+        label.text = date_list[slider_month.value]
 
         return p
 
@@ -205,13 +221,14 @@ def bk_basic_interactive(doc, df=None,
 
     def update_data(attr, old, new):
         this_df = get_df()
-        # p.title.text = str(slider_month.value)
 
         source.data = dict(x=this_df[sel_x.value],
                            y=this_df[sel_y.value],
                            c=this_df['c'],
                            a=this_df['a'],
                            s=this_df['s'])
+
+        label.text = date_list[new]
 
     controls = [sel_x, sel_y]
     wb_controls = [sel_x, sel_y, slider_month]
@@ -223,7 +240,8 @@ def bk_basic_interactive(doc, df=None,
 
     sizing_mode = 'fixed'
 
-    inputs = widgetbox(*wb_controls, sizing_mode=sizing_mode)
+    inputs = widgetbox(*wb_controls, width=190,
+                       sizing_mode=sizing_mode)
 
     def insert_plot():
         lo.children[0] = make_plot()
@@ -247,11 +265,6 @@ def bk_basic_interactive(doc, df=None,
     but_1sub.on_click(sub1)
     but_1add.on_click(add1)
 
-    # def slider_update(attrname, old, new):
-    #     mth = slider_month.value
-    #     label.text = str(mth)
-    #     source.data = data[year]
-
     def animate():
         if play_button.label == '► Play':
             play_button.label = '❚❚ Pause'
@@ -269,8 +282,8 @@ def bk_basic_interactive(doc, df=None,
     reset_button = Button(label='Reset', width=60)
     reset_button.on_click(reset)
 
-    lo = row(make_plot(), inputs, column(play_button,
-                                         reset_button,
-                                         add_sub))
+    lo = row(make_plot(), spacer1, inputs, column(play_button,
+                                                  reset_button,
+                                                  add_sub))
 
     doc.add_root(lo)
