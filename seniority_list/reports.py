@@ -994,3 +994,218 @@ def annual_charts(ds_dict,
               'for basic overview of the calculated datasets only.\n' +
               'The built-in plotting functions provide much more detailed ' +
               'and comprehensive analysis of integrated list outcomes.\n')
+
+
+def job_diff_to_excel(base_ds,
+                      compare_ds,
+                      ds_dict,
+                      add_cpay=True,
+                      diff_color=True,
+                      row_color=True,
+                      lighten_factor=.65,
+                      neg_color='red',
+                      pos_color='blue',
+                      zero_color='white',
+                      id_cols=['lname', 'ldate', 'retdate']):
+    '''Generates a spreadsheet which reports the differential number of
+    months spent at each job level between two outcome datasets.  Results
+    are reported for every employee.
+
+    The order of the employees shown will be the order from the "compare"
+    dataset input.
+
+    The user may choose to apply formatting to the output spreadsheet.  The
+    generation of the output with formatting is much slower than without,
+    however.
+
+    Stores the output within the **reports/<case_name>/by_employee** folder.
+
+    inputs
+        base_ds (dataframe)
+            baseline dataset
+        compare_ds (dataframe)
+            comparison dataset
+        add_cpay (boolean)
+            if True, add a "cpay_diff" column to show data model pay
+            differential (compare vs. base)
+        diff_color (boolean)
+            if True, use the neg_color, pos_color, and zero_color inputs
+            to color the spreadsheet job differential output
+        row_color (boolean)
+            color spreadsheet rows by employee group if True.  Color will
+            be a tint (lighter color version) of the colors used to
+            represent the employee groups in chart output.
+        lighten_factor (float)
+            when the "row_color" input is True, this input controls the
+            tint of the normal employee group colors to use for the cell
+            background row coloring.  The input is limited from 0.0 to 1.0
+            and a higher value will make the coloring lighter.
+        neg_color, pos_color, zero_color (color values)
+            this input will determine the font colors to use for negative,
+            positive, and zero job differential values within the spreadsheet
+            output.  Inputs may by string hex values, or rgb values within
+            tuples or lists
+        id_cols (list)
+            list of columns to include within the spreadsheet output which
+            are in addition to the job level columns.  This list (with the
+            addition of the "order" column) will also be colored according
+            to employee group when the "row_color" input is set to True.
+            '''
+
+    sdict = pd.read_pickle('dill/dict_settings.pkl')
+
+    def lighten(color, hex_dict, factor=.8):
+        try:
+            if type(color) is str:
+                if color.startswith('#'):
+                    h = color.lstrip('#')
+                else:
+                    h = hex_dict[color].lstrip('#')
+
+                rgb = tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+                list_rgb = list(rgb)
+                lighter = (((255 - np.array(list_rgb)) * factor) +
+                           list_rgb).astype(int)
+                hexcolor = '#%02x%02x%02x' % tuple(lighter)
+                return hexcolor
+
+            if type(color) is tuple:
+                list_rgb = list(color)[:3]
+            if type(color) is list:
+                list_rgb = color[:3]
+
+            lighter = (((255 - np.array(list_rgb)) * factor) +
+                       list_rgb).astype(int)
+            return type(color)(lighter)
+        except:
+            print('''invalid color input for "lighten" function,
+                  must be an RGB tuple, RGB list, or string hex value''')
+
+    def cpay_diff(base, compare):
+        base_cpay = base[base.ret_mark == 1][['cpay']].copy()
+        compare_cpay = compare[compare.ret_mark == 1][['cpay']].copy()
+        compare_cpay['base'] = base_cpay['cpay']
+        compare_cpay['cpay_diff'] = \
+            ((compare_cpay.cpay - compare_cpay.base) * 1000).astype(int)
+        return compare_cpay[['cpay_diff']]
+
+    def job_months(df):
+        job_months = df.groupby([df.empkey, 'jnum'])['jnum']. \
+            count().unstack().fillna(0)
+        return job_months.astype(int)
+
+    def fill_job_columns(df, sdict):
+        num_of_job_levels = sdict['num_of_job_levels']
+        job_levels = list(range(1, num_of_job_levels + 2))
+
+        for level in job_levels:
+            if level not in df.columns:
+                df[level] = 0
+
+        df.columns = sorted(df.columns)
+
+        return df
+
+    def resort_df(df, order_df):
+        m0 = order_df[order_df.mnum == 0][[]].copy()
+        m0['order'] = range(1, len(m0) + 1)
+        df['order'] = m0['order']
+        df.sort_values('order', inplace=True)
+        df.drop('order', inplace=True, axis=1)
+        return df
+
+    def add_cols(df, order_df, col_list=id_cols):
+        cols = ['order']
+        if 'eg' not in col_list:
+            col_list.append('eg')
+        m0 = order_df[order_df.mnum == 0][col_list].copy()
+        m0['order'] = range(1, len(m0) + 1)
+        cols.extend(col_list)
+        m0 = m0[cols]
+        m0 = m0.join(df)
+        for col in col_list:
+            try:
+                m0[col] = m0[col].dt.date
+            except:
+                pass
+        return m0
+
+    def color_vals(val):
+        """
+        Takes a scalar and returns a string with
+        the css property 'color: red' for negative
+        strings, 'color: blue' for positive numbers
+        and 'color: white' for zero values.
+        """
+        color = ((pos_color, neg_color), (zero_color, ))[val == 0][val < 0]
+        return 'color: %s' % color
+
+    def color_rows(df, light_factor=.85):
+        sdict = pd.read_pickle('dill/dict_color.pkl')
+        eg_dict = sdict['eg_color_dict']
+        hex_dict = f.hex_dict()
+        for key in eg_dict.keys():
+            eg_dict[key] = lighten(eg_dict[key], hex_dict, factor=light_factor)
+        prefix = 'background-color: '
+        egs = df.eg.values
+        color_strs = np.empty(egs.size, dtype=object)
+        for eg in np.unique(egs):
+            np.put(color_strs, np.where(egs == eg)[0], prefix + eg_dict[eg])
+        return color_strs
+
+    try:
+        # get current case study name
+        case_df = pd.read_pickle('dill/case_dill.pkl')
+        case_name = case_df.case.value
+    except OSError:
+        print('unable to retrieve case name, try setting case input')
+        return
+
+    folder = 'reports/' + case_name + '/by_employee/'
+
+    if not path.exists(folder):
+        makedirs(folder)
+
+    file_name = 'job_months_' + compare_ds + '_vs_' + base_ds + '.xlsx'
+
+    path_name = folder + file_name
+
+    base = ds_dict[base_ds]
+    compare = ds_dict[compare_ds]
+
+    base_jobs = job_months(base)
+    compare_jobs = job_months(compare)
+
+    base_jobs_filled = fill_job_columns(base_jobs, sdict)
+    compare_jobs_filled = fill_job_columns(compare_jobs, sdict)
+
+    base_sorted = resort_df(base_jobs_filled, compare)
+    compare_sorted = resort_df(compare_jobs_filled, compare)
+
+    df_diff = compare_sorted - base_sorted
+
+    final = add_cols(df_diff, compare)
+
+    if add_cpay:
+        cpay = cpay_diff(base, compare)
+        final = final.join(cpay)
+
+    df1 = final
+    apply_row_color = color_rows(df1, light_factor=lighten_factor)
+
+    job_levels = list(range(1, sdict['num_of_job_levels'] + 2))
+
+    id_cols.append('order')
+
+    if diff_color and row_color:
+        frame = df1.style.apply(lambda s: apply_row_color,
+                                subset=id_cols).applymap(color_vals,
+                                                         subset=job_levels)
+    elif diff_color and not row_color:
+        frame = df1.style.applymap(color_vals, subset=job_levels)
+    elif not diff_color and row_color:
+        frame = df1.style.apply(lambda s: apply_row_color, subset=id_cols)
+    else:
+        frame = df1
+
+    frame.to_excel(path_name, engine='openpyxl', freeze_panes=(1, 0))
