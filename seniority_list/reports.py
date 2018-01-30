@@ -1053,8 +1053,13 @@ def job_diff_to_excel(base_ds,
             '''
 
     sdict = pd.read_pickle('dill/dict_settings.pkl')
+    hex_dict = f.hex_dict()
 
     def lighten(color, hex_dict, factor=.8):
+        '''This function will return a lightened color.  The "factor" input
+        determines how much lighter.  The "color" input may be a string or
+        rgb input.
+        '''
         try:
             if type(color) is str:
                 if color.startswith('#'):
@@ -1140,10 +1145,9 @@ def job_diff_to_excel(base_ds,
         color = ((pos_color, neg_color), (zero_color, ))[val == 0][val < 0]
         return 'color: %s' % color
 
-    def color_rows(df, light_factor=.85):
+    def color_rows(df, hex_dict, light_factor=.85):
         sdict = pd.read_pickle('dill/dict_color.pkl')
         eg_dict = sdict['eg_color_dict']
-        hex_dict = f.hex_dict()
         for key in eg_dict.keys():
             eg_dict[key] = lighten(eg_dict[key], hex_dict, factor=light_factor)
         prefix = 'background-color: '
@@ -1161,51 +1165,60 @@ def job_diff_to_excel(base_ds,
         print('unable to retrieve case name, try setting case input')
         return
 
+    # make a folder for the report if it does not exist
     folder = 'reports/' + case_name + '/by_employee/'
-
     if not path.exists(folder):
         makedirs(folder)
 
+    # assign the output spreadsheet name and path
     file_name = 'job_months_' + compare_ds + '_vs_' + base_ds + '.xlsx'
-
     path_name = folder + file_name
 
+    # get the base and compare dataframes from the dataset dictionary
     base = ds_dict[base_ds]
     compare = ds_dict[compare_ds]
 
+    # make the groupby job count dataframes
     base_jobs = job_months(base)
     compare_jobs = job_months(compare)
 
+    # add any missing job level columns
     base_jobs_filled = fill_job_columns(base_jobs, sdict)
     compare_jobs_filled = fill_job_columns(compare_jobs, sdict)
 
+    # sort both datasets by compare dataset order
     base_sorted = resort_df(base_jobs_filled, compare)
     compare_sorted = resort_df(compare_jobs_filled, compare)
 
+    # create the differential dataframe
     df_diff = compare_sorted - base_sorted
 
+    # add other columns to the differential dataframe (name, ldate, etc.)
     final = add_cols(df_diff, compare)
 
+    # add a career pay differential column to the final dataframe
     if add_cpay:
         cpay = cpay_diff(base, compare)
         final = final.join(cpay)
 
-    df1 = final
-    apply_row_color = color_rows(df1, light_factor=lighten_factor)
+    # define the row color function
+    apply_row_color = color_rows(final, hex_dict, light_factor=lighten_factor)
 
     job_levels = list(range(1, sdict['num_of_job_levels'] + 2))
 
     id_cols.append('order')
 
+    # determine the formatting to be applied
     if diff_color and row_color:
-        frame = df1.style.apply(lambda s: apply_row_color,
-                                subset=id_cols).applymap(color_vals,
-                                                         subset=job_levels)
+        frame = final.style.apply(lambda s: apply_row_color,
+                                  subset=id_cols).applymap(color_vals,
+                                                           subset=job_levels)
     elif diff_color and not row_color:
-        frame = df1.style.applymap(color_vals, subset=job_levels)
+        frame = final.style.applymap(color_vals, subset=job_levels)
     elif not diff_color and row_color:
-        frame = df1.style.apply(lambda s: apply_row_color, subset=id_cols)
+        frame = final.style.apply(lambda s: apply_row_color, subset=id_cols)
     else:
-        frame = df1
+        frame = final
 
+    # write the spreadsheet file to disk
     frame.to_excel(path_name, engine='openpyxl', freeze_panes=(1, 0))
