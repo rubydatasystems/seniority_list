@@ -806,6 +806,7 @@ def multiline_plot_by_emp(df, measure, xax,
 
 
 def violinplot_by_eg(df, measure, ret_age,
+                     cdict,
                      attr_dict, ds_dict=None,
                      mnum=0, linewidth=1.5,
                      attr1=None, oper1='>=', val1='0',
@@ -835,6 +836,8 @@ def violinplot_by_eg(df, measure, ret_age,
             attribute to plot
         ret_age (float)
             retirement age (example: 65.0)
+        cdict (dictionary)
+            color dictionary for plotting palatte
         attr_dict (dictionary)
             dataset column name description dictionary
         ds_dict (dictionary)
@@ -904,7 +907,7 @@ def violinplot_by_eg(df, measure, ret_age,
     sns.violinplot(x=frame.eg, y=frame[measure],
                    cut=0, scale=scale, inner='box',
                    bw=.1, linewidth=linewidth,
-                   palette=['gray', '#3399ff', '#ff8000'], ax=ax)
+                   palette=cdict['eg_colors'], ax=ax)
 
     fig.suptitle(df_label + ' - ' +
                  attr_dict[measure].upper() + ',  Month ' +
@@ -3577,6 +3580,8 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
     '''
     df, df_label = determine_dataset(df, ds_dict, return_label=True)
 
+    three_egs = 3 in np.unique(df.eg)
+
     if fur_color:
         span_colors[-1] = fur_color
     max_count = df.groupby('mnum').size().max()
@@ -3620,8 +3625,12 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
             df = df[df.eg == 2]
             label = 'eg2'
         elif num == 3:
-            df = df[df.eg == 3]
-            label = 'eg3'
+            if three_egs:
+                df = df[df.eg == 3]
+                label = 'eg3'
+            else:
+                print('invalid "num" input, only 2 emp groups exist')
+                return
         elif num == 1:
             df = df[df.eg == 1]
             label = 'eg1_with_sg'
@@ -3654,21 +3663,29 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
         d1 = df[(df.eg == 1) & (df.sg == 1)]
         d2 = df[(df.eg == 1) & (df.sg == 0)]
         d3 = df[df.eg == 2]
-        d4 = df[df.eg == 3]
+        if three_egs:
+            d4 = df[df.eg == 3]
+
+        print(d1[xax])
+        print(d1[measure])
 
         if plot_scatter:
-            d1.plot(x=xax, y=measure, kind='scatter',
-                    label='eg1_sg_only', color='#5cd65c',
-                    alpha=a, s=s, linewidth=lw, ax=ax1)
+            try:
+                d1.plot(x=xax, y=measure, kind='scatter',
+                        label='eg1_sg_only', color='#5cd65c',
+                        alpha=a, s=s, linewidth=lw, ax=ax1)
+            except:
+                pass
             d2.plot(x=xax, y=measure, kind='scatter',
                     label='eg1_no_sg', color='black',
                     alpha=a, s=s, linewidth=lw, ax=ax1)
             d3.plot(x=xax, y=measure, kind='scatter',
                     label='eg2', color='blue',
                     alpha=a, s=s, linewidth=lw, ax=ax1)
-            d4.plot(x=xax, y=measure, kind='scatter',
-                    label='eg3', c='#FF6600',
-                    alpha=a, s=s, linewidth=lw, ax=ax1)
+            if three_egs:
+                d4.plot(x=xax, y=measure, kind='scatter',
+                        label='eg3', c='#FF6600',
+                        alpha=a, s=s, linewidth=lw, ax=ax1)
 
         else:
             d1.set_index(xax, drop=True)[measure].plot(label='eg1_sg_only',
@@ -3686,10 +3703,11 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
                                                        alpha=a,
                                                        ax=ax1)
 
-            d4.set_index(xax, drop=True)[measure].plot(label='eg3',
-                                                       color='#FF6600',
-                                                       alpha=a,
-                                                       ax=ax1)
+            if three_egs:
+                d4.set_index(xax, drop=True)[measure].plot(label='eg3',
+                                                           color='#FF6600',
+                                                           alpha=a,
+                                                           ax=ax1)
             print('''Ignore the vertical lines.  \
                   Look right to left within each job \
                   level for each group\'s participation''')
