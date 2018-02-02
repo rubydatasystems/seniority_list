@@ -3666,9 +3666,6 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
         if three_egs:
             d4 = df[df.eg == 3]
 
-        print(d1[xax])
-        print(d1[measure])
-
         if plot_scatter:
             try:
                 d1.plot(x=xax, y=measure, kind='scatter',
