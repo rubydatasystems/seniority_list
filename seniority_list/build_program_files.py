@@ -75,7 +75,7 @@ from collections import OrderedDict as od
 import os
 import functions as f
 from matplotlib_charting import make_color_list as mcl
-from converter import convert as cnv
+import converter as cv
 
 from sys import argv
 
@@ -381,8 +381,8 @@ def main():
 
     xl_pay = pd.read_excel('reports/' + case + '/pay_table_data.xlsx',
                            sheet_name=['basic job order',
-                                      'enhanced job order',
-                                      'job dict'])
+                                       'enhanced job order',
+                                       'job dict'])
     df_jd = xl_pay['job dict']
     df_jd['list_cols'] = f.make_lists_from_columns(xl_pay['job dict'],
                                                    ['full', 'part',
@@ -528,6 +528,10 @@ def main():
     month_end = df.month_end.max()
     settings['ratio_month_range'] = set(range(month_start, month_end + 1))
 
+    # make snap_ratio_on_off_dict
+    settings['snap_ratio_on_off_dict'] = \
+        f.make_dict_from_columns(df, 'basic_job', 'snapshot')
+
     df_cols = df.columns.values.tolist()
     group_cols = [col for col in df_cols if col.startswith('group')]
     weight_cols = [col for col in df_cols if col.startswith('weight')]
@@ -535,12 +539,12 @@ def main():
         df[col] = f.make_group_lists(df, col)
 
     df['grp_tup'] = f.make_lists_from_columns(df, group_cols,
-                                              remove_zero_values=True,
+                                              remove_zero_values=False,
                                               as_tuples=True)
     df['wgt_tup'] = f.make_lists_from_columns(df,
                                               weight_cols,
-                                              remove_zero_values=True,
-                                              as_tuples=True)
+                                              remove_zero_values=False,
+                                              as_tuples=False)
     df = df[['basic_job', 'grp_tup', 'wgt_tup',
              'month_start', 'month_end']].copy()
     cols = [col for col in df if col != 'basic_job']
@@ -557,6 +561,10 @@ def main():
     month_end = df.month_end.max()
     settings['count_ratio_month_range'] = set(range(month_start,
                                                     month_end + 1))
+
+    # make snap_count_on_off_dict
+    settings['snap_count_on_off_dict'] = \
+        f.make_dict_from_columns(df, 'basic_job', 'snapshot')
 
     df_cols = df.columns.values.tolist()
     group_cols = [col for col in df_cols if col.startswith('group')]
@@ -594,23 +602,42 @@ def main():
         count_dict = settings['count_ratio_dict']
         ratio_dict = settings['ratio_dict']
 
+        ratio_onoff = settings['snap_ratio_on_off_dict']
+        count_onoff = settings['snap_count_on_off_dict']
+
         dist_sg = settings['dist_sg']
         dist_ratio = settings['dist_ratio']
         dist_count = settings['dist_count']
 
-        sg_rights, count_dict, ratio_dict = cnv(job_dict=jd,
-                                                sg_list=sg_rights,
-                                                # ratio_list=ratio_cond,
-                                                count_ratio_dict=count_dict,
-                                                ratio_dict=ratio_dict,
-                                                dist_sg=dist_sg,
-                                                dist_ratio=dist_ratio,
-                                                dist_count_ratio=dist_count)
+        sg_rights, count_dict, ratio_dict, ratio_onoff, count_onoff = \
+            cv.convert(job_dict=jd,
+                       sg_list=sg_rights,
+                       count_ratio_dict=count_dict,
+                       ratio_dict=ratio_dict,
+                       ratio_onoff_dict=ratio_onoff,
+                       count_onoff_dict=count_onoff,
+                       dist_sg=dist_sg,
+                       dist_ratio=dist_ratio,
+                       dist_count_ratio=dist_count)
 
         settings['sg_rights'] = sg_rights
-        # settings['ratio_cond'] = ratio_cond
-        settings['count_ratio_dict'] = count_dict
-        settings['ratio_dict'] = ratio_dict
+        settings['snap_ratio_on_off_dict'] = ratio_onoff
+        settings['snap_count_on_off_dict'] = count_onoff
+
+    # remove any ratio groups marked with a zero (only may occur with
+    # three or more merging groups)
+    settings['ratio_dict'] = f.remove_zero_groups(ratio_dict)
+    settings['count_ratio_dict'] = f.remove_zero_groups(count_dict)
+
+    snap_ratio_dict = {}
+    snap_count_dict = {}
+    for job in ratio_dict.keys():
+        snap_ratio_dict[job] = ratio_dict[job][2]
+    for job in count_dict.keys():
+        snap_count_dict[job] = count_dict[job][3]
+
+    settings['snap_ratio_dict'] = snap_ratio_dict
+    settings['snap_count_dict'] = snap_count_dict
 
     # ///////////////////////////////////////////////////////////////////
 
@@ -631,6 +658,7 @@ def main():
     # ## eg_colors, lin_reg_colors, lin_reg_colors2, mean_colors
 
     short_colors = xl['eg_colors']
+    settings['egs'] = set(short_colors.eg.values)
     color_dict['eg_color_dict'] = dict(zip(short_colors.eg,
                                            short_colors.eg_colors))
     short_cols = [col for col in list(short_colors) if col != 'eg']
@@ -907,6 +935,7 @@ def main():
 
     with open('dill/dict_job_tables.pkl', 'wb') as handle:
         pickle.dump(table_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 
 if __name__ == "__main__":

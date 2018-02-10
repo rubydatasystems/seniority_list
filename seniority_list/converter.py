@@ -40,6 +40,8 @@ def convert(job_dict=None,
             sg_list=None,
             count_ratio_dict=None,
             ratio_dict=None,
+            ratio_onoff_dict=None,
+            count_onoff_dict=None,
             dist_sg=None,
             dist_ratio=None,
             dist_count_ratio=None):
@@ -220,5 +222,39 @@ def convert(job_dict=None,
     else:
         enhan_ratio_dict = 0
 
+    if ratio_onoff_dict:
+        temp_dict = {}
+        enhan_ratio_onoff_dict = {}
+        for job in ratio_onoff_dict.keys():
+
+            full_job = int(job_dict[job][0])
+            part_job = int(job_dict[job][1])
+
+            temp_dict[full_job] = ratio_onoff_dict[job]
+            temp_dict[part_job] = ratio_onoff_dict[job]
+
+        for key in sorted(temp_dict.keys()):
+            enhan_ratio_onoff_dict[key] = temp_dict[key]
+    else:
+        enhan_ratio_onoff_dict = 0
+
+    if count_onoff_dict:
+        temp_dict = {}
+        enhan_count_onoff_dict = {}
+        for job in count_onoff_dict.keys():
+
+            full_job = int(job_dict[job][0])
+            part_job = int(job_dict[job][1])
+
+            temp_dict[full_job] = count_onoff_dict[job]
+            temp_dict[part_job] = count_onoff_dict[job]
+
+        for key in sorted(temp_dict.keys()):
+            enhan_count_onoff_dict[key] = temp_dict[key]
+    else:
+        enhan_count_onoff_dict = 0
+
     return (enhan_sg_cond,
-            enhan_rcount_dict, enhan_ratio_dict)
+            enhan_rcount_dict, enhan_ratio_dict,
+            enhan_ratio_onoff_dict,
+            enhan_count_onoff_dict)

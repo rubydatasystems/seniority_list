@@ -1148,7 +1148,7 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
             idx = ds.index.values
             fur = ds.fur.values
             furs = np.where(fur == 1)[0]
-            ds_nofur = ds[~np.in1d(ds.index, pd.unique(idx[furs]))]
+            ds_nofur = ds[~np.isin(ds.index, pd.unique(idx[furs]))]
             ds_dict[str(i)] = ds_nofur[['empkey', 'mnum', measure]].copy()
         else:
             ds_dict[str(i)] = ds[['empkey', 'mnum', measure]].copy()
@@ -1464,7 +1464,7 @@ def eg_boxplot(df_list, eg_list,
             idx = ds.index.values
             fur = ds.fur.values
             furs = np.where(fur == 1)[0]
-            ds = ds[~np.in1d(ds.index, pd.unique(idx[furs]))]
+            ds = ds[~np.isin(ds.index, pd.unique(idx[furs]))]
 
         # filter each ds to only include desired employee groups
         ds = ds[ds['eg'].isin(eg_list)][['empkey', 'mnum', measure]].copy()
@@ -2860,7 +2860,7 @@ def rows_of_color(df, mnum, measure_list,
 
     if eg_list:
         np.put(heat_data,
-               np.where(np.in1d(eg, np.array(eg_list), invert=True))[0],
+               np.where(np.isin(eg, np.array(eg_list), invert=True))[0],
                np.nan)
 
     heat_data = heat_data.reshape(rows, cols)
@@ -6010,7 +6010,7 @@ def slice_ds_by_filtered_index(df, ds_dict=None,
     ds_index = ds.index.values
     # get all of the dataset rows with an index (employee number) which exists
     # within the month_slice_indexes array
-    ds_filter = ds[np.in1d(ds_index, month_slice_indexes)]
+    ds_filter = ds[np.isin(ds_index, month_slice_indexes)]
 
     return ds_filter
 
@@ -6956,8 +6956,8 @@ def percent_diff_bins(compare,
     bins_found = max(pos_bins_found, neg_bins_found) + 1
 
     label_arr = (np.linspace(0, 1, quantiles + 1) * 100)[1:]
-    pos_labels = [str(x) + '%' for x in label_arr][:bins_found]
-    neg_labels = [str(x) + '%' for x in label_arr * -1][:bins_found]
+    pos_labels = ['{0:.1f}%'.format(x) for x in label_arr][:bins_found]
+    neg_labels = ['{0:.1f}%'.format(x) for x in label_arr * -1][:bins_found]
 
     str_labels = pos_labels + neg_labels
 
@@ -7539,7 +7539,7 @@ def eg_attributes(ds, xmeasure, ymeasure,
         egs = df.eg.values
         if eg_list is None:
             eg_list = np.unique(egs)
-        df = df[np.in1d(egs, eg_list)].copy()
+        df = df[np.isin(egs, eg_list)].copy()
 
     # filter to include only active employees if an "active only" attribute
     # is selected

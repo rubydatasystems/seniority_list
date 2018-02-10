@@ -116,6 +116,7 @@ def bk_basic_interactive(doc, df=None,
     date_list = list(pd.date_range(start=sdict['starting_date'],
                                    periods=max_month, freq='M'))
     date_list = [x.strftime('%Y %b') for x in date_list]
+    slider_height = plot_height - 200
 
     # create empty data source template
     source = ColumnDataSource(data=dict(x=[], y=[], c=[], s=[], a=[]))
@@ -123,7 +124,7 @@ def bk_basic_interactive(doc, df=None,
     slider_month = Slider(start=0, end=max_month,
                           value=0, step=1,
                           title='month',
-                          height=int(plot_height - 200),
+                          height=slider_height,
                           tooltips=False,
                           bar_color='#ffe6cc',
                           direction='rtl',
