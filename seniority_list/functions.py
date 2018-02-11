@@ -46,13 +46,17 @@ from collections import OrderedDict as od
 # CAREER MONTHS
 def career_months(ret_input, start_date):
     '''(Short_Form)
+
     Determine how many months each employee will work
     including retirement partial month
+
     "ret_input" (retirement dates) may be in the form of a pandas dataframe,
     pandas series, array, list, or string
+
     Output is a numpy array of integers containing the number of months
     between the start_date and each date in the ret_input (months from
     start date to retirement for each employee)
+
     inputs
         ret_input (dataframe, series, array, list, or string)
             retirement dates input
@@ -79,10 +83,13 @@ def longevity_at_startdate(ldate_input,
                            start_date,
                            return_as_months=False):
     ''' (Short_Form)
+
     determine how much longevity (years) each employee has accrued as of the
     start date
+
     float output is longevity in years (+1 added to reflect current 1-based
     pay year)
+
     inputs
         ldate_input (dataframe, series, list, or string)
             list of longevity dates in datetime format
@@ -117,9 +124,12 @@ def longevity_at_startdate(ldate_input,
 # AGE AT START DATE
 def starting_age(dob_input, start_date):
     '''Short_Form
+
     Returns decimal age at given date.
+
     "dob_input" (birth dates) may be in the form of a pandas dataframe,
     pandas series, list, or string
+
     inputs
         dob_list (dataframe, series, list, or string)
             birth dates input
@@ -147,6 +157,7 @@ def starting_age(dob_input, start_date):
 def convert_to_datetime(date_data, attribute):
     '''Convert a dataframe column, series, list, or string input into an array
     of datetimes
+
     inputs
         data_data (dataframe, series, array, list, or string)
             pandas dataframe with a date column containing string dates or
@@ -185,12 +196,15 @@ def convert_to_datetime(date_data, attribute):
 # COUNT PER MONTH
 def count_per_month(career_months_array):
     '''Month_Form
+
     Returns number of employees remaining for each month (not retired).
     Cumulative sum of career_months_array input (np array) that are
     greater or equal to each incremental loop month number.
+
     Note: alternate method to this function is value count of mnums:
     df_actives_each_month = pd.DataFrame(df_idx.mnum.value_counts())
     df_actives_each_month.columns = ['count']
+
     input
         career_months_array
             output of career_months function.  This input is an array
@@ -210,6 +224,7 @@ def count_per_month(career_months_array):
 @jit(nopython=True, cache=True)
 def gen_month_skeleton(month_count_array):
     '''Long_Form
+
     Create an array of month numbers with each month number
     repeating n times for n non-retired employees in each month.
     i.e. the first month section of the array will be all zeros
@@ -217,9 +232,11 @@ def gen_month_skeleton(month_count_array):
     The next section of the array will be all ones (month: 1)
     repeating for the number of employees remaining in month 1.
     Output is a 1d ndarray.
+
     This funtion creates the first column and the basic form
     of the skeleton dataframe which is the basis for the dataset dataframes.
-    input
+
+    inputs
         month_count_array
             a numpy array containing the number of employees remaining or
             not retired for each month.  This input is the result of the
@@ -244,11 +261,14 @@ def gen_skel_emp_idx(monthly_count_array,
                      career_mths_array,
                      empkey_source_array):
     '''Long_Form
+
     For each employee who remains for each month,
     grab that employee index number.
+
     This index will be the key to merging in other data using data alignment.
     Input is the result of the count_per_month function (np.array)
     and the result of the career_months function
+
     inputs
         monthly_count_array (numpy array)
             count of non-retired active employees for each month in the model,
@@ -258,6 +278,7 @@ def gen_skel_emp_idx(monthly_count_array,
             career_months functions.
         empkey_source_array (numpy array)
             empkey column data as array
+
     Returns tuple (skel_idx_array, skel_empkey_array)
     '''
     total_months = int(np.sum(monthly_count_array))
@@ -284,11 +305,14 @@ def age_correction(month_nums_array,
                    ages_array,
                    retage):
     '''Long_Form
+
     Returns a long_form (all months) array of employee ages by
     incrementing starting ages according to month number.
+
     Note:  Retirement age increases are handled by the build_program_files
     script by incrementing retirement dates and by the clip_ret_ages
     function within the make_skeleton script.
+
     inputs
         month_nums_array (array)
             gen_month_skeleton function output (ndarray)
@@ -298,6 +322,7 @@ def age_correction(month_nums_array,
             repeated each month.
         retage (integer or float)
             output clip upper limit for retirement age
+
     Output is s_age incremented by a decimal month value according to month_num
     (this is candidate for np.put refactored function)
     '''
@@ -312,8 +337,10 @@ def age_correction(month_nums_array,
 # and optional raise multiplier)
 def contract_year_and_raise(df, settings_dict):
     '''(Month_Form)
+
     Generate the contract pay year for indexing into the pay table.
     Pay year is clipped to last year of contract.
+
     Also create an annual assumed raise column applicable to the time period
     beyond the contract duration.  This is a multiplier column with a
     compounded value each subsequent year.  If no raise is elected (via the
@@ -321,10 +348,12 @@ def contract_year_and_raise(df, settings_dict):
     all ones.  The annual raise percentage is designated on the same worksheet.
     The input df must be a single column dataframe containing end-of-month
     dates, one for each month of the data model.
+
     NOTE: (this function can accept any number of pay exception periods
     through the pay_exceptions dictionary, populated by the "pay_exceptions"
     worksheet values within the *settings.xlsx* input file, see the
     program documentation for more information)
+
     inputs
         df (dataframe)
             a single column dataframe containing end-of-month dates,
@@ -378,14 +407,19 @@ def contract_year_and_raise(df, settings_dict):
 def make_stovepipe_jobs_from_jobs_arr(jobs_arr,
                                       total_emp_count=0):
     '''Month_Form
+
     Compute a stovepipe job list derived from the total
     count of jobs in each job level.
+
     This function is for one eg (employee group) and one jobs_arr (list).
+
     Creates an array of job numbers from a
     job count list (converted to np.array).
+
     Result is an array with each job number repeated n times for n job count.
     - job count list like : job_counts = [334, 222, 701, 2364]
     - jobs_array = np.array(job_counts)
+
     inputs
         jobs_arr (numpy array)
             job counts starting with job level 1
@@ -422,17 +456,23 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr,
                                       num_levels,
                                       skip_fur=True):
     '''Month_Form
+
     Compute an integrated job list built from multiple
     independent eg stovepiped job lists.
+
     This function is for multiple egs (employee groups) - multiple lists in
     one job_lists_arr.
+
     Creates an ndarray of job numbers.
+
     Function takes independent job number lists and an array of eg codes
     which represent the eg ordering in the proposed list.
+
     Job numbers from the separate lists are added to the result array
     according to the eg_arr order.  Jobs on each list do not have to be
     in any sort of order.  The routine simply adds items from the list(s)
     to the result array slots in list order.
+
     inputs
         job_lists_arr
             array of the input job number arrays.
@@ -450,7 +490,6 @@ def make_intgrtd_from_sep_stove_lists(job_lists_arr,
         num_levels
             number of job levels in model (excluding furlough level)
         skip_fur (boolean)
-        skip_fur option:
             ignore or skip furloughs when assigning stovepipe jobs.
             If True, employees who are originally marked as furloughed are
             assigned the furlough level number which is 1 greater
@@ -499,21 +538,26 @@ def make_stovepipe_prex_shortform(job_list,
                                   sg_rights,
                                   fur_codes):
     '''Short_Form
+
     Creates a 'stovepipe' job assignment within a single eg including a
     special job assignment condition for a subgroup.  The subgroup is
     identified with a 1 in the sg_codes array input, originating with
     the sg column in the master list.
+
     This function applies a pre-existing (prior to the merger)
     contractual job condition, which is likely the result of a previous
     seniority integration.
+
     The subset group will have proirity assignment for the first n jobs
     in the affected job category, the remainding jobs
     are assigned in seniority order.
+
     The subgroup jobs are assigned in subgroup stovepipe order.
     This function is applicable to a condition with known job counts.
     The result of this function is used with standalone calculations or
     combined with other eg lists to form an integrated original
     job assignment list.
+
     inputs
         job_list
             list of job counts for eg, like [23,34,0,54,...]
@@ -571,25 +615,33 @@ def make_original_jobs_from_counts(jobs_arr_arr,
                                    fur_array,
                                    num_levels):
     '''Short_Form
+
     This function grabs jobs from standalone job count
     arrays (normally stovepiped) for each employee group and inserts
     those jobs into a proposed integrated list, or a standalone list.
     Each eg (employee group) is assigned jobs from their standalone
     list in order top to bottom.
+
     Result is a combined list of jobs with each eg maintaining ordered
     independent stovepipe jobs within the combined list of jobs
     jobs_arr_arr is an array of arrays, likely output[0] from
     make_array_of_job_lists function.
+
     Order of job count arrays within jobs_arr_arr input
     must match emp group codes order (1, 2, 3, etc.).
+
     If total group counts of job(s) is less than slots available to that group,
     remaining slots will be assigned (remain) a zero job number (0).
+
     eg_array is list (order sequence) of employee group codes from proposed
     list with length equal to length of proposed list.
+
     Result of this function is ultimately merged into long form
     for no bump no flush routine.
+
     employees who are originally marked as furloughed are assigned the furlough
     level number which is 1 greater than the number of job levels.
+
     inputs
         jobs_arr_arr (numpy array of arrays)
             lists of job counts for each job level within each employee
@@ -637,13 +689,16 @@ def assign_standalone_job_changes(eg,
                                   tdict,
                                   apply_sg_cond=True):
     '''(Long_Form)
+
     Uses the job_gain_or_loss_table job count array for job assignments.
     Jobs counts may change up or down in any category for any time period.
     Handles furlough and return of employees, prior rights/conditions and
     restrictions and recall of initially furloughed employees.
+
     Inputs are precalculated outside of function to the extent possible.
     Returns tuple (long_assign_column, long_count_column, held_jobs,
     fur_data, orig_jobs)
+
     inputs
         eg (integer)
             input from an incremental loop which is used to select the proper
@@ -690,10 +745,13 @@ def assign_standalone_job_changes(eg,
             compute with pre-existing special job quotas for certain
             employees marked with a one in the sg column (special group)
             according to a schedule defined in the settings dictionary
+
     Assigns jobs so that original standalone jobs are assigned
     each month (if available) unless a better job is available
     through attrition of employees.
+
     Each month loop starts with the lowest job number.
+
     For each month and for each job level:
         1. assigns nbnf (orig) job if job array (long_assign_column) element
         is zero (unassigned) and orig job number is less than or
@@ -701,13 +759,18 @@ def assign_standalone_job_changes(eg,
         2. assigns job level in current loop to unassigned slots from
         top to bottom in the job array (up to the count of that
         job level remaining after step one above)
+
     Each month range is determined by slicing using the lower and upper inputs.
+
     A comparison is made each month between the original job numbers and the
     current job loop number.
+
     Job assignments are placed into the monthly segment
     (assign_range) of the long_assign_column.
+
     The long_assign_column eventually becomes the job number (jnum) column
     in the dataset.
+
     Original job numbers of 0 indicate no original job and are
     treated as furloughed employees - no jobs are assigned
     to furloughees unless furlough_return option is selected.
@@ -881,16 +944,20 @@ def assign_jobs_full_flush_job_changes(nonret_counts,
                                        job_counts,
                                        num_job_levels):
     '''(Long_Form)
+
     Using the nonret counts for each month:
       a. determine the long form slice for assignment, and
       b. slice the jobs list from the top to create job assignment column
       c. create a corresponding furlough column
       d. create a job count column
+
     Uses the job_counts (job_gain_loss_table function)[0] to
     build stovepiped job lists allowing for job count changes each month
-    and a furlough status column
+    and a furlough status column.
+
     Unassigned employees (not enough jobs), are left at job number zero
     This is the full bump and full flush version
+
     inputs
         nonret_counts (numpy array)
             array containing the number of non-retired employees
@@ -947,12 +1014,15 @@ def assign_jobs_nbnf_job_changes(df,
                                  tdict,
                                  fur_return=False):
     '''(Long_Form)
+
     Uses the job_gain_or_loss_table job count array for job assignments.
     Jobs counts may change up or down in any category for any time period.
     Handles furlough and return of employees, prior rights/conditions and
     restrictions and recall of initially furloughed employees.
+
     Inputs are precalculated outside of function to the extent possible.
     Returns tuple (long_assign_column, long_count_column, orig jobs, fur_data)
+
     inputs
         df (dataframe)
             long-form dataframe with ['eg', 'sg', 'fur', 'orig_job']
@@ -983,10 +1053,13 @@ def assign_jobs_nbnf_job_changes(df,
             model employee recall from furlough if True using recall
             schedule from settings dictionary (allows call to
             mark_for_recall function)
+
     Assigns jobs so that original standalone jobs are assigned
     each month (if available) unless a better job is available
     through attrition of employees.
+
     Each month loop starts with the lowest job number.
+
     For each month and for each job level:
         1. assigns nbnf (orig) job if job array (long_assign_column) element
            is zero (unassigned) and orig job number is less than or
@@ -994,13 +1067,17 @@ def assign_jobs_nbnf_job_changes(df,
         2. assigns job level in current loop to unassigned slots from
            top to bottom in the job array (up to the count of that
            job level remaining after step one above)
+
     Each month range is determined by slicing using the lower and upper inputs.
     A comparison is made each month between the original job numbers and the
     current job loop number.
+
     Job assignments are placed into the monthly segment (assign_range)
     of the long_assign_column.
+
     The long_assign_column eventually becomes the job number (jnum) column
     in the dataset.
+
     Original job numbers of 0 indicate no original job and are
     treated as furloughed employees.  No jobs are assigned to
     furloughees unless furlough_return option is selected.
@@ -1260,10 +1337,12 @@ def assign_jobs_nbnf_job_changes(df,
 def make_lower_slice_limits(month_counts_cumsum):
     '''for use when working with unique month data
     within larger array (slice).
+
     The top of slice is cumulative sum, bottom of each slice
     will be each value of this function output array.
     Output is used as input for nbnf functions.
-    input
+
+    inputs
         month_counts_cumsum (numpy array)
             cumsum of count_per_month function output (employee count
             each month)
@@ -1286,12 +1365,16 @@ def create_snum_and_spcnt_arrays(jnums,
     seniority percentage ('spcnt', only active employees),
     list number ('lnum', includes furlougees),
     list percentage ('lspcnt', includes furloughees).
+
     Iterate through monthly jobs count data, capturing monthly_job_counts
     to be used as the denominator for percentage calculations.
+
     This function produces four ndarrays which will make up four columns
     in the long_form pandas dataset.
+
     Returns tuple (long_snum_array, long_spcnt_array, long_list_array,
     long_lspcnt_array)
+
     inputs
         jnums
             the long_form jnums result
@@ -1378,6 +1461,7 @@ def make_jcnts(job_count_lists):
     (total count of all eg jobs)
     The arrays above will not contain a furlough count.
     Returns tuple (eg_job_counts, combined_job_count)
+
     inputs
         job_count_lists
             list of the employee job count list(s).
@@ -1385,8 +1469,11 @@ def make_jcnts(job_count_lists):
             will be the output of the convert_jcnts_to_enhanced function.
             Otherwise, it will be the eg_counts variable from the
             settings dictionary.
+
     Example return:
+
     .. code:: python
+
       (array([
       [ 237,  158,  587, 1373,  352,  739,  495,  330,  784,
        1457,    0,  471,  785,    0,    0,    0],
@@ -1419,6 +1506,7 @@ def squeeze_increment(data,
     '''Move members of a selected eg (employee group) within
     a list according to an increment input (positive or negative)
     while retaining relative ordering within all eg groups.
+
     inputs
         data (dataframe)
             dataframe with empkey as index which at
@@ -1432,10 +1520,12 @@ def squeeze_increment(data,
             the amount to add or subrtract from the appropriate eg order
             number increment can be positive (move down list) or
             negative (move up list - toward zero)
+
     Selected eg order numbers within the selected zone
     (as a numpy array) are incremented - then
     the entire group order numbers are reset within
     the zone using scipy.stats.rankdata.
+
     The array is then assigned to a dataframe with empkeys as index.
     '''
     L = low_num - 1
@@ -1470,6 +1560,7 @@ def squeeze_logrithmic(data,
     then fill in the remaining slots with the
     other group(s), maintaining orig ordering
     within each group at all times
+
     inputs
         data (dataframe)
             a dataframe indexed by empkey with at least 2 columns:
@@ -1568,14 +1659,19 @@ def make_decile_bands(num_bands=40,
     sample data at every 10th percentile, this function provides selectiable
     bottom and top percentile limits surrounding each 10th percentile, or
     variable width sample ranges.
+
     num_bands input must be multiple of 5 greater than or equal to 10
     and less than 10000.
+
     num_returned_bands input must be multiple of 5, equal to or less than
     the num_bands input, and num_bands/num_returned_bands must have no
     remainder.
+
     Used for selecting sample employees surrounding deciles
     (0, 10, 20 etc. percent levels).
+
     Top and bottom bands will be half of normal size.
+
     inputs
         num_bands
             Width of bands in percentage is determined by num_bands input.
@@ -1626,7 +1722,8 @@ def monotonic(sequence):
     special rights, or furlough recalls,
     then a straight stovepipe job assignment routine may
     be implemented (fast).
-    input
+
+    inputs
         sequence
             array-like input (list or numpy array ok)
     '''
@@ -1639,7 +1736,9 @@ def get_month_slice(df, l, h):
     '''Convenience function to extract data for a particular month.
     Input is low and high indexes of target month data (within dataset
     containing many months)
+
     The input may also be an array (not limited to a dataframe).
+
     inputs
         df
             dataframe (or array) to be sliced
@@ -1656,6 +1755,7 @@ def get_month_slice(df, l, h):
 def get_recall_months(list_of_recall_schedules):
     '''extract a sorted list of only the unique months containing a recall
     as defined within the settings dictionary recall schedules.
+
     input
         list_of_recall_schedules
             list of recall schedule lists, normally equal to the recalls
@@ -1673,6 +1773,7 @@ def get_job_change_months(job_changes):
     '''extract a sorted list of only the unique months containing a change in
     any job count as defined within the settings dictionary job change
     schedules
+
     input
         job_changes
             list of job change schedule lists, normally equal to the j_changes
@@ -1692,6 +1793,7 @@ def get_job_reduction_months(job_changes):
     '''extract a sorted list of only the unique months containing a reduction
     in any job count as defined within the settings dictionary job change
     schedules
+
     input
         job_changes
             list of job change schedule lists, normally equal to the j_changes
@@ -1729,8 +1831,7 @@ def set_snapshot_weights(job,
             month slice of employee group code array
     '''
     ratio_dict = copy.deepcopy(ratio_dict)
-    # job_nums = list(ratio_dict.keys())
-    # for job in job_nums:
+
     wgt_list = []
     for ratio_group in ratio_dict[job][0]:
         wgt_list.append(np.count_nonzero((orig_rng == job) &
@@ -1840,9 +1941,6 @@ def assign_cond_ratio(job,
     else:
         counts = eg_quotas(quota, actual)
 
-    # if job == 1:
-    #     print(job, ratio_groups, weights, cap, quota, actual, counts)
-
     i = 0
     for i in range(len(ratio_groups)):
         # assign jobs to employees within each ratio group who already hold
@@ -1882,6 +1980,7 @@ def mark_for_recall(orig_range,
     every nth furloughee, or random)
     note: function assumes it is only being called
     during a recall month
+
     inputs
         orig_range
             original job range
@@ -1912,12 +2011,14 @@ def mark_for_recall(orig_range,
             means of selecting employees to be recalled
             default is by seniority order, most senior recalled first
             other options are:
-                stride
-                    i.e. every other nth employee.
-                    (note: could be multiple strides per month
-                    if multiple recall lists are designated).
-                random
-                    use shuffled list of furloughees
+
+            stride:
+                i.e. every other nth employee.
+                (note: could be multiple strides per month
+                if multiple recall lists are designated).
+            random:
+                use shuffled list of furloughees
+
         stride
             set stride if stride option for recall selected.
             default is 2.
@@ -1988,6 +2089,7 @@ def mark_for_furlough(orig_range,
     order and assign furloughed job level number.
     note: normally only called during a job change month though it
     will do no harm if called in other months
+
     inputs
         orig_range
             current month slice of jobs held
@@ -2026,6 +2128,7 @@ def mark_fur_range(assign_range,
                    fur_range,
                    job_levels):
     '''apply fur code to current month fur_range based on job assignment status
+
     inputs
         assign_range
             current month assignment range
@@ -2054,8 +2157,10 @@ def align_fill_down(l, u,
     This function is used to set the values from the last standalone month as
     the initial data for integrated dataset computation when a delayed
     implementation exists.
+
     uses pandas df auto align - relatively slow
     TODO (for developer) - consider an all numpy solution
+
     inputs
         l, u (integers)
             current month slice indexes (from long df)
@@ -2064,6 +2169,7 @@ def align_fill_down(l, u,
         long_array (array)
             long array of multiple month data
             (orig_job, fur_codes, etc)
+
     declare long indexed df outside of function (input).
     grab current month slice for array insertion (copy).
     chop long df to begin with current month (copy).
@@ -2098,6 +2204,7 @@ def align_next(this_index_arr,
     Effectively finds the remaining employees (not retired) in the next month
     and copies the target column data for them from current month into the
     next month.
+
     inputs
         this_index_arr (array)
             current month index of unique employee keys
@@ -2128,6 +2235,7 @@ def count_avail_jobs(assign_range,
     previous month, then subtract result from the total job level
     positions count.  This result identifies the number of openings
     available for the current month.
+
     inputs
         assign_range (array)
             monthly slice of job assignment array
@@ -2151,6 +2259,7 @@ def assign_job_counts(job_count_range,
                       job,
                       this_job_count):
     '''assign job counts to job count array month slice
+
     inputs
         job_count_range (array)
             month slice of long job count array
@@ -2172,12 +2281,19 @@ def distribute(available,
                weights,
                cap=None):
     '''proportionally distribute 'available' according to 'weights'
+
     usage example:
+
     .. code:: python
+
       distribute(334, [2.48, 1])
+
     returns distribution as a list, rounded as integers:
+
     .. code:: python
+
       [238, 96]
+
     inputs
         available (integer)
             the count (number) to divide
@@ -2220,6 +2336,7 @@ def make_delayed_job_counts(imp_month,
     These jobs are from the standalone job results.
     The job count column displays a total monthly count of the job in the
     corresponding jnum (job number) column.
+
     inputs
         imp_month (integer)
             implementation month, defined by settings dictionary
@@ -2258,12 +2375,14 @@ def job_gain_loss_table(months,
                         job_changes,
                         standalone=False):
     '''Make two arrays of job tally information.
+
     The first array has a row for each month in the model, and a column for
     each job level (excluding furlough).  This array provides a count for each
     job for each month of the model accounting for changes provided by the
     job change schedules defined by the settings dictionary.
     The second array is a one-dimensional array containing the sum for all jobs
     for each month of the model.
+
     inputs
         months (integer)
             number of months in model
@@ -2279,6 +2398,7 @@ def job_gain_loss_table(months,
         standalone (boolean)
             if True, use the job count lists for the separate employee groups,
             otherwise use the combined job count
+
     Returns tuple (job_table, monthly_job_totals)
     '''
     table_list = []
@@ -2369,25 +2489,34 @@ def convert_to_enhanced(eg_job_counts,
     full-time and part-time job level counts) and convert basic job change
     schedules to enhanced job change schedules.
     Returns tuple (enhanced_job_counts, enhanced_job_changes)
+
     inputs
         eg_job_counts
             A list of lists of the basic level job counts for each employee
             group.  Each nested list has a length equal to the number of
             basic job levels.
+
             example:
+
             .. code:: python
+
               [[197, 470, 1056, 412, 628, 1121, 0, 0],
               [80, 85, 443, 163, 96, 464, 54, 66],
               [0, 26, 319, 0, 37, 304, 0, 0]]
         j_changes
             input from the settings dictionary describing change of job
             quantity over months of time (list)
+
             example:
+
             .. code:: python
+
               [1, [35, 64], 87, [80, 7, 0]]
+
             [[job level, [start and end month],
             total job count change,
             [eg allotment of change for standalone calculations]]
+
         job_dict
             conversion dictionary for an enhanced model.
             This is the "jd" key value from the settings dictionary.
@@ -2395,8 +2524,11 @@ def convert_to_enhanced(eg_job_counts,
             which containin the new full- and part-time job level numbers
             and the percentage of basic job counts to be converted to
             full-time jobs.
+
             example:
+
             .. code:: python
+
               {1: [1, 2, 0.6],
               2: [3, 5, 0.625],
               3: [4, 6, 0.65],
@@ -2529,6 +2661,7 @@ def max_of_nested_lists(nested_list,
     '''Find the maximum value within a list of lists (or tuples or arrays).
     The function may optionally return the minimum value within nested
     containers.
+
     inputs
         nested_list (list, tuple, or array)
             nested container input
@@ -2552,6 +2685,7 @@ def clip_ret_ages(ret_age_dict,
                   ages_long_arr):
     '''Clip employee ages in employee final month to proper retirement age if
     the model includes an increasing retirement age over time
+
     inputs
         ret_age_dict (dictionary)
             dictionary of retirement increase date to new retirement age as
@@ -2603,8 +2737,10 @@ def load_datasets(other_datasets=['standalone', 'skeleton', 'edit', 'hybrid']):
     It then looks for the matching stored datasets within the dill folder.
     The datasets are loaded into a dictionary, using the proposal names as
     keys.
+
     The dictionary allows easy reference to datasets from the Jupyter notebook
     and from within functions.
+
     input
         other_datasets (list)
             list of datasets to load in addition to those computed from the
@@ -2653,6 +2789,7 @@ def make_preimp_array(ds_stand,
     information.  This data will be joined with post_implementation integrated
     data and then copied into the appropriate columns of the final integrated
     dataset.
+
     inputs
         ds_stand (dataframe)
             standalone dataset
@@ -2752,26 +2889,32 @@ def make_cat_order(ds,
     each level.  For example, if a case study contains 3 job levels with
     100 jobs in each level, an employee holding a job in the middle of
     job level 2 would be assigned a cat_order value of 150.
+
     Category order for standalone employee groups is "normalized" to an
     integrated scale by applying *standalone* job level percentage
     (relative position within a job level) to the *integrated* job level
     counts.  This process allows "apples to apples" comparison between
     standalone and integrated job progression.
+
     Standalone cat_order will only reflect job levels available within the
     standalone scenario.  If the integrated model contains job levels which
     do not exist within a standalone employee group model, standalone
     cat_order results will exclude the respective job level rank segments
     and will rank the existing standalone data according to the integrated
     ranking scale.
+
     The routine creates numpy array lookup tables from integrated job
     level count data for each month of the model.  The tables are the source
     for count and additive information which is used to calculate a rank number
     within job level and cumulative job count additives.
+
     Month number and job number arrays (from the input ds (dataset)) are used
     to index into the numpy lookup arrays, producing the count and additive
     arrays.
+
     A simple formula is then applied to the percentage, count, and additive
     arrays to produce the cat_order array.
+
     inputs
         ds (dataframe)
             a dataset containing ['jobp', 'mnum', 'jnum'] columns
@@ -2819,6 +2962,7 @@ def make_tuples_from_columns(df,
     The length of the list is equal to the length of the input dataframe.
     Date columns may be first converted to strings before adding to output
     tuples if desired.
+
     inputs
         df (dataframe)
             input dataframe
@@ -2852,9 +2996,11 @@ def make_tuples_from_columns(df,
 def make_dict_from_columns(df, key_col, value_col):
     '''Make a dictionary from two dataframe columns.  One column will be the
     keys and the other the values.
+
     Unique key column values will be assigned dictionary values.  If the
     key_col input contains duplicates, only the last duplicate key-value pair
     will exist within the returned dictionary.
+
     inputs
         df (dataframe)
             pandas dataframe containing the columns
@@ -2885,13 +3031,17 @@ def make_lists_from_columns(df,
                | 8  | 4  | 5  | 3  |
                +----+----+----+----+
 
-        .. code:: python
-          make_lists_from_columns(df, ["A", "B", "C"])
-          [[1, 6, 0], [8, 4, 5]]
-          make_lists_from_columns(df, ["A", "B", "C"],
-                                  remove_zero_values=True,
-                                  as_tuples=True)
-          [(1, 6), (8, 4, 5)]
+    .. code:: python
+
+      make_lists_from_columns(df, ["A", "B", "C"])
+
+      [[1, 6, 0], [8, 4, 5]]
+
+      make_lists_from_columns(df, ["A", "B", "C"],
+                              remove_zero_values=True,
+                              as_tuples=True)
+
+      [(1, 6), (8, 4, 5)]
 
     inputs
         df (dataframe)
@@ -2939,21 +3089,29 @@ def make_group_lists(df,
     integers into Python lists containing integers.  This function is used
     with the count_ratio_dict dictionary construction.
     The function works with one column at a time.
+
     Output is a list of lists which may be reinserted into a column of the
     dataframe.
-        example:
-               +----+----+----+-------+
-               | A  | B  | C  |   D   |
-               +----+----+----+-------+
-               | 1  | 6  | 0  | "2,3" |
-               +----+----+----+-------+
-               | 8  | 4  | 5  |  "5"  |
-               +----+----+----+-------+
-        .. code:: python
-          make_group_lists(df, ["D"])
-          [[2, 3], [5]]
+
+    example:
+
+           +----+----+----+-------+
+           | A  | B  | C  |   D   |
+           +----+----+----+-------+
+           | 1  | 6  | 0  | "2,3" |
+           +----+----+----+-------+
+           | 8  | 4  | 5  |  "5"  |
+           +----+----+----+-------+
+
+    .. code:: python
+
+      make_group_lists(df, ["D"])
+
+      [[2, 3], [5]]
+
     This function allows the user to type the string 2,3 into an Excel
     worksheet cell and have it interpreted by seniority_list as [2, 3]
+
     inputs
         df (dataframe)
             dataframe containing Excel employee group codes
@@ -2982,6 +3140,7 @@ def make_eg_pcnt_column(df, recalc_each_month=False, mnum=0,
                         running_col_name='eg_pcnt'):
     '''make an array derived from the input df reflecting one of the following
     options:
+
     Option A:
         The percentage of each employee within his/her original employee
         group for **a selected month**.  The array values will be data-aligned
@@ -2993,13 +3152,18 @@ def make_eg_pcnt_column(df, recalc_each_month=False, mnum=0,
         each group relative percentage for population changes due to
         retirements, furlough, etc.  This option is useful for monthly
         percentile cohort comparisons.
+
     This function either adds a column to the input dataframe or returns an
     array of values, the same length as the input dataframe.
+
     Note: This function calculations include any furloughed employees
     assign to long-form dataframe (with default month 0 values aligned):
+
     .. code:: python
+
       make_eg_pcnt_column(df)
-    input
+
+    inputs
         df (dataframe)
             pandas dataframe containing an employee group code column ('eg')
             and a month number column ('mnum').  The dataframe must be
@@ -3070,12 +3234,17 @@ def make_starting_val_column(df, attr, inplace=True):
     reflect the starting value (month zero) of a selected attribute.  Each
     employee will be assigned the zero-month attribute value specific to
     that employee, duplicated in each month of the data model.
+
     This column allows future attribute analysis with a constant starting
     point for all employees.  For example, retirement job position may be
     compared to initial list percentage.
+
     assign to long-form dataframe:
+
     .. code:: python
+
       df['start_attr'] = make_starting_val_column(df, attr)
+
     input
         df (dataframe)
             pandas dataframe containing the attr input column and a month
@@ -3100,34 +3269,44 @@ def save_and_load_dill_folder(save_as=None,
                               print_saved=False):
     '''Save the current "dill" folder to the "saved_dill_folders" folder, or
     load a saved dill folder as the "dill" folder if it exists.
+
     This function allows calculated case study pickle files
     (including the calculated datasets) to be saved to or loaded loaded from
     a "saved_dill_folders" folder.
+
     The "saved_dill_folders" folder is created if it does not already exist.
     The load_case input is a case study name.  If the load_case input is set to
     None, the function will only save the current dill folder and do nothing
     else.  If a load_case input is given, but is incorrect or no matching
     folder exists, the function will only save the current dill folder and do
     nothing else.
+
     The user may print a list of available saved dill folders (for loading)
     by setting the print_saved input to True.  No other action will take place
     when this option is set to True.
+
     If an award has conditions which differ from proposed conditions, the
     settings dictionary must be modified and the dataset rebuilt.
+
     This function allows previously calculated datasets to be quickly
     retrieved and eliminates continual adjustment of the settings spreadsheet
     if the user switches between case studies (assuming the award has been
     determined and no more input adjustment will be made).
-    input
+
+    inputs
         save_as (string)
             A user-specified folder prefix.  If None, the current "dill" folder
             will be saved using the current case study name as a prefix.  If
             set to a string value, the current dill folder will be saved with
             the "save_as" string value prefix.
+
             Example with the save_as variable set to "test1".  The existing
             dill folder would be saved as:
+
             .. code:: python
+
               saved_dill_folders/test1_dill_folder
+
         load_case (string)
             The name of a case study.  If None, the only action performed will
             be to save the current "dill" folder to the "saved_dill_folders"
@@ -3218,22 +3397,30 @@ def save_and_load_dill_folder(save_as=None,
 def add_zero_col(arr):
     '''Add a column of zeros as the first column in a 2d array.
     Output will be a numpy array.
+
     example:
+
         input array:
+
         .. code:: python
+
           array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
                  [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
                  [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
                  [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
                  [40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
+
         output array:
+
         .. code:: python
+
           array([[ 0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
                  [ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
                  [ 0, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
                  [ 0, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
                  [ 0, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]])
-    input
+
+    inputs
         arr (array)
             2-dimensional numpy array
     '''
@@ -3249,6 +3436,7 @@ def update_excel(case,
     '''Read an excel file, optionally remove worksheet(s), add worksheets
     or overwrite worksheets with a dictionary of ws_name, dataframe key, value
     pairs, and write the excel file back to disk
+
     inputs
         case (string)
             the data model case name
@@ -3309,6 +3497,7 @@ def copy_excel_file(case,
                     verbose=True):
     '''Copy an excel file and add '_orig' to the file name, or restore an
     excel file from the '_orig' copy.
+
     inputs
         case (string)
             the data model case name
@@ -3371,16 +3560,21 @@ def anon_names(length=10,
                df=None,
                inplace=False):
     '''Generate a list of random strings
+
     Output may be used to anonymize a dataset name column
+
     The length of the output strings will be determined by the min_seg and
     max_seg inputs.  The segments (seg) are random 2-letter combinations of
     a consonant and a vowel.  An additional random consonant or vowel will
     be added to the segment combinations, so the length of the output strings
     will always be an odd number.  The min and max may be the same value to
     produce a list of strings of uniform length.
+
     Example:
+
     If the min_seg input is 1 and the max_seg input is 3, the output list will
     contain strings from 3 (2-letter seg + 1 random letter) to 7 characters.
+
     inputs
         length (integer)
             the length of the output list
@@ -3445,7 +3639,9 @@ def anon_empkeys(df,
     '''Produce a list of unique, randomized employee numbers, catogorized
     by employee group number code.  Output may be used to anonymize a dataset
     empkey column.
+
     Dataframe input (df) must contain an employee group (eg) column.
+
     inputs
         df (dataframe)
             short-form (master list) pandas dataframe containing an employee
@@ -3490,6 +3686,7 @@ def anon_dates(df,
                inplace=False):
     '''Add (or optionally, add or subtract) a random number of days to each
     element of a date attribute column.
+
     inputs
         df (dataframe)
             short-form (master list) pandas dataframe containing a date
@@ -3497,8 +3694,13 @@ def anon_dates(df,
         date_col_list (list)
             name(s) of date attribute column(s) to be adjusted (as a list
             of strings)
+
             Example:
-                ['ldate', 'doh', 'dob']
+
+            .. code:: python
+
+              ['ldate', 'doh', 'dob']
+
         max_adj (integer)
             the maximum number of days to add (or optionally subtract) from
             each element within the date column
@@ -3541,6 +3743,7 @@ def anon_pay(df,
              inplace=False):
     '''Substitute pay table baseline rate information a proportional method
     or with a non-linear, non-proportional method.
+
     inputs
         df (dataframe)
             pandas dataframe containing pay rate date (dataframe
@@ -3584,6 +3787,7 @@ def sample_dataframe(df,
                      reset_index=False):
     '''Get a random sample of a dataframe by rows, with the number of rows
     in the returned sample defined by a count or fraction input.
+
     inputs
         df (dataframe)
             pandas dataframe for sampling
@@ -3601,8 +3805,10 @@ def sample_dataframe(df,
             from the input dataframe.
         reset_index (boolean)
             If True, reset the output dataframe index
+
     If both the "n" and "frac" inputs are None, a random single row will be
     returned.
+
     The rows in the output dataframe will be sorted according to original
     order.
     '''
@@ -3662,15 +3868,18 @@ def anon_master(case,
     '''Specialized function to anonymize selected columns from a master.xlsx
     file and/or select a subset.  All operations are inplace.  The original
     master file is copied and saved as master_orig.xlsx.
+
     The default parameters will replace last names and employee keys with
     substitute values.  Date columns, (doh, ldate, dob) will also be adjusted
     if the date input is set True and the proper column names are set as
     column list inputs.
+
     The function reads the original excel file, copies and saves it, modifies
     the original file as directed, and writes the results back to the original
     file.  Subsequent dataset creation runs will use the modified data.
     The output master list will be sorted according to the original master
     list order.
+
     inputs
         case (string)
             the case study name
@@ -3791,9 +4000,12 @@ def anon_pay_table(case,
     '''Anonymize the "rates" worksheet of the "pay_tables.xlsx" input file.
     The rates may be proportionally adjusted (larger or smaller) or
     disproportionally adjusted with a fixed algorithm.
+
     A copy of the original excel file is copied and saved as
     "pay_tables_orig.xlsx".
+
     All modifications are inplace.
+
     inputs
         case (string)
             the case name
@@ -3826,7 +4038,9 @@ def anon_pay_table(case,
 def find_index_val(df1, df2, df2_vals, col1=None, col2=None):
     '''find a value in another dataframe with the same index of
     another given value in a dataframe.
+
     df1 index, df2 index, and the value columns must contain unique values.
+
     inputs
         df1 (dataframe)
             the first dataframe containing values to index match in another
@@ -3873,33 +4087,49 @@ def find_index_val(df1, df2, df2_vals, col1=None, col2=None):
 def convert_to_hex(rgba_input):
     '''convert float rgba color values to string hex color values
     rgba = color values expressed as:
-        red, green, blue, and (optionally) alpha float values
+
+    red, green, blue, and (optionally) alpha float values
     rgba_input may be:
-    1. a single rgba list or tuple
-    2. a list or tuple containing rgba lists or rgba tuples
-    3. a dictionary of key: rgba values
+
+      1. a single rgba list or tuple
+      2. a list or tuple containing rgba lists or rgba tuples
+      3. a dictionary of key: rgba values
+
     output is string hex color values in place of rgba values
+
     Examples:
+
     input single rgba value:
+
     .. code:: python
+
       sample_value = (.5, .3, .2)
       convert_to_hex(sample_value)
       '#7f4c33'
+
     input list:
+
     .. code:: python
+
       sample_list = [[0.65, 0.81, 0.89, 1.0],
                      [0.31, 0.59, 0.77, 1.0],
                      [0.19, 0.39, 0.70, 1.0],
                      [0.66, 0.85, 0.55, 1.0]]
+
       convert_to_hex(sample_list)
       ['#a5cee2', '#4f96c4', '#3063b2', '#a8d88c']
+
     input dict:
+
     .. code:: python
+
       sample_dict = {1: (.65, .45, .45, 1.),
                      2: [.60, .45, .45, 1.],
                      3: (.55, .45, .45, 1.)}
+
       convert_to_hex(sample_dict)
       {1: '#a57272', 2: '#99593a', 3: '#8c7249'}
+
     inputs
         rgba_input (tuple, list, or dictionary)
             input may be a single list or tuple OR a list of float rgba
@@ -4110,13 +4340,15 @@ def remove_zero_groups(ratio_dict):
 
     example:
 
-    ..code python
-      {2: [([2], [0], [1]), [0, 2, 6], 34, 120]}
+        .. code:: python
 
-    becomes:
+           {2: [([2], [0], [1]), [0, 2, 6], 34, 120]}
 
-    ..code python
-      {2: [([2], [1]), [0, 6], 34, 120]}
+        becomes:
+
+        .. code:: python
+
+           {2: [([2], [1]), [0, 6], 34, 120]}
 
     inputs
         ratio_dict (dictionary)
@@ -4125,21 +4357,18 @@ def remove_zero_groups(ratio_dict):
             *settings.xlsx* input file
     '''
     for job in ratio_dict.keys():
-        idx_list = []
+
         groups = []
-        these_jobs = ratio_dict[job][0]
-        for i, ratio_group in enumerate(these_jobs):
-            if 0 in ratio_group:
-                idx_list.append(i)
-            else:
-                groups.append(ratio_group)
+        weights = []
+        ratio_group = ratio_dict[job][0]
+        weight_list = ratio_dict[job][1]
+        for i, grp in enumerate(ratio_group):
+            if 0 not in grp:
+                groups.append(grp)
+                weights.append(weight_list[i])
         ratio_dict[job][0] = tuple(groups)
-        if idx_list:
-            weight_list = ratio_dict[job][1]
-            idx_list = idx_list[::-1]
-            for idx in idx_list:
-                del weight_list[idx]
-            ratio_dict[job][1] = weight_list
+        ratio_dict[job][1] = weights
+
     return ratio_dict
 
 

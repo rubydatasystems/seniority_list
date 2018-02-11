@@ -572,12 +572,12 @@ def main():
     for col in group_cols:
         df[col] = f.make_group_lists(df, col)
     df['grp_tup'] = f.make_lists_from_columns(df, group_cols,
-                                              remove_zero_values=True,
+                                              remove_zero_values=False,
                                               as_tuples=True)
     df['wgt_tup'] = f.make_lists_from_columns(df,
                                               weight_cols,
-                                              remove_zero_values=True,
-                                              as_tuples=True)
+                                              remove_zero_values=False,
+                                              as_tuples=False)
     df = df[['basic_job', 'grp_tup', 'wgt_tup',
              'cap', 'month_start', 'month_end']].copy()
     cols = [col for col in df if col != 'basic_job']
