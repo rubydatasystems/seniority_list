@@ -3473,14 +3473,14 @@ def job_transfer(dfc, dfb, eg,
 
 def eg_multiplot_with_cat_order(df, mnum, measure,
                                 xax, job_strs,
-                                span_colors,
+                                job_level_colors,
                                 job_levels,
                                 settings_dict,
                                 attr_dict,
+                                color_dict,
+                                egs=[],
                                 ds_dict=None,
                                 fur_color=None,
-                                single_eg=False,
-                                num=1,
                                 exclude_fur=False,
                                 plot_scatter=True,
                                 s=20, a=.7, lw=0,
@@ -3494,18 +3494,9 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
                                 xsize=13, ysize=10,
                                 image_dir=None,
                                 image_format='png'):
-    '''num input options:
-                   {1: 'eg1_with_sg',
-                    2: 'eg2',
-                    3: 'eg3',
-                    4: 'eg1_no_sg',
-                    5: 'sg_only'
-                    }
+    '''plot any dataset attributes as x or y values for comparison
 
-    num input is used with the single_eg input - output is plot of only
-    corresponding employee group.
-
-    sg refers to special group - a group with special job rights
+    when "cat_order" is selected as measure, show job category bands
 
     inputs
         df (dataframe)
@@ -3518,7 +3509,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
             x axis attribute
         job_strs (list)
             list of job descriptions for labels (normally sdict['job_strs'])
-        span_colors (list)
+        job_level_colors (list)
             list of colors for job level zones (normally cdict['job_colors'])
         job_levels (integer)
             number of job levels in model (sdict['num_of_job_levels'])
@@ -3526,15 +3517,14 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
             program job settings dictionary
         attr_dict (dictionary)
             program attribute name to attribute description dictionary
+        color_dict (dictionary)
+            color dictionary
+        egs (list)
+            list of employee groups for plotting
         ds_dict (dictionary)
             output from load_datasets function
         fur_color (string color value)
             if not None, color for furlough span color
-        single_eg (boolean)
-            if True, use the num input options to plot data for one group of
-            employees
-        num (integer)
-            selective plot option number (see docstring before input section)
         exclude_fur (boolean)
             if True, remove furloughed employees from input data
         plot_scatter (boolean)
@@ -3580,12 +3570,22 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
     '''
     df, df_label = determine_dataset(df, ds_dict, return_label=True)
 
-    three_egs = 3 in np.unique(df.eg)
+    eg_colors = color_dict['eg_colors']
+    eg_labels = settings_dict['p_dict_verbose']
 
     if fur_color:
-        span_colors[-1] = fur_color
+        job_level_colors[-1] = fur_color
     max_count = df.groupby('mnum').size().max()
+
     df = df[df.mnum == mnum].copy()
+
+    eg_vals = df.eg.values
+    eg_mask = np.isin(eg_vals, egs)
+
+    df = df[eg_mask]
+
+    if exclude_fur:
+        df = df[df.fur == 0]
 
     with sns.axes_style(chart_style):
         fig, ax1 = plt.subplots(figsize=(xsize, ysize))
@@ -3599,118 +3599,25 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
         job_ticks = np.append(job_ticks, max_count)
         job_ticks = np.insert(job_ticks, 0, 0)
 
-    if single_eg:
-
-        grp_dict = {1: 'eg1_with_sg',
-                    2: 'eg2',
-                    3: 'eg3',
-                    4: 'eg1_no_sg',
-                    5: 'sg_only'
-                    }
-
-        clr_dict = {1: 'black',
-                    2: 'blue',
-                    3: '#FF6600',
-                    4: 'black',
-                    5: 'green'
-                    }
-
-        if num == 5:
-            df = df[(df.eg == 1) & (df.sg == 1)]
-            label = 'sg_only'
-        elif num == 4:
-            df = df[(df.eg == 1) & (df.sg == 0)]
-            label = 'eg1_no_sg'
-        elif num == 2:
-            df = df[df.eg == 2]
-            label = 'eg2'
-        elif num == 3:
-            if three_egs:
-                df = df[df.eg == 3]
-                label = 'eg3'
-            else:
-                print('invalid "num" input, only 2 emp groups exist')
-                return
-        elif num == 1:
-            df = df[df.eg == 1]
-            label = 'eg1_with_sg'
-
-        if exclude_fur:
-            df = df[df.fur == 0]
-
-        print('\n"num" input codes:\n', grp_dict)
-
-        clr = clr_dict[num]
+    for eg in egs:
+        idx = eg - 1
+        mask = np.isin(df.eg.values, eg)
 
         if plot_scatter:
-            df.plot(x=xax, y=measure, kind='scatter', color=clr,
-                    label=label, linewidth=lw, s=s, ax=ax1)
+            df[mask].plot(x=xax, y=measure,
+                          kind='scatter',
+                          color=eg_colors[idx],
+                          label=eg_labels[eg],
+                          linewidth=lw, s=s, ax=ax1)
         else:
-            df.set_index(xax, drop=True)[measure].plot(label=label, color=clr,
-                                                       ax=ax1)
-            print('''Ignore the vertical lines.
-                  Look right to left within each job level
-                  for each group\'s participation''')
-        ax1.set_title(grp_dict[num] + ' job disbursement - ' +
-                      df_label + ' month=' + str(mnum), y=1.02,
-                      fontsize=title_size)
+            df[mask].set_index(xax,
+                               drop=True)[measure].plot(label=eg_labels[idx],
+                                                        color=eg_colors[idx],
+                                                        ax=ax1)
 
-    else:
-
-        if exclude_fur:
-            df = df[df.fur == 0]
-
-        d1 = df[(df.eg == 1) & (df.sg == 1)]
-        d2 = df[(df.eg == 1) & (df.sg == 0)]
-        d3 = df[df.eg == 2]
-        if three_egs:
-            d4 = df[df.eg == 3]
-
-        if plot_scatter:
-            try:
-                d1.plot(x=xax, y=measure, kind='scatter',
-                        label='eg1_sg_only', color='#5cd65c',
-                        alpha=a, s=s, linewidth=lw, ax=ax1)
-            except:
-                pass
-            d2.plot(x=xax, y=measure, kind='scatter',
-                    label='eg1_no_sg', color='black',
-                    alpha=a, s=s, linewidth=lw, ax=ax1)
-            d3.plot(x=xax, y=measure, kind='scatter',
-                    label='eg2', color='blue',
-                    alpha=a, s=s, linewidth=lw, ax=ax1)
-            if three_egs:
-                d4.plot(x=xax, y=measure, kind='scatter',
-                        label='eg3', c='#FF6600',
-                        alpha=a, s=s, linewidth=lw, ax=ax1)
-
-        else:
-            d1.set_index(xax, drop=True)[measure].plot(label='eg1_sg_only',
-                                                       color='green',
-                                                       alpha=a,
-                                                       ax=ax1)
-
-            d2.set_index(xax, drop=True)[measure].plot(label='eg1_no_sg',
-                                                       color='black',
-                                                       alpha=a,
-                                                       ax=ax1)
-
-            d3.set_index(xax, drop=True)[measure].plot(label='eg2',
-                                                       color='blue',
-                                                       alpha=a,
-                                                       ax=ax1)
-
-            if three_egs:
-                d4.set_index(xax, drop=True)[measure].plot(label='eg3',
-                                                           color='#FF6600',
-                                                           alpha=a,
-                                                           ax=ax1)
-            print('''Ignore the vertical lines.  \
-                  Look right to left within each job \
-                  level for each group\'s participation''')
-
-        ax1.set_title('job disbursement - ' +
-                      df_label + ' month ' + str(mnum), y=1.02)
+    ax1.set_title('[' + df_label + ']' + ' month ' + str(mnum) +
+                  '   ' + xax + ' | ' + measure,
+                  y=1.02, fontsize=title_size)
 
     ax1.tick_params(labelsize=tick_size)
 
@@ -3758,7 +3665,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
             # plot job band background on chart
             for i in np.arange(1, job_ticks.size):
                 ax2.axhspan(job_ticks[i - 1], job_ticks[i],
-                            facecolor=span_colors[i - 1],
+                            facecolor=job_level_colors[i - 1],
                             alpha=job_bands_alpha)
             ax1.grid(ls='dashed', lw=.5)
 
