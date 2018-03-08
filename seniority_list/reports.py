@@ -1054,6 +1054,10 @@ def job_diff_to_excel(base_ds,
 
     sdict = pd.read_pickle('dill/dict_settings.pkl')
     hex_dict = f.hex_dict()
+    if compare_ds == 'edit':
+        order_col = 'idx'
+    else:
+        order_col = 'order'
 
     def lighten(color, hex_dict, factor=.8):
         '''This function will return a lightened color.  The "factor" input
@@ -1113,18 +1117,18 @@ def job_diff_to_excel(base_ds,
 
     def resort_df(df, order_df):
         m0 = order_df[order_df.mnum == 0][[]].copy()
-        m0['order'] = range(1, len(m0) + 1)
-        df['order'] = m0['order']
+        m0[order_col] = range(1, len(m0) + 1)
+        df['order'] = m0[order_col]
         df.sort_values('order', inplace=True)
         df.drop('order', inplace=True, axis=1)
         return df
 
     def add_cols(df, order_df, col_list=id_cols):
-        cols = ['order']
+        cols = [order_col]
         if 'eg' not in col_list:
             col_list.append('eg')
         m0 = order_df[order_df.mnum == 0][col_list].copy()
-        m0['order'] = range(1, len(m0) + 1)
+        m0[order_col] = range(1, len(m0) + 1)
         cols.extend(col_list)
         m0 = m0[cols]
         m0 = m0.join(df)
@@ -1206,7 +1210,7 @@ def job_diff_to_excel(base_ds,
 
     job_levels = list(range(1, sdict['num_of_job_levels'] + 2))
 
-    id_cols.append('order')
+    id_cols.append(order_col)
 
     # determine the formatting to be applied
     if diff_color and row_color:

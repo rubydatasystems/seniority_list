@@ -2601,14 +2601,14 @@ def print_settings():
         case_study = 'error, no case_dill.pkl file found'
 
     config_dict = {'case_study': case_study,
-                   'starting_date': sdict['starting_date'],
+                   'starting_date': sdict['starting_date'].date(),
                    'enhanced_jobs': sdict['enhanced_jobs'],
                    'enhanced_jobs_full_suffix':
                    sdict['enhanced_jobs_full_suffix'],
                    'enhanced_jobs_part_suffix':
                    sdict['enhanced_jobs_part_suffix'],
                    'delayed_implementation': sdict['delayed_implementation'],
-                   'implementation_date': sdict['implementation_date'],
+                   'implementation_date': sdict['implementation_date'].date(),
                    'imp_month': sdict['imp_month'],
                    'recall': sdict['recall'],
                    'compute_job_category_order':

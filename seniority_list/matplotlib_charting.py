@@ -126,8 +126,7 @@ def quantile_years_in_position(dfc, dfb,
         job_str_list (list)
             a list of strings which correspond with the job levels, used for
             the chart legend
-            example:
-                jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
+            example: jobs = ['Capt G4', 'Capt G3', 'Capt G2', ....]
         p_dict (dictionary)
             dictionary used to convert employee group numbers to text,
             used with chart title text display
@@ -186,9 +185,7 @@ def quantile_years_in_position(dfc, dfb,
             file extension string for a saved chart image if the image_dir
             input is not None
 
-            Examples:
-
-                'svg', 'png'
+            Examples: 'svg', 'png'
     '''
 
     dsc, df_labelc = determine_dataset(dfc, ds_dict,
@@ -2974,7 +2971,7 @@ def quantile_bands_over_time(df, eg,
                              year_clip=None,
                              kind='area',
                              quantile_ticks=False,
-                             cm_name='Vega20c',
+                             cm_name='tab20c',
                              chart_style='ticks',
                              quantile_alpha=.75,
                              grid_alpha=.4,
@@ -3157,8 +3154,8 @@ def quantile_bands_over_time(df, eg,
                  linestyle='dotted')
 
         ax.grid(which='major', color='gray', alpha=grid_alpha)
-        ax.tick_params(axis='x', which='both', left='off',
-                       right='off', labelleft='off')
+        ax.tick_params(axis='x', which='both', left=False,
+                       right=False, labelleft=False)
 
         ax2.set_ylabel('original quantile', fontsize=label_size)
         ax2.yaxis.labelpad = 10
@@ -3419,10 +3416,10 @@ def job_transfer(dfc, dfb, eg,
     # REMOVE AX2 TICKS AND LEGEND
     ax2.tick_params(axis='both',
                     which='both',
-                    right='off',
-                    bottom='off',
-                    labelright='off',
-                    labelbottom='off')
+                    right=False,
+                    bottom=False,
+                    labelright=False,
+                    labelbottom=False)
     ax2.legend_.remove()
 
     # LEGEND
@@ -4294,7 +4291,7 @@ def emp_quick_glance(empkey, df,
                 ax.set_title(df_label + ', emp ' + str(empkey),
                              fontsize=title_size)
         if i == 0:
-            ax.xaxis.set_tick_params(labeltop='on')
+            ax.xaxis.set_tick_params(labeltop=True)
         ax.grid(c='grey', alpha=.3)
         i += 1
 
@@ -6325,7 +6322,7 @@ def quantile_groupby(df, eg_list,
     ax1.legend_.remove()
 
     try:
-        ax2.tick_params(axis='both', left='off',
+        ax2.tick_params(axis='both', left=False,
                         which='both', labelsize=tick_size)
     except:
         pass
@@ -6700,8 +6697,8 @@ def percent_diff_bins(compare,
                       man_plotlim=None,
                       invert_barh=False,
                       chart_style='ticks',
-                      cmap_pos='Vega20c',
-                      cmap_neg='Vega20c',
+                      cmap_pos='tab20c',
+                      cmap_neg='tab20c',
                       zero_line_color='m',
                       bright_bg=False,
                       bg_color='#ffffe6',
@@ -6893,14 +6890,14 @@ def percent_diff_bins(compare,
     ax2 = ax1.twiny()
     ax2.tick_params(axis='both',
                     which='both',
-                    right='off',
-                    left='off',
-                    bottom='off',
-                    top='off',
-                    labelright='off',
-                    labelbottom='off',
-                    labeltop='off',
-                    labelleft='off')
+                    right=False,
+                    left=False,
+                    bottom=False,
+                    top=False,
+                    labelright=False,
+                    labelbottom=False,
+                    labeltop=False,
+                    labelleft=False)
 
     if kind == 'barh':
         neg.T.plot(kind='barh', stacked=True, color=neg_colors,
