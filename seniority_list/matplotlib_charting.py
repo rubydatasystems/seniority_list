@@ -1974,6 +1974,8 @@ def job_level_progression(df, emp_list,
     ax1.set_xlabel('year', fontsize=label_size)
     ax1.tick_params(axis='both', which='major', labelsize=tick_size)
 
+    ax1.margins(x=0)
+
     if image_dir:
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
@@ -3105,6 +3107,8 @@ def quantile_bands_over_time(df, eg,
     with sns.axes_style(chart_style):
         fig, ax = plt.subplots(figsize=(xsize, ysize))
 
+    ax.margins(x=0)
+
     step = 1 / bins
 
     if kind == 'area':
@@ -3372,6 +3376,8 @@ def job_transfer(dfc, dfb, eg,
     # PLOT AX1
     with sns.axes_style(chart_style):
         fig, ax1 = plt.subplots(figsize=(xsize, ysize))
+
+    ax1.margins(x=0)
 
     diff2[diff2 > 0].plot(kind='area', stacked=True, color=job_colors,
                           ax=ax1, lw=0, alpha=job_alpha)
@@ -3896,6 +3902,7 @@ def diff_range(df_list, dfb,
 
         with sns.axes_style(chart_style):
             fig, ax = plt.subplots(figsize=(xsize, ysize))
+        ax.margins(x=0)
 
         if show_range:
                 sa_ds[sa_ds.eg == eg][cols].set_index('date') \
@@ -4183,6 +4190,7 @@ def job_count_charts(dfc, dfb,
 
     fig = plt.gcf()
     for ax in fig.axes:
+        ax.margins(x=0)
         try:
             ax.legend_.remove()
         except AttributeError:
@@ -4276,6 +4284,7 @@ def emp_quick_glance(empkey, df,
 
     i = 0
     for ax in fig.axes:
+        ax.margins(x=0)
         if cols[i] in ['new_order', 'jnum', 'snum', 'spcnt', 'lnum',
                        'lspcnt', 'rank_in_job', 'job_count', 'jobp',
                        'cat_order']:
@@ -4578,6 +4587,7 @@ def cond_test(df, grp_sel,
 
     fig = plt.gcf()
     ax = plt.gca()
+    ax.margins(x=0)
     ax.set_ylim(ymin=0)
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
@@ -4621,6 +4631,7 @@ def cond_test(df, grp_sel,
                                                     alpha=.6)
         fig = plt.gcf()
         ax = plt.gca()
+        ax.margins(x=0)
         ax.invert_yaxis()
         fig.set_size_inches(xsize, ysize)
 
@@ -4740,6 +4751,7 @@ def single_emp_compare(emp, measure,
 
     with sns.axes_style(chart_style):
         fig, ax = plt.subplots(figsize=(xsize, ysize))
+    ax.margins(x=0)
 
     for i in range(0, len(df_list)):
 
@@ -5011,6 +5023,7 @@ def job_time_change(ds_list, ds_base,
 
             with sns.axes_style(chart_style):
                 fig, ax = plt.subplots()
+            ax.margins(x=0)
             fig.set_size_inches(xsize, ysize)
 
             for jnum in job_list:
@@ -5254,6 +5267,7 @@ def group_average_and_median(dfc, dfb,
 
     with sns.axes_style(chart_style):
         fig, ax = plt.subplots()
+    ax.margins(x=0)
 
     for eg in eg_list:
         # for each employee group, group by date and plot avg/median of measure
@@ -5621,6 +5635,7 @@ def job_count_bands(df_list,
 
             with sns.axes_style(chart_style):
                 fig, ax = plt.subplots(figsize=(xsize, ysize))
+            ax.margins(x=0)
 
             if show_grid:
                 ax.grid(which='major', color='k',
@@ -6194,6 +6209,7 @@ def quantile_groupby(df, eg_list,
 
     with sns.axes_style(chart_style):
         fig, ax1 = plt.subplots(figsize=(xsize, ysize))
+    ax1.margins(x=0)
 
     job_levels = settings_dict['num_of_job_levels']
     job_strs = settings_dict['job_strs_dict']
