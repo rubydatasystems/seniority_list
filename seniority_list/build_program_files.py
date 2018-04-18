@@ -723,7 +723,11 @@ def main():
         try:
             df = xl.parse(ws)[['empkey']]
             df.set_index('empkey', inplace=True)
-            df['idx'] = np.arange(len(df)).astype(int) + 1
+            if ws == 'edit':
+                order_name = 'new_order'
+            else:
+                order_name = 'idx'
+            df[order_name] = np.arange(len(df)).astype(int) + 1
             df.to_pickle('dill/p_' + ws + '.pkl')
         except:
             print('proposal worksheet', ws, 'skipped during processing')
