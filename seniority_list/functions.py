@@ -380,7 +380,7 @@ def contract_year_and_raise(df, settings_dict):
 
     df['year'] = df.date.dt.year
 
-    if exception_dict:
+    if exception_dict and 'no' not in exception_dict.keys():
         for year_code in exception_dict.keys():
             if year_code in pay_table_years:
                 df.loc[(df['date'] >= exception_dict[year_code][0]) &
@@ -2308,9 +2308,12 @@ def distribute(available,
             "available" input.
     '''
     if cap:
-        available = min(available, cap)
+        if cap < available:
+            available = cap
     bin_counts = []
-    total_weights = sum(weights)
+    total_weights = 0
+    for weight in weights:
+        total_weights += weight
     for weight in weights:
         if weight:
             p = weight / total_weights

@@ -5346,7 +5346,11 @@ def group_average_and_median(dfc, dfb,
         if job_labels:
             if show_full_yscale:
                 ax.set_yticks(np.arange(0, job_levels + 2, 1))
+            else:
+                max_ytick = int(max(ax.get_yticks().tolist())) + 1
+                ax.set_yticks(np.arange(0, max_ytick, 1))
             yticks = ax.get_yticks().tolist()
+
             job_strs_dict = settings_dict['job_strs_dict']
             for i in np.arange(1, len(yticks)):
                 yticks[i] = job_strs_dict[i]

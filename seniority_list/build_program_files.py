@@ -760,8 +760,11 @@ def main():
     cmonths = f.career_months(df_actives, settings['starting_date'])
     cmonths_fur = f.career_months(df_fur, settings['starting_date'])
     active_each_month = f.count_per_month(cmonths)
-    fur_left_each_month = f.count_per_month(cmonths_fur)
     num_of_months = active_each_month.size
+    if df_fur.values.size > 0:
+        fur_left_each_month = f.count_per_month(cmonths_fur)
+    else:
+        fur_left_each_month = np.zeros(num_of_months)
 
     num_of_job_levels = settings['num_of_job_levels']
 
