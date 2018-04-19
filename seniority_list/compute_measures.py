@@ -110,7 +110,10 @@ def main():
         ds['new_order'] = df_new_order['new_order']
         dataset_path_string = (pre + 'ds_edit' + suf)
     else:
-        order_key = df_order.idx
+        try:
+            order_key = df_order.idx
+        except:
+            order_key = df_order.new_order
         ds['new_order'] = order_key
         dataset_path_string = (pre + output_name + suf)
 
