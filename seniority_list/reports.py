@@ -625,6 +625,8 @@ def retirement_charts(ds_dict,
             if verbose_status:
                 print('  ', key, ' done!')
 
+        plt.close()
+
     if verbose_status:
         print('\nALL JOBS COMPLETE\n\nChart images are located in the "' +
               case_name + '" folder within the "reports" folder.\n\n' +
@@ -986,6 +988,8 @@ def annual_charts(ds_dict,
 
             if verbose_status:
                 print('  ', key, ' done!')
+
+        plt.close()
 
     if verbose_status:
         print('\nALL JOBS COMPLETE\n\nChart images are located in the "' +
