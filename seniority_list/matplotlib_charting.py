@@ -5988,7 +5988,7 @@ def mark_quantiles(df, quantiles=10):
     return aligned_df
 
 
-def quantile_groupby(df, eg_list,
+def quantile_groupby(dataset_list, eg_list,
                      measure, quantiles,
                      eg_colors,
                      band_colors,
@@ -6010,6 +6010,7 @@ def quantile_groupby(df, eg_list,
                      chart_style='whitegrid',
                      remove_ax2_border=True,
                      line_width=1,
+                     use_dashed_line_compare=True,
                      bg_color='.98',
                      job_bands_alpha=.15,
                      line_alpha=.7,
@@ -6028,6 +6029,10 @@ def quantile_groupby(df, eg_list,
     Multiple employee groups may be plotted at the same time.  Job bands may
     be plotted as a chart background to display job level progression when
     the measure input is set to "cat_order".
+
+    Two data models may be plotted and compared on the same chart.  Only the
+    first employee group found within the eg_list input will be compared
+    when plotting more than one dataset.
 
     Example use case: plot the average job category rank of each employee
     quantile group, from the start date though the life of the data model.
@@ -6053,11 +6058,12 @@ def quantile_groupby(df, eg_list,
     color map.
 
     inputs
-        df (dataframe)
-            Any long-form dataframe which contains "date" (and "mnum" if xax
-            input is set to "mnum") and "eg" columns and at least one
-            attribute column for analysis.  The normal input is a calculated
-            dataset with many attribute columns.
+        dataset_list (dataframes)
+            A list of long-form dataframes, each of which contains "date"
+            (and "mnum" if xax input is set to "mnum") and "eg" columns and
+            at least one attribute column for analysis.  The normal input is
+            a list of calculated datasets with many attribute columns.
+            The list may only hold one or two datasets.
         eg_list (list)
             List of eg (employee group) codes for analysis.  The order of the
             employee codes will determine the z-order of the plotted lines,
@@ -6139,6 +6145,10 @@ def quantile_groupby(df, eg_list,
             or "ticks").
         line_width (float)
             The width of the plotted lines.  Default is .75
+        use_dashed_line_compare (boolean)
+            If True, when comparing output from 2 datasets, plot the
+            second dataset output with a dashed line, otherwise use a
+            solid line
         bg_color (color value)
             The background color for the chart.  May be a color name, color
             abreviation, hex value, or decimal between 0 and 1
@@ -6171,28 +6181,12 @@ def quantile_groupby(df, eg_list,
 
                 'svg', 'png'
     '''
-# **************
-    df, df_label = determine_dataset(df, ds_dict, return_label=True)
+    if len(dataset_list) > 2:
+        print('''dataset list input variable too long...
+              list may contain a maximum of 2 datasets''')
+        return
 
-    # limit the scope of the plot to a selected month in the future if the
-    # through_date argument is assigned an integer
-    if through_date:
-        through_date = pd.to_datetime(through_date)
-        df = df[df.date <= through_date]
-    else:
-        through_date = max(df.date)
-
-    # make a dataframe with an added column ('quantile') indicating quantile
-    # membership number (integer) for each employee, each employee group
-    # calculated separately...
-    bin_df = mark_quantiles(df, quantiles)
-
-    # if mpay is selected, remove employee monthly pay data for retirement
-    # months to exclude partial pay amounts
-    if measure == 'mpay':
-        bin_df = bin_df[bin_df.ret_mark == 0]
-
-    if len(eg_list) > 1:
+    if len(dataset_list) == 1 and len(eg_list) > 1:
         multiplot = True
     else:
         multiplot = False
@@ -6211,15 +6205,55 @@ def quantile_groupby(df, eg_list,
               groupby_method + '".\n\n')
         return
 
-    with sns.axes_style(chart_style):
-        fig, ax1 = plt.subplots(figsize=(xsize, ysize))
-    ax1.margins(x=0)
+    if use_dashed_line_compare:
+        ls_list = ['-', '--']
+    else:
+        ls_list = ['-', '-']
 
     job_levels = settings_dict['num_of_job_levels']
     job_strs = settings_dict['job_strs_dict']
 
-# ************
+    # proposal dictionary
+    p_dict = od()
+    # quantile dataframe dictionary
+    bin_df_dict = od()
 
+    # the dataset_list input can accept dataset proposal string names or
+    # dataset variable names
+    counter = 1
+    for model in dataset_list:
+        df, df_label = determine_dataset(model, ds_dict, return_label=True)
+        if model == pd.core.frame.DataFrame:
+            df_label = df_label + str(counter)
+            counter += 1
+        p_dict[df_label] = df
+
+        # limit the scope of the plot to a selected month in the future if the
+        # through_date argument is assigned an integer
+        if through_date:
+            through_date = pd.to_datetime(through_date)
+            p_dict[df_label] = \
+                p_dict[df_label][p_dict[df_label].date <= through_date]
+        else:
+            through_date = max(p_dict[df_label].date)
+
+        # make a dataframe with an added column ('quantile') indicating
+        # quantile membership number (integer) for each employee,
+        # each employee group calculated separately...
+        bin_df_dict[df_label] = mark_quantiles(p_dict[df_label], quantiles)
+
+        # if mpay is selected, remove employee monthly pay data for retirement
+        # months to exclude partial pay amounts
+        if measure == 'mpay':
+            bin_df_dict[df_label] = \
+                bin_df_dict[df_label][bin_df_dict[df_label].ret_mark == 0]
+
+    # create figure and ax1
+    with sns.axes_style(chart_style):
+        fig, ax1 = plt.subplots(figsize=(xsize, ysize))
+    ax1.margins(x=0)
+
+# ----------------------------------------------
     # create the job bands and labels on ax2
     if measure in ['cat_order'] and show_job_bands:
 
@@ -6246,8 +6280,9 @@ def quantile_groupby(df, eg_list,
                              legend=False,
                              ax=ax1)
         # for headcount:
+        d = p_dict[df_label]
         df_monthly_non_ret = \
-            pd.DataFrame(df[df.fur == 0].groupby('mnum').size(),
+            pd.DataFrame(d[d.fur == 0].groupby('mnum').size(),
                          columns=['count'])
 
         df_monthly_non_ret.set_index(
@@ -6292,27 +6327,52 @@ def quantile_groupby(df, eg_list,
                                     label='active count', ax=ax1)
 
         ax2.set_ylim(ax1.get_ylim())
+# -------------------------------------------------
 
 # .............................................................
     # this section is for the quantile line plots:
     y_limit = 0
 
-    for eg in eg_list:
-        frame = bin_df[bin_df.eg == eg]
-        # group frame for eg by xax and quantile category and include
-        # measure attribute
-        gb = frame.groupby([xax, 'quantile'])[measure]
-        # apply a groupby method to the groups
-        gb = getattr(gb, groupby_method)()
-        # unstack and plot
-        gb = gb.unstack()
-        y_limit = max(y_limit, np.nanmax(gb.values))
-        if multiplot or not custom_color:
-            gb.plot(c=eg_colors[eg - 1], lw=line_width,
-                    ax=ax1, alpha=line_alpha)
-        else:
-            ax1.set_prop_cycle(cycler('color', clrs))
-            gb.plot(lw=line_width, ax=ax1, alpha=line_alpha)
+    if len(dataset_list) == 1:
+        for eg in eg_list:
+            frame = bin_df_dict[df_label][bin_df_dict[df_label].eg == eg]
+            # group frame for eg by xax and quantile category and include
+            # measure attribute
+            gb = frame.groupby([xax, 'quantile'])[measure]
+            # apply a groupby method to the groups
+            gb = getattr(gb, groupby_method)()
+            # unstack and plot
+            gb = gb.unstack()
+            y_limit = max(y_limit, np.nanmax(gb.values))
+            if multiplot or not custom_color:
+                gb.plot(c=eg_colors[eg - 1], lw=line_width,
+                        ax=ax1, alpha=line_alpha)
+            else:
+                ax1.set_prop_cycle(cycler('color', clrs))
+                gb.plot(lw=line_width, ax=ax1, alpha=line_alpha)
+
+    if len(dataset_list) > 1:
+        idx = 0
+        for label in p_dict.keys():
+            frame = bin_df_dict[label][bin_df_dict[label].eg == eg_list[0]]
+            # group frame for eg by xax and quantile category and include
+            # measure attribute
+            gb = frame.groupby([xax, 'quantile'])[measure]
+            # apply a groupby method to the groups
+            gb = getattr(gb, groupby_method)()
+            # unstack and plot
+            gb = gb.unstack()
+            y_limit = max(y_limit, np.nanmax(gb.values))
+            if multiplot or not custom_color:
+                gb.plot(c=eg_colors[eg_list[0] - 1], lw=line_width,
+                        ls=ls_list[idx], ax=ax1, alpha=line_alpha)
+
+            else:
+                ax1.set_prop_cycle(cycler('color', clrs))
+                gb.plot(lw=line_width, ls=ls_list[idx],
+                        ax=ax1, alpha=line_alpha)
+            idx += 1
+# .................................................................
 
     # set "dense" tick labels
     if measure in ['cat_order']:
