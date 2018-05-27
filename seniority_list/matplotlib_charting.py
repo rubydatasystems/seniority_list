@@ -5409,7 +5409,7 @@ def group_average_and_median(dfc, dfb,
 
 # EMPLOYEE DENSITY STRIPPLOT (with filtering)
 def stripplot_eg_density(df, mnum,
-                         eg_colors, attr_dict,
+                         eg_colors,
                          ds_dict=None,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
@@ -5440,8 +5440,6 @@ def stripplot_eg_density(df, mnum,
             month number to study from dataset
         eg_colors (list)
             color codes for plotting each employee group
-        attr_dict (dictionary)
-            dataset column name description dictionary
         ds_dict (dictionary)
             output from load_datasets function
         attr(n) (string)
@@ -5501,14 +5499,15 @@ def stripplot_eg_density(df, mnum,
         return
 
     ax.set_ylim(max(mnum_p.new_order), 0)
+    ttl = df_label + ' m' + str(mnum)
 
     if t_string:
-        fig.suptitle(df_label, fontsize=suptitle_size)
+        fig.suptitle(ttl, fontsize=suptitle_size)
         ax.set_title(t_string, fontsize=title_size)
     else:
-        ax.set_title(df_label, fontsize=suptitle_size)
+        ax.set_title(ttl, fontsize=suptitle_size)
 
-    ax.set_ylabel(attr_dict['eg'])
+    ax.set_ylabel('list order')
 
     if image_dir:
         func_name = sys._getframe().f_code.co_name
@@ -5998,6 +5997,8 @@ def quantile_groupby(dataset_list, eg_list,
                      xax='date',
                      ds_dict=None,
                      through_date=None,
+                     verbose_title=True,
+                     plot_total=True,
                      show_job_bands=True,
                      show_grid=True,
                      plot_implementation_date=True,
@@ -6101,6 +6102,15 @@ def quantile_groupby(dataset_list, eg_list,
         through_date (date string)
             If set as a date string, such as '2020-12-31', only show results
             up to and including this date.
+        verbose_title (boolean)
+            If True, chart title will use the long descriptions for each
+            employee group from the settings.xlsx input file,
+            proposal_dictionary worksheet.  Otherwise, the eg number codes will
+            be used in the title
+        plot_total (boolean)
+            If True, plot a dotted gray line representing the total count of
+            active pilots over time (only when "measure" input is set to
+            "cat_order" and "show_job_bands" input is True)
         show_job_bands
             If measure is set to "cat_order", plot properly scaled job level
             color bands on chart background
@@ -6234,6 +6244,7 @@ def quantile_groupby(dataset_list, eg_list,
             through_date = pd.to_datetime(through_date)
             p_dict[df_label] = \
                 p_dict[df_label][p_dict[df_label].date <= through_date]
+            through_date = min(max(df.date), through_date)
         else:
             through_date = max(p_dict[df_label].date)
 
@@ -6323,8 +6334,9 @@ def quantile_groupby(dataset_list, eg_list,
         ax2.set_yticks(axis2_lbl_locs)
         ax2.set_yticklabels(axis2_lbls)
 
-        non_ret_count['count'].plot(c='grey', ls='--',
-                                    label='active count', ax=ax1)
+        if plot_total:
+            non_ret_count['count'].plot(c='r', ls=':', lw=1.5,
+                                        label='active count', ax=ax1)
 
         ax2.set_ylim(ax1.get_ylim())
 # -------------------------------------------------
@@ -6434,7 +6446,16 @@ def quantile_groupby(dataset_list, eg_list,
                 ax1.axvline(settings_dict['implementation_date'],
                             c='g', ls='--', alpha=1, lw=1)
 
-    ax1.set_title('egs: ' + str(eg_list) + '    ' + str(quantiles) +
+    if verbose_title:
+        eg_names = ''
+        for eg in eg_list:
+            eg_names = eg_names + \
+                str(settings_dict['p_dict_verbose'][eg]) + ' '
+        title_start = 'egs: [ ' + eg_names + ']    '
+    else:
+        title_start = 'egs: ' + str(eg_list) + '    '
+
+    ax1.set_title(title_start + str(quantiles) +
                   ' quantile ' + attr_dict[measure] + ' by ' + groupby_method,
                   fontsize=title_size)
 
