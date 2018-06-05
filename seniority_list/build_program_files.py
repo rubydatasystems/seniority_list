@@ -595,12 +595,13 @@ def main():
     settings['p_dict_verbose'] = f.make_dict_from_columns(df, 'proposal',
                                                           'long_descr')
 
+    count_dict = settings['count_ratio_dict']
+    ratio_dict = settings['ratio_dict']
+
     if settings['enhanced_jobs']:
         jd = settings['jd']
         sg_rights = settings['sg_rights']
         # ratio_cond = settings['ratio_cond']
-        count_dict = settings['count_ratio_dict']
-        ratio_dict = settings['ratio_dict']
 
         ratio_onoff = settings['snap_ratio_on_off_dict']
         count_onoff = settings['snap_count_on_off_dict']
