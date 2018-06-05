@@ -3264,9 +3264,15 @@ def job_transfer(dfc, dfb, eg,
         job_strs (list)
             list of job descriptions (labels)
         p_dict (dictionary)
-            dictionary of employee number codes to short string description
+            dictionary of employee number codes to verbose string description,
+            (normally "p_dict_verbose" from the settings dictionary)
 
-            example: {0: 'sa', 1: '1', 2: '2'}
+            Example:
+
+            .. code:: python
+
+                {0: 'Standalone', 1: 'Acme', 2: 'Southern'}
+
         ds_dict (dictionary)
             output from load_datasets function
         gb_period (string)
@@ -3456,7 +3462,7 @@ def job_transfer(dfc, dfb, eg,
 
     # TITLE
     try:
-        title_string = 'GROUP ' + p_dict[eg] + \
+        title_string = p_dict[eg] + \
             ' Jobs Exchange' + '\n' + \
             dfc_label + \
             ' compared to ' + dfb_label
