@@ -4770,7 +4770,7 @@ def single_emp_compare(emp, measure,
                  y=1.02, fontsize=title_size)
 
     if measure in ['snum', 'cat_order', 'spcnt', 'lspcnt',
-                   'jnum', 'jobp', 'fbff']:
+                   'jnum', 'jobp', 'fbff', 'rank_in_job']:
         ax.invert_yaxis()
 
     if measure in ['spcnt', 'lspcnt']:
@@ -5417,9 +5417,11 @@ def group_average_and_median(dfc, dfb,
 def stripplot_eg_density(df, mnum,
                          eg_colors,
                          ds_dict=None,
+                         mnum_order=True,
                          attr1=None, oper1='>=', val1=0,
                          attr2=None, oper2='>=', val2=0,
                          attr3=None, oper3='>=', val3=0,
+                         dot_size=3,
                          chart_style='whitegrid',
                          bg_color='white',
                          title_size=12,
@@ -5427,8 +5429,14 @@ def stripplot_eg_density(df, mnum,
                          xsize=5, ysize=10,
                          image_dir=None,
                          image_format='png'):
-    '''plot a stripplot showing density distribution for each employee group
-    separately.
+    '''plot a stripplot showing density distribution for non-retired employees
+    for each employee group separately at the selected month.  The stripplot
+    displays remaining employees positioned according to the selected month
+    or initial month integrated list order (controlled by the "mnum_order"
+    input).
+
+    Note:  To analyze job category distribution density, use the
+    "stripplot_dist_in_category" plotting function.
 
     The input dataframe (df) may be a dictionary key (string) or a pandas
     dataframe.
@@ -5443,17 +5451,24 @@ def stripplot_eg_density(df, mnum,
             Example:  input can be 'proposal1' (if that proposal exists, of
             course, or could be df[df.age > 50])
         mnum (integer)
-            month number to study from dataset
+            view data for employees remaining (not yet retired) within this
+            data model month number
         eg_colors (list)
             color codes for plotting each employee group
         ds_dict (dictionary)
             output from load_datasets function
+        mnum_order (boolean)
+            if True, plot list position in month selected with the "mnum"
+            input, otherwise plot according to initial integrated list
+            position
         attr(n) (string)
             filter attribute or dataset column as string
         oper(n) (string)
             operator (i.e. <, >, ==, etc.) for attr(n) as string
         val(n) (integer, float, date as string, string (as appropriate))
             attr(n) limiting value (combined with oper(n)) as string
+        dot_size (integer or float)
+            size of stripplot markers
         bg_color (color value)
             chart background color
         title_size (integer or float)
@@ -5484,7 +5499,14 @@ def stripplot_eg_density(df, mnum,
     d_filt = d_filt[['eg']].copy()
     d_filt.rename(columns={'eg': 'filt_eg'}, inplace=True)
 
-    mnum_p = ds[['eg', 'new_order']].join(d_filt)
+    if mnum_order:
+        y_order = 'snum'
+        y_label = 'm' + str(mnum) + ' list order'
+    else:
+        y_order = 'new_order'
+        y_label = 'initial list order'
+
+    mnum_p = ds[['eg', y_order]].join(d_filt)
     mnum_p['eg'] = mnum_p.filt_eg
 
     min_eg = min(np.unique(mnum_p.eg))
@@ -5494,9 +5516,9 @@ def stripplot_eg_density(df, mnum,
         with sns.axes_style(chart_style):
             fig, ax = plt.subplots(figsize=(xsize, ysize))
 
-        sns.stripplot(y='new_order', x='eg', data=mnum_p, jitter=.5,
+        sns.stripplot(y=y_order, x='eg', data=mnum_p, jitter=.5,
                       order=np.arange(min_eg, max_eg + 1),
-                      palette=eg_colors, size=3, linewidth=0,
+                      palette=eg_colors, size=dot_size, linewidth=0,
                       dodge=True, ax=ax)
         ax.set_facecolor(bg_color)
 
@@ -5504,7 +5526,7 @@ def stripplot_eg_density(df, mnum,
         print('\nEmpty dataset, nothing to plot. Check filters?\n')
         return
 
-    ax.set_ylim(max(mnum_p.new_order), 0)
+    ax.set_ylim(max(mnum_p[y_order]), 0)
     ttl = df_label + ' m' + str(mnum)
 
     if t_string:
@@ -5513,7 +5535,7 @@ def stripplot_eg_density(df, mnum,
     else:
         ax.set_title(ttl, fontsize=suptitle_size)
 
-    ax.set_ylabel('list order')
+    ax.set_ylabel(y_label)
 
     if image_dir:
         func_name = sys._getframe().f_code.co_name
