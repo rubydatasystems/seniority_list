@@ -420,7 +420,10 @@ def quantile_years_in_position(dfc, dfb,
                     ax.grid(alpha=grid_alpha)
                 plot_num += 1
 
-    fig.suptitle(df_labelc + ', ' + t_string,
+    if t_string:
+        t_string = ', ' + t_string
+
+    fig.suptitle(df_labelc + ' proposal' + t_string,
                  fontsize=suptitle_size, y=1.01)
 
     if not plot_differential:
@@ -1615,8 +1618,10 @@ def stripplot_dist_in_category(df, job_levels,
             custom color to signify furloughed job band area (otherwise, last
             color from band_colors list will be used)
         show_part_time_lvl (boolean)
-            draw a line within each job band representing the boundry
-            between full and part-time jobs
+            if True, draw a line within each job band representing the boundry
+            between full and part-time jobs when using a basic jobs only data
+            model (set this input to False when using an enhanced job
+            data model)
         size (integer or float)
             size of density markers
         alpha (float)
@@ -2186,44 +2191,47 @@ def differential_scatter(df_list, dfb,
             fig, ax = plt.subplots(figsize=(xsize, ysize))
 
         for eg in eg_list:
-            data = df[df.eg == eg].copy()
-            x_limit = max(data[xax]) + 100
-            yax = str(prop_num) + 'vs'
+            try:
+                data = df[df.eg == eg].copy()
+                x_limit = max(data[xax]) + 100
+                yax = str(prop_num) + 'vs'
 
-            label = p_dict[eg]
+                label = p_dict[eg]
 
-            if show_scatter:
-                data.plot(x=xax, y=yax, kind='scatter',
-                          linewidth=0.1,
-                          color=color_dict['eg_colors'][eg - 1],
-                          s=dot_size,
-                          label=label,
-                          ax=ax)
-
-            if show_mean:
-                data['ma'] = data[eg].rolling(mean_len).mean()
-                data.plot(x=xax, y='ma', lw=5,
-                          color=color_dict['mean_colors'][eg - 1],
-                          label=label,
-                          alpha=.6, ax=ax)
-                ax.set_xlim(0, x_limit)
-
-            if show_lin_reg:
                 if show_scatter:
-                    lin_reg_colors = color_dict['lin_reg_colors']
-                else:
-                    lin_reg_colors = color_dict['lin_reg_colors2']
-                sns.regplot(x=xax, y=yax, data=data,
-                            color=lin_reg_colors[eg - 1],
-                            label=label,
-                            scatter=False, truncate=True, ci=50,
-                            order=lin_reg_order,
-                            line_kws={'lw': 20,
-                                      'alpha': .4},
-                            ax=ax)
-                ax.set_xlim(0, x_limit)
+                    data.plot(x=xax, y=yax, kind='scatter',
+                              linewidth=0.1,
+                              color=color_dict['eg_colors'][eg - 1],
+                              s=dot_size,
+                              label=label,
+                              ax=ax)
 
-            ax.set_xlabel('order: ' + label_dict[prop_num])
+                if show_mean:
+                    data['ma'] = data[eg].rolling(mean_len).mean()
+                    data.plot(x=xax, y='ma', lw=5,
+                              color=color_dict['mean_colors'][eg - 1],
+                              label=label,
+                              alpha=.6, ax=ax)
+                    ax.set_xlim(0, x_limit)
+
+                if show_lin_reg:
+                    if show_scatter:
+                        lin_reg_colors = color_dict['lin_reg_colors']
+                    else:
+                        lin_reg_colors = color_dict['lin_reg_colors2']
+                    sns.regplot(x=xax, y=yax, data=data,
+                                color=lin_reg_colors[eg - 1],
+                                label=label,
+                                scatter=False, truncate=True, ci=50,
+                                order=lin_reg_order,
+                                line_kws={'lw': 20,
+                                          'alpha': .4},
+                                ax=ax)
+                    ax.set_xlim(0, x_limit)
+
+                ax.set_xlabel('order: ' + label_dict[prop_num])
+            except:
+                print('no data for eg group ' + str(eg) + ', adjust filter?')
 
         if measure == 'jobp':
             ymin = math.floor(min(df[yax]))
