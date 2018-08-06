@@ -4195,6 +4195,7 @@ def cross_val(col1, value, col2):
 
 
 def hex_dict():
+    '''returns a color name to hex code dictionary (no inputs)'''
     hex_dict = {'white': '#ffffff',
                 'azure': '#f0ffff',
                 'mintcream': '#f5fffa',

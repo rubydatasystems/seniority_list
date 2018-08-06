@@ -955,13 +955,14 @@ def editor(doc,
                 idx_xax.data = mth['prop_s'].values
 
     def animate():
+        global cb_id
         box1.right, box1.left = None, None
         if but_play.label == '► Play':
             but_play.label = '❚❚ Pause'
-            doc.add_periodic_callback(animate_update, animate_speed)
+            cb_id = doc.add_periodic_callback(animate_update, animate_speed)
         else:
             but_play.label = '► Play'
-            doc.remove_periodic_callback(animate_update)
+            doc.remove_periodic_callback(cb_id)
 
     def reset():
         box1.right, box1.left = None, None
