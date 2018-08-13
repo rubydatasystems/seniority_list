@@ -6032,6 +6032,7 @@ def quantile_groupby(dataset_list, eg_list,
                      groupby_method='median',
                      xax='date',
                      ds_dict=None,
+                     num_cat_order_yticks=10,
                      through_date=None,
                      verbose_title=True,
                      plot_total=True,
@@ -6129,12 +6130,16 @@ def quantile_groupby(dataset_list, eg_list,
             The first groupby level and x axis value for the analysis.  This
             value defaults to "date" which represents each month of the model.
             Alternatively, "mnum" may be used.
-        job_levels (integer)
-            The number of job levels (excluding the furlough level) in the data
-            model.
         ds_dict (dictionary)
             A dictionary containing string to dataframes, used if df input
             is not a dataframe but a string key (examples: 'standalone', 'p1')
+        num_cat_order_yticks (int)
+            approiximate number of y axis ticks to display on the lefthand
+            side of the chart when "cat_order" is selected as the "measure"
+            input.  The actual number of ticks displayed will be adjusted to
+            match an optimal numerical interval between tick values.  This
+            input does not have a linear relationship with the output and
+            may require a significant input change to affect the chart display.
         through_date (date string)
             If set as a date string, such as '2020-12-31', only show results
             up to and including this date.
@@ -6425,14 +6430,21 @@ def quantile_groupby(dataset_list, eg_list,
     # set "dense" tick labels
     if measure in ['cat_order']:
         try:
-            y_limit = (y_limit + 500) // 50 * 50
-            ax1.set_ylim(y_limit, 0)
-            tick_stride = min(y_limit / 10 // 10 * 10, 500)
+            y_limit = int(max(ax1.get_ylim()))
+            stride_list = np.array([5, 10, 20, 50, 100, 200, 250, 500,
+                                   1000, 2000, 2500, 5000, 10000, 20000,
+                                   25000, 50000])
+            raw_stride = y_limit // num_cat_order_yticks
+            min_stride = max(min(stride_list), raw_stride)
+            tick_stride = max([stride for stride in stride_list
+                               if stride < min_stride])
             ax1.set_yticks(np.arange(0, y_limit, tick_stride))
+            ax1.set_ylim(y_limit, 0)
             if show_job_bands:
                 ax2.set_ylim(ax1.get_ylim())
         except:
-            pass
+            print('auto y_scale fail')
+            ax1.set_ylim(int(max(ax1.get_ylim())) + 1, 0)
 
     if measure in ['fbff', 'jobp', 'jnum', 'orig_job']:
         jnums = np.arange(1, job_levels + 2, 1)
@@ -6482,16 +6494,23 @@ def quantile_groupby(dataset_list, eg_list,
                 ax1.axvline(settings_dict['implementation_date'],
                             c='g', ls='--', alpha=1, lw=1)
 
+    pname = ''
+    for p in dataset_list:
+        pname = pname + p + ' '
+    pname = '[' + pname.rstrip() + ']'
+    title1 = 'proposal: ' + pname + '   '
+
     if verbose_title:
         eg_names = ''
         for eg in eg_list:
             eg_names = eg_names + \
                 str(settings_dict['p_dict_verbose'][eg]) + ' '
-        title_start = 'egs: [ ' + eg_names + ']    '
+        eg_names = eg_names.rstrip()
+        title2 = 'eg: [' + eg_names + ']    '
     else:
-        title_start = 'egs: ' + str(eg_list) + '    '
+        title2 = 'eg: ' + str(eg_list) + '    '
 
-    ax1.set_title(title_start + str(quantiles) +
+    ax1.set_title(title1 + title2 + str(quantiles) +
                   ' quantile ' + attr_dict[measure] + ' by ' + groupby_method,
                   fontsize=title_size)
 
