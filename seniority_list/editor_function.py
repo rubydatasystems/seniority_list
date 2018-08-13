@@ -246,7 +246,7 @@ def editor(doc,
     but_save_width = 260
     sel_height = 40
     sel_width = 90
-    txt_height = 61
+    txt_height = 52
     main_but_width = 120
     toggle_but_width = 25
     toggle_space_width = 20
