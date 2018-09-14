@@ -99,6 +99,12 @@ class Kwargs():
         self.kdict.clear()
 
 
+class CallbackID():
+
+    def __init__(self, identifier):
+        self.identifier = identifier
+
+
 def editor(doc,
            poly_dim=15,
            ema_len=25,
@@ -713,6 +719,8 @@ def editor(doc,
     savgols = Kwargs()
     src_dict = Kwargs()
 
+    cb = CallbackID(None)
+
     # ------figures, sources, tool classes----------------------------
 
     p1 = figure(min_border_left=50, tools=p1_tools)
@@ -955,14 +963,14 @@ def editor(doc,
                 idx_xax.data = mth['prop_s'].values
 
     def animate():
-        global cb_id
         box1.right, box1.left = None, None
         if but_play.label == '► Play':
             but_play.label = '❚❚ Pause'
-            cb_id = doc.add_periodic_callback(animate_update, animate_speed)
+            cb.identifier = \
+                doc.add_periodic_callback(animate_update, animate_speed)
         else:
             but_play.label = '► Play'
-            doc.remove_periodic_callback(cb_id)
+            doc.remove_periodic_callback(cb.identifier)
 
     def reset():
         box1.right, box1.left = None, None

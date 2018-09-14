@@ -99,6 +99,11 @@ def bk_basic_interactive(doc, df=None,
     be assigned.
     '''
 
+    class CallbackID():
+
+        def __init__(self, identifier):
+            self.identifier = identifier
+
     max_month = df['mnum'].max()
     # set up color column
     egs = df['eg'].values
@@ -152,9 +157,9 @@ def bk_basic_interactive(doc, df=None,
 
     spacer1 = Spacer(height=plot_height, width=30)
 
-    but_1add = Button(label='FWD', width=60)
-    but_1sub = Button(label='BACK', width=60)
-    add_sub = widgetbox(but_1add, but_1sub)
+    but_fwd = Button(label='FWD', width=60)
+    but_back = Button(label='BACK', width=60)
+    add_sub = widgetbox(but_fwd, but_back)
 
     def make_plot():
         this_df = get_df()
@@ -253,26 +258,28 @@ def bk_basic_interactive(doc, df=None,
             mth = 0
         slider_month.value = mth
 
-    def add1():
+    def fwd():
         slider_val = slider_month.value
         if slider_val < max_month:
             slider_month.value = slider_val + 1
 
-    def sub1():
+    def back():
         slider_val = slider_month.value
         if slider_val > 0:
             slider_month.value = slider_val - 1
 
-    but_1sub.on_click(sub1)
-    but_1add.on_click(add1)
+    but_back.on_click(back)
+    but_fwd.on_click(fwd)
+
+    cb = CallbackID(None)
 
     def animate():
         if play_button.label == '► Play':
             play_button.label = '❚❚ Pause'
-            doc.add_periodic_callback(animate_update, 350)
+            cb.identifier = doc.add_periodic_callback(animate_update, 350)
         else:
             play_button.label = '► Play'
-            doc.remove_periodic_callback(animate_update)
+            doc.remove_periodic_callback(cb.identifier)
 
     def reset():
         slider_month.value = 0
