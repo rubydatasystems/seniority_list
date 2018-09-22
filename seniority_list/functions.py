@@ -3460,7 +3460,7 @@ def update_excel(case,
             sheets which are being replaced by worksheet with the same name.
     '''
     # read a single or multi-sheet excel file
-    # (returns dict of sheetname(s), dataframe(s))
+    # (returns dict of sheet_name(s), dataframe(s))
     path = 'excel/' + case + '/' + file + '.xlsx'
 
     # make a copy of file before modifying
@@ -3469,7 +3469,7 @@ def update_excel(case,
     # get a dictionary from the excel file consisting of worksheet name keys
     # and worksheet contents as values (as dataframes)
     try:
-        dict0 = pd.read_excel(path, sheetname=None)
+        dict0 = pd.read_excel(path, sheet_name=None)
     except OSError:
         print('Error: Unable to find "' + path + '"')
         return
@@ -3535,7 +3535,7 @@ def copy_excel_file(case,
 
         if return_path_and_df:
             try:
-                return path, pd.read_excel(path, sheetname=None)
+                return path, pd.read_excel(path, sheet_name=None)
             except OSError:
                 print('\nproblem reading/returning ' + path + '"')
         return
