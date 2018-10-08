@@ -99,12 +99,6 @@ class Kwargs():
         self.kdict.clear()
 
 
-class CallbackID():
-
-    def __init__(self, identifier):
-        self.identifier = identifier
-
-
 def editor(doc,
            poly_dim=15,
            ema_len=25,
@@ -633,12 +627,9 @@ def editor(doc,
 
     # Spacer Widgets...................
 
-    # display tab:
-    spacer_top_disp = Spacer(width=200, height=45)
-    spacer_disp_mth1 = Spacer(width=55)
-    spacer_disp_mth2 = Spacer(width=35)
-    spacer_disp_ax1 = Spacer(width=55)
-    spacer_disp_ax2 = Spacer(width=35)
+    # layout column spacers (between left, center, and right controls)
+    spacer_controls1 = Spacer(width=50)
+    spacer_controls2 = Spacer(width=50)
 
     # squeeze tab
     spacer_sqz_but1 = Spacer(width=but_space_width)
@@ -650,15 +641,24 @@ def editor(doc,
     spacer_toggle_center2 = Spacer(width=toggle_center_width)
     spacer_toggle_2 = Spacer(width=toggle_space_width)
 
-    # animate tab (commented for future use)
-    # spacer_anim = Spacer(width=40, height=aux_slider_height)
+    # animate tab
+    spacer_anim1 = Spacer(width=60, height=but_height)
+    spacer_anim_refresh = Spacer(width=60, height=but_height)
+    spacer_anim2 = Spacer(width=60, height=but_height)
 
     # proposal_save tab
-    spacer_top_save1 = Spacer(width=but_save_width, height=85)
-    spacer_middle_save = Spacer(width=50, height=aux_slider_height)
+    spacer_top_save = Spacer(width=but_save_width, height=50)
+    spacer_middle_save = Spacer(width=35, height=aux_slider_height)
 
     # above sel_measure dropdown (center column)
     spacer_top_center_col = Spacer(height=80, width=sel_width)
+
+    # display tab:
+    spacer_top_disp = Spacer(width=200, height=45)
+    spacer_disp_mth1 = Spacer(width=55)
+    spacer_disp_mth2 = Spacer(width=35)
+    spacer_disp_ax1 = Spacer(width=55)
+    spacer_disp_ax2 = Spacer(width=35)
 
     # size_alpha tab
     spacer_top_size_alpha = Spacer(width=50, height=50)
@@ -670,15 +670,6 @@ def editor(doc,
     spacer_linesbg_col2 = Spacer(width=5)
     spacer_top_color_apply = Spacer(width=70, height=40)
     spacer_linesbg_bottom = Spacer(width=75)
-
-    # animate tab
-    spacer_anim1 = Spacer(width=60, height=but_height)
-    spacer_anim_refresh = Spacer(width=60, height=but_height)
-    spacer_anim2 = Spacer(width=60, height=but_height)
-
-    # layout column spacers
-    spacer_controls1 = Spacer(width=50)
-    spacer_controls2 = Spacer(width=50)
 
     # edit zone slider (left margin)
     spacer_edit = Spacer(width=40)
@@ -718,8 +709,6 @@ def editor(doc,
     means = Kwargs()
     savgols = Kwargs()
     src_dict = Kwargs()
-
-    cb = CallbackID(None)
 
     # ------figures, sources, tool classes----------------------------
 
@@ -963,14 +952,14 @@ def editor(doc,
                 idx_xax.data = mth['prop_s'].values
 
     def animate():
+        global cb_id
         box1.right, box1.left = None, None
         if but_play.label == '► Play':
             but_play.label = '❚❚ Pause'
-            cb.identifier = \
-                doc.add_periodic_callback(animate_update, animate_speed)
+            cb_id = doc.add_periodic_callback(animate_update, animate_speed)
         else:
             but_play.label = '► Play'
-            doc.remove_periodic_callback(cb.identifier)
+            doc.remove_periodic_callback(cb_id)
 
     def reset():
         box1.right, box1.left = None, None
@@ -1949,9 +1938,13 @@ def editor(doc,
     anim_items = row(anim_col1)
 
     # proposal_save
-    save_widgets = row(column(spacer_top_save1, but_save_edit, but_save_order),
-                       column(spacer_middle_save),
-                       column(sel_base, sel_cond, sel_proposal))
+    save_buttons = column(spacer_top_save,
+                          row(but_save_edit),
+                          row(but_save_order))
+
+    save_dropdowns = column(sel_base, sel_cond, sel_proposal)
+
+    save_widgets = row(save_buttons, spacer_middle_save, save_dropdowns)
 
     # make panels for main tab group
     panel1_tab1 = Panel(child=squeeze_widgets, title='squeeze')
@@ -2199,6 +2192,8 @@ def make_dataset(proposal_name='',
 
     if proposal_name == 'edit':
         df_new_order = pd.read_pickle(order_file)
+        # if 'idx' in df_new_order.columns:
+        #     df_new_order.rename(columns={'idx': 'new_order'}, inplace=True)
         ds['new_order'] = df_new_order['new_order']
         # dataset_file = (pre + 'ds_edit' + suf)
     else:

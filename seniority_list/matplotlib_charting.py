@@ -345,7 +345,7 @@ def quantile_years_in_position(dfc, dfb,
                 if rotate:
                     ax.set_xlim(0, year_clip)
                 else:
-                    ax.set_ylim(ymax=year_clip)
+                    ax.set_ylim(top=year_clip)
 
             if style == 'bar':
 
@@ -723,9 +723,9 @@ def multiline_plot_by_emp(df, measure, xax,
             i += 1
         if xax == 'date':
             if through_date:
-                ax.set_xlim(xmax=pd.to_datetime(through_date))
+                ax.set_xlim(right=pd.to_datetime(through_date))
 
-        ax.set_xlim(xmin=sdict['starting_date'] + pd.offsets.MonthEnd(-1))
+        ax.set_xlim(left=sdict['starting_date'] + pd.offsets.MonthEnd(-1))
         locator = mdate.YearLocator()
         ax.xaxis.set_major_locator(locator)
         fig.autofmt_xdate()
@@ -752,7 +752,7 @@ def multiline_plot_by_emp(df, measure, xax,
         if pcnt_ylimit:
             ax.set_yticks(np.arange(0, 1.05, .05))
             pcnt_ylimit = np.clip(pcnt_ylimit, 0.05, 1.0)
-            ax.set_ylim(ymax=pcnt_ylimit)
+            ax.set_ylim(top=pcnt_ylimit)
         else:
             ax.set_yticks(np.arange(0, 1.05, .05))
         ax.yaxis.set_major_formatter(pct_format())
@@ -813,6 +813,7 @@ def violinplot_by_eg(df, measure, ret_age,
                      attr2=None, oper2='>=', val2='0',
                      attr3=None, oper3='>=', val3='0',
                      scale='count',
+                     saturation=1.0,
                      title_size=12,
                      chart_style='darkgrid',
                      xsize=12, ysize=10,
@@ -859,6 +860,11 @@ def violinplot_by_eg(df, measure, ret_age,
             If 'count', the width of the violins will be scaled by
             the number of observations in that bin.
             If 'width', each violin will have the same width.
+        saturation (float)
+            Proportion of the original color saturation.
+            Large patches often look better with slightly desaturated colors,
+            but set this to 1.0 if you want the plot colors to perfectly match
+            the input color spec.
         title_size (integer or float)
             text size of chart title
         image_dir (string)
@@ -906,6 +912,7 @@ def violinplot_by_eg(df, measure, ret_age,
 
     sns.violinplot(x=frame.eg, y=frame[measure],
                    cut=0, scale=scale, inner='box',
+                   saturation=saturation,
                    bw=.1, linewidth=linewidth,
                    palette=cdict['eg_colors'], ax=ax)
 
@@ -2255,7 +2262,7 @@ def differential_scatter(df_list, dfb,
             ax.set_title(tb_string, fontsize=title_size, y=1.005)
         else:
             ax.set_title(suptitle_str, fontsize=suptitle_size)
-        ax.set_xlim(xmin=0)
+        ax.set_xlim(left=0)
 
         if measure in ['spcnt', 'lspcnt']:
             ax.yaxis.set_major_formatter(pct_format())
@@ -2263,7 +2270,7 @@ def differential_scatter(df_list, dfb,
         if xax == 'separate_eg_percentage':
             ax.xaxis.set_major_formatter(pct_format())
             ax.set_xticks(np.arange(0, 1.1, .1))
-            ax.set_xlim(xmax=1)
+            ax.set_xlim(right=1)
 
         ax.axhline(0, c='m', ls='-', alpha=1, lw=2)
         ax.invert_xaxis()
@@ -3716,7 +3723,7 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
             ret_age_limit = settings_dict['ret_age'] + yr_add_decimal
         else:
             ret_age_limit = settings_dict['ret_age']
-        ax1.set_xlim(xmax=ret_age_limit)
+        ax1.set_xlim(right=ret_age_limit)
 
     if xax in ['ylong']:
         ax1.set_xticks(np.arange(0, 55, 5))
@@ -4602,7 +4609,7 @@ def cond_test(df, grp_sel,
     fig = plt.gcf()
     ax = plt.gca()
     ax.margins(x=0)
-    ax.set_ylim(ymin=0)
+    ax.set_ylim(bottom=0)
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.95, box.height])
     handles, labels = ax.get_legend_handles_labels()
@@ -4826,7 +4833,7 @@ def job_time_change(ds_list, ds_base,
                     linewidth=.05, size=25,
                     alpha=.95,
                     bg_color='#ffffff',
-                    xmax=1.02,
+                    x_max=1.02,
                     limit_yax=False,
                     ylimit=40,
                     zeroline_color='m',
@@ -4895,7 +4902,7 @@ def job_time_change(ds_list, ds_base,
             marker alpha (transparency) value
         bg_color (color value)
             background color of chart if not None
-        xmax (integer or float)
+        x_max (integer or float)
             high limit of chart x axis
         limit_yax (integer or float)
             if True, restrict plot y scale to this value
@@ -5045,7 +5052,7 @@ def job_time_change(ds_list, ds_base,
                     eg_df.plot(kind='scatter',
                                x=xax,
                                y=jnum,
-                               color=job_colors[jnum - 1],
+                               color=np.reshape(job_colors[jnum - 1], (1, -1)),
                                edgecolor=edgecolor,
                                marker=marker,
                                linewidth=linewidth,
@@ -5057,11 +5064,11 @@ def job_time_change(ds_list, ds_base,
                     pass
 
             if xax in ['spcnt', 'lspcnt']:
-                ax.set_xlim(xmin=0, xmax=1.02)
+                ax.set_xlim(left=0, right=x_max)
                 ax.xaxis.set_major_formatter(pct_format())
                 ax.set_xticks(np.arange(0, 1.05, .05))
             if xax in ['cat_order']:
-                ax.set_xlim(xmin=0)
+                ax.set_xlim(left=0)
 
             ax.axhline(c=zeroline_color, lw=zeroline_width)
 
@@ -5369,15 +5376,15 @@ def group_average_and_median(dfc, dfb,
             for i in np.arange(1, len(yticks)):
                 yticks[i] = job_strs_dict[i]
             ax.set_yticklabels(yticks, va='top')
-            ax.set_ylim(ymax=0.75)
+            ax.set_ylim(top=0.75)
 
         else:
             if show_full_yscale:
                 ax.set_yticks(np.arange(0, job_levels + 2, 1))
-            ax.set_ylim(ymax=0.75)
+            ax.set_ylim(top=0.75)
 
         if show_full_yscale:
-            ax.set_ylim(ymin=job_levels + 2)
+            ax.set_ylim(bottom=job_levels + 2)
             ax.axhspan(job_levels + 1, job_levels + 2,
                        facecolor='.8', alpha=0.5)
             ax.axhline(y=job_levels + 1, c='.8', ls='-', alpha=.8, lw=3)
@@ -6477,7 +6484,7 @@ def quantile_groupby(dataset_list, eg_list,
               'orig_job', 'rank_in_job']
 
     if (measure in m_list) and (groupby_method not in ['size', 'count']):
-        ax1.set_ylim(ymin=0)
+        ax1.set_ylim(bottom=0)
         ax1.invert_yaxis()
 
     ax1.tick_params(axis='both', which='both', labelsize=tick_size)
