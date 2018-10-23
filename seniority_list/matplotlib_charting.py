@@ -1672,7 +1672,7 @@ def stripplot_dist_in_category(df, job_levels,
     data = d_filt.copy()
 
     eg_set = pd.unique(data.eg)
-    max_eg_plus_one = max(eg_set) + 1
+    max_eg_plus_one = np.nanmax(eg_set) + 1
 
     y_count = len(data)
 
@@ -6036,6 +6036,7 @@ def quantile_groupby(dataset_list, eg_list,
                      band_colors,
                      settings_dict,
                      attr_dict,
+                     job_dict,
                      groupby_method='median',
                      xax='date',
                      ds_dict=None,
@@ -6046,6 +6047,7 @@ def quantile_groupby(dataset_list, eg_list,
                      show_job_bands=True,
                      show_grid=True,
                      plot_implementation_date=True,
+                     draw_reserve_levels=False,
                      custom_color=False,
                      cm_name='Set1',
                      start=0.0,
@@ -6129,6 +6131,9 @@ def quantile_groupby(dataset_list, eg_list,
             script
         attr_dict (dictionary)
             dataset column name description dictionary
+        job_dict (dictionary)
+            dictionary containing basic to enhanced job level conversion data.
+            This is likely the settings dictionary "jd" value.
         groupby_method (string)
             The method applied to the attribute data within each quantile.  The
             allowable methods are listed in the description above.  Default is
@@ -6163,10 +6168,15 @@ def quantile_groupby(dataset_list, eg_list,
             If measure is set to "cat_order", plot properly scaled job level
             color bands on chart background
         show_grid (boolean)
-            if True, plot a grid on the chart
+            If True, plot a grid on the chart
         plot_implementation_date
             If True and the xax argument is set to "date", plot a dashed
             vertical line at the implementation date.
+        draw_reserve_levels (boolean)
+            If True and basic job levels have been selected via the
+            settings.xlsx "scalars" worksheet, "enhanced jobs" setting,
+            draw a horizontal red dashed line within each basic job category
+            level representing the upper limit of reserve status
         custom_color (boolean)
             If set to True, will permit a custom color spectrum to be produced
             for plotting a single employee group "cat_order" result (color map
@@ -6331,7 +6341,6 @@ def quantile_groupby(dataset_list, eg_list,
         jobs_table = df_table[:through_date]
 
         jobs_table.plot.area(stacked=True,
-                             figsize=(12, 10),
                              sort_columns=True,
                              linewidth=2,
                              color=band_colors,
@@ -6520,6 +6529,20 @@ def quantile_groupby(dataset_list, eg_list,
     ax1.set_title(title1 + title2 + str(quantiles) +
                   ' quantile ' + attr_dict[measure] + ' by ' + groupby_method,
                   fontsize=title_size)
+
+    if (draw_reserve_levels and show_job_bands and
+            not settings_dict['enhanced_jobs']):
+        cum = 0
+        rsv_lines = []
+        rsv_pcnts = [x[-1] for x in job_dict.values()]
+        for i, row in enumerate(np.array(settings_dict['eg_counts']).T):
+            this_job_count = sum(row)
+            rsv_lines.append(int(rsv_pcnts[i] * this_job_count) + cum)
+            cum += this_job_count
+        for rsv_line in rsv_lines:
+            ax1.axhline(rsv_line, linewidth=.75,
+                        linestyle='dashed', color='r',
+                        alpha=.6)
 
     if image_dir:
         func_name = sys._getframe().f_code.co_name
