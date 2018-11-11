@@ -805,8 +805,8 @@ def multiline_plot_by_emp(df, measure, xax,
     plt.show()
 
 
-def violinplot_by_eg(df, measure, ret_age,
-                     cdict,
+def violinplot_by_eg(df, measure,
+                     ret_age, cdict,
                      attr_dict, ds_dict=None,
                      mnum=0, linewidth=1.5,
                      attr1=None, oper1='>=', val1='0',
@@ -1550,7 +1550,7 @@ def eg_boxplot(df_list, eg_list,
             func_name = sys._getframe().f_code.co_name
             if not path.exists(image_dir):
                 makedirs(image_dir)
-            plt.savefig(image_dir + '/' + func_name + ' - ' + yval +
+            plt.savefig(image_dir + '/' + func_name + ' - ' + measure +
                         '.' + image_format,
                         bbox_inches='tight', pad_inches=.25)
         plt.show()
@@ -2705,12 +2705,13 @@ def rows_of_color(df, mnum, measure_list,
                   eg_list=None,
                   job_only=False,
                   jnum=1,
+                  shrink_to_fit=False,
                   cell_border=True,
-                  eg_border_color='.3',
-                  job_border_color='.8',
+                  eg_border_color='.2',
+                  job_border_color='.2',
                   chart_style='whitegrid',
                   fur_color=None,
-                  empty_color='#ffffff',
+                  empty_color='#737373',
                   suptitle_size=14,
                   title_size=12,
                   legend_size=14,
@@ -2767,6 +2768,11 @@ def rows_of_color(df, mnum, measure_list,
             with the jnum input
         jnum (integer)
             job level distribution to plot if job_only input is True
+        shrink_to_fit (boolean)
+            if True, adjust the size of the heatmap to match the size of the
+            filtered monthly data.  If False, maintain the number of cells in
+            the heatmap to be equal to the starting size of the employee
+            population
         cell_border (boolean)
             if True, show a border around the heatmap cells
         eg_border_color (color value)
@@ -2811,7 +2817,10 @@ def rows_of_color(df, mnum, measure_list,
 
     joined = d_filt[[]].join(data).reindex(data.index)
 
-    rows = int(len(data) / cols) + 1
+    if shrink_to_fit:
+        rows = int(len(data) / cols) + 1
+    else:
+        rows = int(len(ds[ds.mnum == 0]) / cols) + 1
 
     heat_data = np.zeros(cols * rows)
 
@@ -2890,7 +2899,7 @@ def rows_of_color(df, mnum, measure_list,
         if cell_border:
             sns.heatmap(heat_data, vmin=0, vmax=len(plot_colors),
                         cbar=False, annot=False,
-                        cmap=cmap, linewidths=0.005,
+                        cmap=cmap, linewidths=0.2,
                         linecolor=border_color, ax=ax)
         else:
             sns.heatmap(heat_data, vmin=0, vmax=len(plot_colors),
@@ -2976,7 +2985,8 @@ def rows_of_color(df, mnum, measure_list,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+        plt.savefig(image_dir + '/' + func_name + '_m' + str(mnum) +
+                    '.' + image_format,
                     bbox_inches='tight', pad_inches=.25)
     plt.show()
 
@@ -3227,7 +3237,8 @@ def quantile_bands_over_time(df, eg,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+        plt.savefig((image_dir + '/' + func_name + ' grp [' +
+                     str(eg) + '].' + image_format),
                     bbox_inches='tight', pad_inches=.25)
     plt.show()
 
@@ -4218,7 +4229,7 @@ def job_count_charts(dfc, dfb,
             pass
 
     fig.set_size_inches(xsize * num_egplots, ysize * num_jobs)
-    fig.suptitle(suptitle, fontsize=suptitle_size, y=1.005)
+    fig.suptitle(suptitle, fontsize=suptitle_size, y=1.015)
     fig.tight_layout()
 
     if image_dir:
@@ -7140,7 +7151,13 @@ def percent_diff_bins(compare,
         func_name = sys._getframe().f_code.co_name
         if not path.exists(image_dir):
             makedirs(image_dir)
-        plt.savefig(image_dir + '/' + func_name + '.' + image_format,
+        if type(compare) == str and type(base) == str:
+            title_a = ' - ' + compare + ' vs ' + base
+        else:
+            title_a = ''
+        title_b = ' grp' + str(eg)
+        title_c = title_a + title_b
+        plt.savefig(image_dir + '/' + func_name + title_c + '.' + image_format,
                     bbox_inches='tight', pad_inches=.25)
     plt.show()
 
