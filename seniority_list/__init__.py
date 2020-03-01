@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Copyright 2016-2017 Ruby Data Systems, Inc.
+Copyright 2016-2020 Ruby Data Systems, Inc.
 
 This file is part of the seniority_list library.
 
