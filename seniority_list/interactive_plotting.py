@@ -46,7 +46,8 @@ add persist df
 
 
 def bk_basic_interactive(doc, df=None,
-                         plot_height=700, plot_width=900):
+                         plot_height=700, plot_width=900,
+                         dot_size=5):
     '''run a basic interactive chart as a server app - powered by the bokeh
     plotting library.  Run the app in the jupyter notebook as follows:
 
@@ -115,7 +116,7 @@ def bk_basic_interactive(doc, df=None,
         np.put(clr, np.where(egs == eg)[0], eg_cdict[eg])
     df['c'] = clr
     df['a'] = .7
-    df['s'] = 5
+    df['s'] = dot_size
 
     # date list for animation label background
     date_list = list(pd.date_range(start=sdict['starting_date'],
@@ -130,6 +131,7 @@ def bk_basic_interactive(doc, df=None,
                           value=0, step=1,
                           title='month',
                           height=slider_height,
+                          width=15,
                           tooltips=False,
                           bar_color='#ffe6cc',
                           direction='rtl',
@@ -159,7 +161,7 @@ def bk_basic_interactive(doc, df=None,
 
     but_fwd = Button(label='FWD', width=60)
     but_back = Button(label='BACK', width=60)
-    add_sub = widgetbox(but_fwd, but_back)
+    add_sub = widgetbox(but_fwd, but_back, height=50, width=30)
 
     def make_plot():
         this_df = get_df()
@@ -212,7 +214,6 @@ def bk_basic_interactive(doc, df=None,
 
         p.xaxis.axis_label = sel_x.value
         p.yaxis.axis_label = sel_y.value
-        label.plot = None
         p.add_layout(label)
         label.text = date_list[slider_month.value]
 
@@ -246,7 +247,7 @@ def bk_basic_interactive(doc, df=None,
 
     sizing_mode = 'fixed'
 
-    inputs = widgetbox(*wb_controls, width=190,
+    inputs = widgetbox(*wb_controls, width=190, height=60,
                        sizing_mode=sizing_mode)
 
     def insert_plot():

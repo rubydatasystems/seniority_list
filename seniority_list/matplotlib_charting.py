@@ -7804,6 +7804,8 @@ def eg_attributes(ds, xmeasure, ymeasure,
         x_locations = []
         for line in xlines:
             x_locations.append(sorted_xdf.iloc[line][xmeasure])
+        if xmeasure in date_attr_list:
+            x_locations = [t.date() for t in x_locations]
         x_ax.set_xticks(x_locations)
         x_ax.set_xlim(ax1.get_xlim())
         x_ax.grid(ls=xl_ls, lw=xl_lw, color=xl_color)
@@ -7825,11 +7827,11 @@ def eg_attributes(ds, xmeasure, ymeasure,
         ylines = np.linspace(0, dflen, y_quantiles + 1).astype(int)
         ylines[-1] = ylines[-1] - 1
         sorted_ydf = df[[ymeasure]].sort_values(ymeasure, ascending=False)
-
         y_locations = []
         for line in ylines:
             y_locations.append(sorted_ydf.iloc[line][ymeasure])
-
+        if ymeasure in date_attr_list:
+            y_locations = [t.date() for t in y_locations]
         y_ax.set_ylim(ax1.get_ylim())
         y_ax.set_yticks(y_locations)
         y_ax.grid(ls=yl_ls, lw=yl_lw, color=xl_color)

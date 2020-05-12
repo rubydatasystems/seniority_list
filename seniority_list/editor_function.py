@@ -246,8 +246,7 @@ def editor(doc,
     but_space_width = 50
     but_save_width = 260
     sel_height = 40
-    sel_width = 90
-    txt_height = 52
+    sel_width = 95
     main_but_width = 120
     toggle_but_width = 25
     toggle_space_width = 20
@@ -633,7 +632,6 @@ def editor(doc,
     spacer_controls2 = Spacer(width=50)
 
     # squeeze tab
-    spacer_sqz_but1 = Spacer(width=but_space_width)
     spacer_sqz_but2 = Spacer(width=but_space_width)
     spacer_sqz_but3 = Spacer(width=but_space_width)
 
@@ -1738,19 +1736,13 @@ def editor(doc,
 
     # density (jitter stripplot)
     def update_stripplot():
+        source2.data = dict(a=[], c=[], eg=[], s=[], x=[])
 
-        source2.data = {k: [] for k in source2.data}
         source2.data = dict(a=strip_df.data['a'],
                             c=strip_df.data['c'],
                             eg=strip_df.data['eg'],
                             s=strip_df.data['s'],
                             x=strip_df.data['prop_s'])
-
-        # source2.data.update(a=strip_df.data['a'].values,
-        #                     c=strip_df.data['c'].values,
-        #                     eg=strip_df.data['eg'].values,
-        #                     s=strip_df.data['s'].values,
-        #                     x=strip_df.data['prop_s'].values)
 
     def update_scat_size_p2(attr, old, new):
         size_arr = np.full(num_dots, new)
@@ -1915,8 +1907,7 @@ def editor(doc,
 
     # PANEL1
     # squeeze tab items
-    squeeze_widgets = column(row(spacer_sqz_but1,
-                                 sel_sqz_type,
+    squeeze_widgets = column(row(sel_sqz_type,
                                  spacer_sqz_but2,
                                  sel_emp_grp,
                                  spacer_sqz_but3,
