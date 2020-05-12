@@ -2198,12 +2198,11 @@ def align_next(this_index_arr,
                next_index_arr,
                these_vals_arr):
     '''"Carry forward" data from one month to the next.
-    Use the numpy isin function to compare indexes (empkeys) from one month
-    to the next month and return a boolean mask.  Apply the mask to current
-    month data column (slice) and assign results to next month slice.
+    Compare indexes (empkeys) from one month to the next month.  When matching
+    index is found, assign corresponding index value to new result array.
     Effectively finds the remaining employees (not retired) in the next month
-    and copies the target column data for them from current month into the
-    next month.
+    and copies the target column data values for them from current month data
+    into the next months data.
 
     inputs
         this_index_arr (array)
@@ -2211,12 +2210,12 @@ def align_next(this_index_arr,
         next_index_arr (array)
             next month index of unique employee keys
             (a subset of this_index_arr)
-        arr (array)
+        these_vals_arr (array)
             the data column segment (attribute) to carry forward
     '''
     this_len = this_index_arr.size
     next_len = next_index_arr.size
-    result = np.empty(next_len, dtype=int)
+    result = np.empty(next_len)
     j = 0
     for i in range(this_len):
         if this_index_arr[i] == next_index_arr[j]:

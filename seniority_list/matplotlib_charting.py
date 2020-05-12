@@ -35,6 +35,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import math
+import datetime
 from os import path, makedirs
 import sys
 
@@ -4008,8 +4009,8 @@ def job_count_charts(dfc, dfb,
                      xax='date',
                      year_max=None,
                      chart_style='darkgrid',
-                     base_ls='solid',
-                     prop_ls='dotted',
+                     base_ls='-',
+                     prop_ls=':',
                      base_lw=1.6,
                      prop_lw=2.5,
                      suptitle_size=14,
@@ -4123,7 +4124,7 @@ def job_count_charts(dfc, dfb,
 
     if year_max:
         min_date = base.date.min()
-        max_date = pd.datetime(year_max, 12, 31)
+        max_date = datetime.datetime(year_max, 12, 31)
         dates = pd.date_range(min_date, max_date, freq='M')
     else:
         dates = pd.date_range(base.date.min(), periods=max_mnum, freq='M')
@@ -4131,14 +4132,21 @@ def job_count_charts(dfc, dfb,
     dum = pd.DataFrame(np.zeros(len(dates), dtype=int),
                        columns=['ph'], index=dates)
 
-    # count_plot function:
+    # count_plot function: (split the try section into an if statement
+    # to compensate for changes in matplotlib which caused an exception
+    # to be raised when any group had no members.  This was in spite of
+    # the try:except language...)
     def count_plot(df, jnum, dummy, color, ax, lw, alpha, ls):
         try:
-            df[df.jnum == jnum].groupby('date').size() \
-                .fillna(0).astype(int) \
-                .plot(c=color, lw=lw, ls=ls, alpha=alpha, ax=ax)
+            group = df[df.jnum == jnum].groupby('date').size() \
+                                       .fillna(0).astype(int)
+
+            if len(group > 0):
+                group.plot(c=color, lw=lw, ls=ls, alpha=alpha, ax=ax)
+            else:
+                dummy.ph.plot(lw=.1, c='grey', ls='-', alpha=0)
         except TypeError:
-            dummy.ph.plot(lw=.1, c='grey', ls='solid', alpha=0)
+            dummy.ph.plot(lw=.1, c='grey', ls='-', alpha=0)
 
     plot_idx = 1
 

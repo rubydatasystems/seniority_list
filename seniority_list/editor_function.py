@@ -46,12 +46,14 @@ from bokeh.plotting import figure
 from bokeh.layouts import column, row, layout
 from bokeh.models import ColumnDataSource, DataRange1d, \
     Span, Panel, Tabs, Label, NumeralTickFormatter, \
-    Jitter, DatetimeTickFormatter, HoverTool, CrosshairTool
+    DatetimeTickFormatter, HoverTool, CrosshairTool
+    # Jitter
 from bokeh.models.layouts import Spacer
 from bokeh.models.widgets import Slider, Button, Select, \
     RangeSlider, TextInput, CheckboxGroup
 from bokeh.models.glyphs import Line
 from bokeh.models.annotations import BoxAnnotation
+from bokeh.transform import jitter
 
 import functions as f
 from matplotlib_charting import filter_ds
@@ -250,7 +252,7 @@ def editor(doc,
     main_but_width = 120
     toggle_but_width = 25
     toggle_space_width = 20
-    toggle_center_width = 110
+    toggle_center_width = 65
     but_height = 35
 
     # squeeze tab
@@ -291,7 +293,7 @@ def editor(doc,
                          'show_value': False}
 
     size_alpha_kwargs = {'width': 30,
-                         'height': 20}
+                         'height': 30}
 
     # extra filters and display tabs
     opers = ['<', '<=', '==', '!=', '>=', '>']
@@ -413,11 +415,11 @@ def editor(doc,
                        title='Oper 3', **sel_size_kwargs)
 
     txt_input1 = TextInput(value=ed.txt_input1,
-                           title='Val 1', height=txt_height)
+                           title='Val 1', height=sel_height, width=145)
     txt_input2 = TextInput(value=ed.txt_input2,
-                           title='Val 2', height=txt_height)
+                           title='Val 2', height=sel_height, width=145)
     txt_input3 = TextInput(value=ed.txt_input3,
-                           title='Val 3', height=txt_height)
+                           title='Val 3', height=sel_height, width=145)
 
     # animate tab
     slider_animate = Slider(start=0, end=max_month - 1,
@@ -563,12 +565,12 @@ def editor(doc,
     sel_bgc_alpha = Select(options=alphas,
                            value=ed.sel_bgc_alpha,
                            title='alpha',
-                           width=40, height=sel_height)
+                           width=70, height=sel_height)
 
     sel_gridc_alpha = Select(options=alphas,
                              value=ed.sel_gridc_alpha,
                              title='alpha',
-                             width=40, height=sel_height)
+                             width=70, height=sel_height)
 
     but_reset_colors = Button(label='Reset', width=60)
 
@@ -583,7 +585,7 @@ def editor(doc,
     sel_box_line_width = Select(options=widths,
                                 value=ed.box_line_width,
                                 title='edit_line_width',
-                                width=60, height=sel_height)
+                                width=70, height=sel_height)
 
     # hover tab
     chk_hover_on = CheckboxGroup(labels=['hover ON'],
@@ -651,13 +653,13 @@ def editor(doc,
     spacer_middle_save = Spacer(width=35, height=aux_slider_height)
 
     # above sel_measure dropdown (center column)
-    spacer_top_center_col = Spacer(height=80, width=sel_width)
+    spacer_top_center_col = Spacer(height=40, width=sel_width)
 
     # display tab:
     spacer_top_disp = Spacer(width=200, height=45)
-    spacer_disp_mth1 = Spacer(width=55)
+    spacer_disp_mth1 = Spacer(width=35)
     spacer_disp_mth2 = Spacer(width=35)
-    spacer_disp_ax1 = Spacer(width=55)
+    spacer_disp_ax1 = Spacer(width=35)
     spacer_disp_ax2 = Spacer(width=35)
 
     # size_alpha tab
@@ -666,7 +668,7 @@ def editor(doc,
     spacer_alpha_buts = Spacer(width=30)
 
     # grid_bg tab
-    spacer_linesbg_col = Spacer(width=75)
+    spacer_linesbg_col = Spacer(width=60)
     spacer_linesbg_col2 = Spacer(width=5)
     spacer_top_color_apply = Spacer(width=70, height=40)
     spacer_linesbg_bottom = Spacer(width=75)
@@ -713,7 +715,7 @@ def editor(doc,
     # ------figures, sources, tool classes----------------------------
 
     p1 = figure(min_border_left=50, tools=p1_tools)
-    p2 = figure(width=plot_width, height=strip_height,
+    p2 = figure(min_border_left=50, width=plot_width, height=strip_height,
                 x_range=DataRange1d(flipped=True, range_padding=0.0),
                 y_range=DataRange1d(flipped=True, range_padding=0.05),
                 tools=p2_tools)
@@ -1457,7 +1459,8 @@ def editor(doc,
                   source=source1)
 
         p2.circle(x='x',
-                  y={'field': 'eg', 'transform': Jitter(width=0.92)},
+                  y=jitter('eg', width=0.92, distribution="uniform"),
+                  # y={'field': 'eg', 'transform': Jitter(width=0.92)},
                   color='c',
                   size='s',
                   alpha='a',
@@ -1737,11 +1740,48 @@ def editor(doc,
 
     # density (jitter stripplot)
     def update_stripplot():
-        source2.data = dict(x=strip_df.data['prop_s'],
+        # source_copy = ColumnDataSource()
+        # source_copy.data = source2.data
+        # source_copy.data = {k: [] for k in source2.data}
+        # source_copy.data = dict(a=strip_df.data['a'],
+        #                         c=strip_df.data['c'],
+        #                         eg=strip_df.data['eg'],
+        #                         s=strip_df.data['s'],
+        #                         x=strip_df.data['prop_s'])
+        # source2.data = source_copy.data
+
+        source2.data = {k: [] for k in source2.data}
+        source2.data = dict(a=strip_df.data['a'],
                             c=strip_df.data['c'],
-                            a=strip_df.data['a'],
+                            eg=strip_df.data['eg'],
                             s=strip_df.data['s'],
-                            eg=strip_df.data['eg'])
+                            x=strip_df.data['prop_s'])
+        # source2.data.clear()
+
+        # source2_len = len(strip_df.data)
+
+        # patches = {'a': [(slice(0, source2_len), strip_df.data['a'])],
+        #            'c': [(slice(0, source2_len), strip_df.data['c'])],
+        #            'eg': [(slice(0, source2_len), strip_df.data['eg'])],
+        #            's': [(slice(0, source2_len), strip_df.data['s'])],
+        #            'x': [(slice(0, source2_len), strip_df.data['prop_s'])]}
+
+        # source2.patch(patches)
+
+        # source2.data.update(a=strip_df.data['a'].values,
+        #                     c=strip_df.data['c'].values,
+        #                     eg=strip_df.data['eg'].values,
+        #                     s=strip_df.data['s'].values,
+        #                     x=strip_df.data['prop_s'].values)
+
+        # source2.data['a'] = strip_df.data['a'],
+        # source2.data['c'] = strip_df.data['c'],
+        # source2.data['eg'] = strip_df.data['eg'],
+        # source2.data['s'] = strip_df.data['s'],
+        # source2.data['x'] = strip_df.data['prop_s']
+
+        # strip_df.data.rename(columns={'prop_s': 'x'})
+        # source2.data = strip_df.data.to_dict()
 
     def update_scat_size_p2(attr, old, new):
         size_arr = np.full(num_dots, new)
