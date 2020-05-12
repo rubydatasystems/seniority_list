@@ -47,7 +47,6 @@ from bokeh.layouts import column, row, layout
 from bokeh.models import ColumnDataSource, DataRange1d, \
     Span, Panel, Tabs, Label, NumeralTickFormatter, \
     DatetimeTickFormatter, HoverTool, CrosshairTool
-    # Jitter
 from bokeh.models.layouts import Spacer
 from bokeh.models.widgets import Slider, Button, Select, \
     RangeSlider, TextInput, CheckboxGroup
@@ -1460,7 +1459,6 @@ def editor(doc,
 
         p2.circle(x='x',
                   y=jitter('eg', width=0.92, distribution="uniform"),
-                  # y={'field': 'eg', 'transform': Jitter(width=0.92)},
                   color='c',
                   size='s',
                   alpha='a',
@@ -1740,15 +1738,6 @@ def editor(doc,
 
     # density (jitter stripplot)
     def update_stripplot():
-        # source_copy = ColumnDataSource()
-        # source_copy.data = source2.data
-        # source_copy.data = {k: [] for k in source2.data}
-        # source_copy.data = dict(a=strip_df.data['a'],
-        #                         c=strip_df.data['c'],
-        #                         eg=strip_df.data['eg'],
-        #                         s=strip_df.data['s'],
-        #                         x=strip_df.data['prop_s'])
-        # source2.data = source_copy.data
 
         source2.data = {k: [] for k in source2.data}
         source2.data = dict(a=strip_df.data['a'],
@@ -1756,32 +1745,12 @@ def editor(doc,
                             eg=strip_df.data['eg'],
                             s=strip_df.data['s'],
                             x=strip_df.data['prop_s'])
-        # source2.data.clear()
-
-        # source2_len = len(strip_df.data)
-
-        # patches = {'a': [(slice(0, source2_len), strip_df.data['a'])],
-        #            'c': [(slice(0, source2_len), strip_df.data['c'])],
-        #            'eg': [(slice(0, source2_len), strip_df.data['eg'])],
-        #            's': [(slice(0, source2_len), strip_df.data['s'])],
-        #            'x': [(slice(0, source2_len), strip_df.data['prop_s'])]}
-
-        # source2.patch(patches)
 
         # source2.data.update(a=strip_df.data['a'].values,
         #                     c=strip_df.data['c'].values,
         #                     eg=strip_df.data['eg'].values,
         #                     s=strip_df.data['s'].values,
         #                     x=strip_df.data['prop_s'].values)
-
-        # source2.data['a'] = strip_df.data['a'],
-        # source2.data['c'] = strip_df.data['c'],
-        # source2.data['eg'] = strip_df.data['eg'],
-        # source2.data['s'] = strip_df.data['s'],
-        # source2.data['x'] = strip_df.data['prop_s']
-
-        # strip_df.data.rename(columns={'prop_s': 'x'})
-        # source2.data = strip_df.data.to_dict()
 
     def update_scat_size_p2(attr, old, new):
         size_arr = np.full(num_dots, new)
