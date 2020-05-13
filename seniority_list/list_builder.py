@@ -394,6 +394,7 @@ def names_to_integers(names,
             If True, insert 'aaaaaaaaaa' and 'zzzzzzzzzz' as bottom and
             top names. Otherwise, bottom and top names will be calculated
             from within the names input
+
     output
 
         1. an array of the name integers
