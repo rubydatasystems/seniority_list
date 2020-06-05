@@ -1736,7 +1736,13 @@ def editor(doc,
 
     # density (jitter stripplot)
     def update_stripplot():
-        source2.data = dict(a=[], c=[], eg=[], s=[], x=[])
+        # source2.data = dict(a=[], c=[], eg=[], s=[], x=[])
+
+        source2.data = dict(a=strip_df.data['a'].values[:-1],
+                            c=strip_df.data['c'].values[:-1],
+                            eg=strip_df.data['eg'].values[:-1],
+                            s=strip_df.data['s'].values[:-1],
+                            x=strip_df.data['prop_s'].values[:-1])
 
         source2.data = dict(a=strip_df.data['a'],
                             c=strip_df.data['c'],
@@ -2138,7 +2144,7 @@ def use_first_proposal_found(proposal_name):
         print('available proposal names are ', prop_names,
               'for case study:',
               stored_case)
-        print('< using ' + this_prop_name + '>')
+        print('< using ' + this_prop_name + ' >')
 
         return pd.read_pickle('dill/p_' + this_prop_name + '.pkl'), \
             this_prop_name
