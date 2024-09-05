@@ -75,7 +75,7 @@ def main():
     except OSError:
         prop_names = \
             pd.read_pickle('dill/proposal_names.pkl').proposals.tolist()
-        stored_case = pd.read_pickle('dill/case_dill.pkl').case.value
+        stored_case = pd.read_pickle('dill/case_dill.pkl').at['prop', 'case']
         print('\nerror : proposal name "' +
               str(proposal_name) + '" not found...\n')
         print('available proposal names are ', prop_names,
@@ -433,7 +433,7 @@ def main():
 
     # save to file
     if sdict['save_to_pickle']:
-        ds.to_pickle(dataset_path_string)
+        ds.to_pickle(dataset_path_string, protocol=4)
 
 
 if __name__ == "__main__":

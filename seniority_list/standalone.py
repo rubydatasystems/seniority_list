@@ -67,7 +67,7 @@ def main():
     tdict = pd.read_pickle('dill/dict_job_tables.pkl')
 
     num_of_job_levels = sdict['num_of_job_levels']
-    egs = np.unique(ds.eg)
+    egs = np.unique(ds.eg).astype(int)
     start_month = 0
 
     # make prex True or False
@@ -219,16 +219,18 @@ def main():
 
             df_pt_index['monthly'] = df_pt['monthly']
 
-            df_long['monthly'] = df_pt_index.monthly.values
+            df_long['monthly'] = df_pt_index['monthly'].values
 
             # MPAY
             # adjust monthly pay for any raise and last month pay percent if
             # applicable
-
             df_long['mpay'] = (
                 (df_long['pay_raise'] *
                  df_long['mth_pcnt'] *
                  df_long['monthly'])) / 1000
+
+            # print(df_long['pay_raise'])
+            # print(df_long['monthly'])
 
             df_long.pop('monthly')
 
@@ -250,7 +252,7 @@ def main():
 
     # save to file
     if sdict['save_to_pickle']:
-        ds.to_pickle('dill/standalone.pkl')
+        ds.to_pickle('dill/standalone.pkl', protocol=4)
 
 
 if __name__ == "__main__":

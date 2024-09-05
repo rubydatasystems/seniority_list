@@ -36,6 +36,7 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import openpyxl as op
 import matplotlib.pyplot as plt
 import functions as f
 import matplotlib_charting as mp
@@ -57,7 +58,7 @@ def stats_to_excel(ds_dict,
     years, further grouped for longevity or initial job.
 
     The annual information is grouped by the model year, and further grouped
-    by 10% quantiles, either by initial quantile membership or by an annual
+    by 10% quantiles, by initial quantile membership and also by an annual
     quantile adjustment of remaining employees.
 
     inputs
@@ -83,7 +84,7 @@ def stats_to_excel(ds_dict,
     try:
         # get current case study name
         case_df = pd.read_pickle('dill/case_dill.pkl')
-        case_name = case_df.case.value
+        case_name = case_df.at['prop', 'case']
     except OSError:
         print('unable to retrieve case name, try setting case input')
         return
@@ -373,7 +374,7 @@ def retirement_charts(ds_dict,
     try:
         # get current case study name
         case_df = pd.read_pickle('dill/case_dill.pkl')
-        case_name = case_df.case.value
+        case_name = case_df.at['prop', 'case']
     except OSError:
         print('unable to retrieve case name, try setting case input')
         return
@@ -744,7 +745,7 @@ def annual_charts(ds_dict,
     try:
         # get current case study name
         case_df = pd.read_pickle('dill/case_dill.pkl')
-        case_name = case_df.case.value
+        case_name = case_df.at['prop', 'case']
     except OSError:
         print('unable to retrieve case name, try setting case input')
         return
@@ -1061,7 +1062,7 @@ def job_diff_to_excel(base_ds,
     if compare_ds == 'edit':
         order_col = 'idx'
     else:
-        order_col = 'order'
+        order_col = 'new_order'
 
     def lighten(color, hex_dict, factor=.8):
         '''This function will return a lightened color.  The "factor" input
@@ -1125,7 +1126,7 @@ def job_diff_to_excel(base_ds,
         df['order'] = m0[order_col]
         df.sort_values('order', inplace=True)
         df.drop('order', inplace=True, axis=1)
-        return df
+        return df.copy()
 
     def add_cols(df, order_df, col_list=id_cols):
         cols = [order_col]
@@ -1134,14 +1135,14 @@ def job_diff_to_excel(base_ds,
         m0 = order_df[order_df.mnum == 0][col_list].copy()
         m0[order_col] = range(1, len(m0) + 1)
         cols.extend(col_list)
-        m0 = m0[cols]
-        m0 = m0.join(df)
+        m0 = m0[cols].copy()
+        m0 = m0.join(df.copy())
         for col in col_list:
             try:
                 m0[col] = m0[col].dt.date
             except:
                 pass
-        return m0
+        return m0.copy()
 
     def color_vals(val):
         """
@@ -1168,7 +1169,7 @@ def job_diff_to_excel(base_ds,
     try:
         # get current case study name
         case_df = pd.read_pickle('dill/case_dill.pkl')
-        case_name = case_df.case.value
+        case_name = case_df.at['prop', 'case']
     except OSError:
         print('unable to retrieve case name, try setting case input')
         return
@@ -1216,6 +1217,10 @@ def job_diff_to_excel(base_ds,
 
     id_cols.append(order_col)
 
+    # allow the career pay difference column to have color formatting
+    if add_cpay:
+        job_levels.append('cpay_diff')
+
     # determine the formatting to be applied
     if diff_color and row_color:
         frame = final.style.apply(lambda s: apply_row_color,
@@ -1230,3 +1235,4 @@ def job_diff_to_excel(base_ds,
 
     # write the spreadsheet file to disk
     frame.to_excel(path_name, engine='openpyxl', freeze_panes=(1, 0))
+

@@ -562,6 +562,19 @@ def age_vs_spcnt(df, eg_list, mnum, color_list,
     d_age_pcnt = d_filt[d_filt.mnum == mnum][
         ['age', 'mnum', 'spcnt', 'eg']].copy()
 
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(d_age_pcnt.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('group', eg, 'not found in dataset, ignored')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        return
+
     with sns.axes_style(chart_style):
         fig, ax = plt.subplots(figsize=(xsize, ysize))
 
@@ -1139,6 +1152,20 @@ def eg_diff_boxplot(df_list, dfb, eg_list,
                  'mpay': 1,
                  'cpay': 10}
 
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(df_base.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('*group', eg, 'not found in dataset, ignored*')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        print('check eg_list input variable')
+        return
+
     # set boxplot color to match employee group(s) color
     color_index = sorted(list(np.array(eg_list) - 1))
     color_arr = np.array(eg_colors)
@@ -1445,6 +1472,17 @@ def eg_boxplot(df_list, eg_list,
                  'snum': 50,
                  'lnum': 50,
                  'jobp': .5}
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(df_list[0].eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('*group', eg, 'not found in dataset, ignored*')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
 
     # set boxplot color to match employee group(s) color
     color_index = sorted(list(np.array(eg_list) - 1))
@@ -2028,9 +2066,9 @@ def differential_scatter(df_list, dfb,
 
     datasets may be filtered by other attributes if desired.
 
-    Example:  plot the difference in cat_order (job rank number) between all
+    *Example*:  "plot the difference in cat_order (job rank number) between all
     integrated datasets vs. standalone for all employee groups, applicable to
-    month 57. (optionally add a pre-filter(s), such as all employees hired
+    month 57." (optionally add a pre-filter(s), such as all employees hired
     prior to a certain date)
 
     The chart may be set to use proposal order or native list percentage for
@@ -2398,6 +2436,20 @@ def job_grouping_over_time(df, eg_list, jobs,
         d_filt = d_filt[d_filt.ret_mark == 1][
             ['eg', 'date', 'jnum']].copy()
 
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(d_filt.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('*group', eg, 'not found in dataset, ignored*')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        print('check eg_list input variable')
+        return
+
     for eg in eg_list:
 
         with sns.axes_style(chart_style):
@@ -2588,6 +2640,19 @@ def parallel(df_list, dfb,
     color_dict = dict(enumerate(eg_colors))
 
     jobs = dict_settings['job_strs']
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(df_base.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('*group', eg, 'not found in dataset, ignored*')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        return
 
     num_egplots = len(eg_list)
     num_months = len(month_list)
@@ -2817,6 +2882,19 @@ def rows_of_color(df, mnum, measure_list,
                                  attr3=attr3, oper3=oper3, val3=val3)
 
     joined = d_filt[[]].join(data).reindex(data.index)
+
+    # this section will alert user if
+    # an employee group which does not exist has been selected within
+    # the eg_list variable
+    if eg_list:
+        df_eg_set = set(joined.eg)
+        df_egs = list(df_eg_set)
+
+        for eg in eg_list:
+            if eg not in df_egs:
+                print('group', eg, 'not found in dataset, ignored')
+
+        eg_list = list(set(eg_list).intersection(df_eg_set))
 
     if shrink_to_fit:
         rows = int(len(data) / cols) + 1
@@ -3082,6 +3160,14 @@ def quantile_bands_over_time(df, eg,
                 'svg', 'png'
     '''
     ds, df_label = determine_dataset(df, ds_dict, return_label=True)
+
+    # this section will discover and correct an eg input
+    # which does not exist within the current data model
+    df_eg_set = set(ds.eg)
+
+    if eg not in df_eg_set:
+        print('eg group', eg, 'not found in dataset, check eg input variable', '\n')
+        return
 
     if bins == 1:
         bins = 2
@@ -3358,6 +3444,14 @@ def job_transfer(dfc, dfb, eg,
     dsc, dfc_label = determine_dataset(dfc, ds_dict, return_label=True)
     dsb, dfb_label = determine_dataset(dfb, ds_dict, return_label=True)
 
+    # this section will discover and correct an eg input
+    # which does not exist within the current data model
+    df_eg_set = set(dsb.eg)
+
+    if eg not in df_eg_set:
+        print('eg group', eg, 'not found in dataset, check eg input variable', '\n')
+        return
+
     if max_date:
         compare_df = dsc[(dsc.eg == eg) & (dsc.date <= max_date)].copy()
         base_df = dsb[(dsb.eg == eg) & (dsb.date <= max_date)].copy()
@@ -3614,6 +3708,20 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
     max_count = df.groupby('mnum').size().max()
 
     df = df[df.mnum == mnum].copy()
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(df.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in egs:
+        if eg not in df_egs:
+            print('*group', eg, 'not found in dataset, ignored*')
+
+    egs = list(set(egs).intersection(df_eg_set))
+    if not egs:
+        print('check egs input variable')
+        return
 
     eg_vals = df.eg.values
     eg_mask = np.isin(eg_vals, egs)
@@ -3894,6 +4002,20 @@ def diff_range(df_list, dfb,
                                     attr2=attr2, oper2=oper2, val2=val2,
                                     attr3=attr3, oper3=oper3, val3=val3)
 
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(df_base.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('*group', eg, 'not found in dataset, ignored*')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        print('check eg_list input variable')
+        return
+
     color_list = make_color_list(num_of_colors=len(df_list),
                                  cm_name_list=[cm_name])
     cols = ['date']
@@ -4116,6 +4238,20 @@ def job_count_charts(dfc, dfb,
     jnums = np.unique(np.concatenate((pd.unique(base.jnum),
                                       pd.unique(prop.jnum))))
     num_jobs = jnums.size
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(base.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('group', eg, 'not found in dataset, ignored')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        print('check eg_list variable input')
+        return
 
     if plot_egs_sep:
         num_egplots = len(eg_list)
@@ -4477,6 +4613,19 @@ def cond_test(df, grp_sel,
     '''
 
     d, df_label = determine_dataset(df, ds_dict, return_label=True)
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(d.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in grp_sel:
+        if eg not in df_egs:
+            print('employee group', eg, 'not found in dataset, ignored')
+
+    grp_sel = list(set(grp_sel).intersection(df_eg_set))
+    if not grp_sel:
+        return
 
     # construct a string which will be evaluated below with the 'eval'
     # statement.  This string is a slicing filter for the input dataframe, and
@@ -5025,6 +5174,20 @@ def job_time_change(ds_list, ds_base,
     # make a reversed list of the data model job levels (high to low)
     job_list = np.arange(job_levels, 0, -1)
 
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(ds_base.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('group', eg, 'not found in dataset, ignored')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        print('check eg_list input variable')
+        return
+
     for jk in joined_keys:
         for eg in eg_list:
             # filter for eg
@@ -5285,6 +5448,20 @@ def group_average_and_median(dfc, dfb,
                               attr1=attr1, oper1=oper1, val1=val1,
                               attr2=attr2, oper2=oper2, val2=val2,
                               attr3=attr3, oper3=oper3, val3=val3)
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(dfb.eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('group', eg, 'not found in dataset, ignored')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        print('check eg_list variable input')
+        return
 
     if plot_average:
         if plot_median:
@@ -5689,6 +5866,20 @@ def job_count_bands(df_list,
                                attr3=attr3, oper3=oper3, val3=val3,
                                return_title_string=False)
         i += 1
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(df_list[0].eg)
+    df_egs = list(df_eg_set)
+
+    for eg in eg_list:
+        if eg not in df_egs:
+            print('group', eg, 'not found in dataset, ignored')
+
+    eg_list = list(set(eg_list).intersection(df_eg_set))
+    if not eg_list:
+        print('check eg_list variable input')
+        return
 
     if fur_color:
         job_colors[-1] = fur_color
@@ -6310,6 +6501,18 @@ def quantile_groupby(dataset_list, eg_list,
     counter = 1
     for model in dataset_list:
         df, df_label = determine_dataset(model, ds_dict, return_label=True)
+        # this section will discover and correct an eg_list input containing
+        # an employee group which does not exist within the current data model
+        if counter == 1:
+            df_eg_set = set(df.eg)
+            df_egs = list(df_eg_set)
+
+            for eg in eg_list:
+                if eg not in df_egs:
+                    print('\n', '*eg group', eg, 'not found in dataset,',
+                          'check eg input variable*', '\n')
+                    return
+
         if model == pd.core.frame.DataFrame:
             df_label = df_label + str(counter)
             counter += 1
@@ -7008,6 +7211,15 @@ def percent_diff_bins(compare,
     b = d_filtb[['mnum', 'date', 'eg', measure]]
     c = d_filtc[['mnum', 'date', 'eg', measure]]
 
+    # this section will discover and correct an eg input
+    # which does not exist within the current data model
+    df_eg_set = set(b.eg)
+
+    if eg not in df_eg_set:
+        print('\n', '*eg group', eg,
+              'not found in dataset, check eg input variable*', '\n')
+        return
+
     with sns.axes_style(chart_style):
         fig, ax1 = plt.subplots(figsize=(xsize, ysize))
 
@@ -7293,6 +7505,15 @@ def cohort_differential(ds, base,
     '''
     d, d_label = determine_dataset(ds, ds_dict, return_label=True)
 
+    # this section will discover and correct an eg input
+    # which does not exist within the current data model
+    df_eg_set = set(d.eg)
+
+    if base not in df_eg_set:
+        print('\n', '*employee group', base,
+              'not found in dataset, check base input variable*', '\n')
+        return
+
     if mnum is None:
         mnum = 0
 
@@ -7505,6 +7726,7 @@ def eg_attributes(ds, xmeasure, ymeasure,
     Membership may be relative to the entire integrated population or only
     to the employee group(s) selected for display (q_eglist_only input).
 
+
     inputs
         ds (dataframe)
             dataset to examine, may be a dataframe variable or a string key
@@ -7648,6 +7870,22 @@ def eg_attributes(ds, xmeasure, ymeasure,
                                attr2=attr2, oper2=oper2, val2=val2,
                                attr3=attr3, oper3=oper3, val3=val3,
                                return_title_string=True)
+
+    # this section will discover and correct an eg_list input containing
+    # an employee group which does not exist within the current data model
+    df_eg_set = set(df.eg)
+    df_egs = list(df_eg_set)
+
+    if eg_list is not None:
+        for eg in eg_list:
+            if eg not in df_egs:
+                print('*group', eg,
+                      'not found in dataset,',
+                      'check eg_list input variable*', '\n')
+
+        eg_list = list(set(eg_list).intersection(df_eg_set))
+        if not eg_list:
+            return
 
     # reduce data to specific employee group(s)
     if q_eglist_only:

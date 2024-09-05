@@ -88,7 +88,7 @@ def main():
 
     try:
         # check to see if file exists and get value if it does
-        case_dill_value = pd.read_pickle('dill/case_dill.pkl').case.value
+        case_dill_value = pd.read_pickle('dill/case_dill.pkl').at['prop', 'case']
     except OSError:
         case_dill_value = 'empty_placeholder'
 
@@ -112,8 +112,8 @@ def main():
         # calculated files).
         # create new case_dill.pkl file
         f.clear_dill_files()
-        case_dill = pd.DataFrame({'case': case}, index=['value'])
-        case_dill.to_pickle('dill/case_dill.pkl')
+        case_dill = pd.DataFrame({'case': case}, index=['prop'])
+        case_dill.to_pickle('dill/case_dill.pkl', protocol=4)
 
     # START THE SETTINGS DICTIONARY - POPULATE WITH THE SCALARS ONLY
     # some of these values will be used for pay data calculation
@@ -241,7 +241,7 @@ def main():
     melt_basic.drop(['scale', 'year', 'jnum'], axis=1, inplace=True)
     melt_basic.sort_values('ptindex', inplace=True)
     melt_basic.set_index('ptindex', drop=True, inplace=True)
-    melt_basic.to_pickle('dill/pay_table_basic.pkl')
+    melt_basic.to_pickle('dill/pay_table_basic.pkl', protocol=4)
 
     # Calculate for enhanced_jobs and write to workbook
     # ENHANCED JOBS
@@ -344,7 +344,7 @@ def main():
     melt_enhan.drop(['scale', 'year', 'jnum'], axis=1, inplace=True)
     melt_enhan.sort_values('ptindex', inplace=True)
     melt_enhan.set_index('ptindex', drop=True, inplace=True)
-    melt_enhan.to_pickle('dill/pay_table_enhanced.pkl')
+    melt_enhan.to_pickle('dill/pay_table_enhanced.pkl', protocol=4)
 
     # WRITE PAY DATA TO EXCEL FILE - WITHIN CASE-NAMED FOLDER
     # WITHIN THE 'REPORTS' FOLDER
@@ -697,7 +697,7 @@ def main():
                     pd.DateOffset(months=1) +
                     pd.DateOffset(days=1)]
 
-    master.to_pickle('dill/master.pkl')
+    master.to_pickle('dill/master.pkl', protocol=4)
 
     # ACTIVE EACH MONTH (no consideration for job changes or recall, only
     # calculated on retirements of active employees as of start date)
@@ -718,7 +718,7 @@ def main():
     # make dataframe containing proposal names and store it
     # (will be utilized by load_datasets function)
     sheets_df = pd.DataFrame(sheets, columns=['proposals'])
-    sheets_df.to_pickle('dill/proposal_names.pkl')
+    sheets_df.to_pickle('dill/proposal_names.pkl', protocol=4)
 
     for ws in sheets:
         try:
@@ -729,7 +729,7 @@ def main():
             else:
                 order_name = 'idx'
             df[order_name] = np.arange(len(df)).astype(int) + 1
-            df.to_pickle('dill/p_' + ws + '.pkl')
+            df.to_pickle('dill/p_' + ws + '.pkl', protocol=4)
         except:
             print('proposal worksheet', ws, 'skipped during processing')
             continue
@@ -749,7 +749,7 @@ def main():
     df_dates = df_dates[['last_pay']]
     df_dates.sort_index(inplace=True)
     df_dates = df_dates[~df_dates.index.duplicated()]
-    df_dates.to_pickle('dill/last_month.pkl')
+    df_dates.to_pickle('dill/last_month.pkl', protocol=4)
     # ********************************************************************
 
     # JOB TABLES AND RELATED DICTIONARY___________________________________
@@ -920,7 +920,7 @@ def main():
     with open('dill/editor_dict.pkl', 'wb') as handle:
         pickle.dump(editor_dict,
                     handle,
-                    protocol=pickle.HIGHEST_PROTOCOL)
+                    protocol=4)
 
     # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -929,20 +929,20 @@ def main():
     with open('dill/dict_settings.pkl', 'wb') as handle:
         pickle.dump(settings,
                     handle,
-                    protocol=pickle.HIGHEST_PROTOCOL)
+                    protocol=4)
 
     with open('dill/dict_color.pkl', 'wb') as handle:
         pickle.dump(color_dict,
                     handle,
-                    protocol=pickle.HIGHEST_PROTOCOL)
+                    protocol=4)
 
     with open('dill/dict_attr.pkl', 'wb') as handle:
         pickle.dump(attribute_dict,
                     handle,
-                    protocol=pickle.HIGHEST_PROTOCOL)
+                    protocol=4)
 
     with open('dill/dict_job_tables.pkl', 'wb') as handle:
-        pickle.dump(table_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(table_dict, handle, protocol=4)
 
 
 

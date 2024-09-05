@@ -268,7 +268,7 @@ def build_list(df,
 
     df.set_index('empkey', drop=True, inplace=True)
     df.idx = df.idx.astype(int)
-    df[['idx']].to_pickle('dill/p_hybrid.pkl')
+    df[['idx']].to_pickle('dill/p_hybrid.pkl', protocol=4)
 
     if return_df:
         cols = df.columns.tolist()

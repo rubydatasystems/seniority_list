@@ -380,24 +380,28 @@ def contract_year_and_raise(df, settings_dict):
 
     df['year'] = df.date.dt.year
 
-    if exception_dict and 'no' not in exception_dict.keys():
+    if exception_dict:
         for year_code in exception_dict.keys():
-            if year_code in pay_table_years:
+            if year_code in list(pay_table_years):
                 df.loc[(df['date'] >= exception_dict[year_code][0]) &
                        (df['date'] <= exception_dict[year_code][1]),
                        'year'] = year_code
             else:
-                print('\nPay year exception error:\n\n',
-                      'The pay table input data does not contain rates for: "',
-                      year_code, '"\n'
-                      'mpay and cpay calculations skipped for',
-                      'the affected time period.\n\n',
-                      'The excel pay table "rates" worksheet contains\n',
-                      'information for the following year codes:\n',
-                      pay_table_years, '\n\n'
-                      'Check the settings.xlsx "pay_exceptions" worksheet',
-                      'inputs \nand/or update the pay_tables.xlsx "rates"',
-                      'worksheet\n')
+                if year_code != 0:
+                    print('\nPay year exception error:\n\n',
+                          'The pay table input data',
+                          'does not contain rates for year code:',
+                          year_code,
+                          '\n\n',
+                          'mpay and cpay calculations skipped for',
+                          'this pay exception period input code\n\n',
+                          'The excel pay table "rates" worksheet contains\n',
+                          'information for the following year codes:\n',
+                          pay_table_years, '\n\n'
+                          'Check the settings.xlsx "pay_exceptions" worksheet',
+                          'inputs \nand/or update the pay_tables.xlsx "rates"',
+                          'worksheet\n')
+
         df.year = np.clip(df.year, 0, last_contract_yr)
 
     return df
@@ -2598,7 +2602,7 @@ def print_settings():
     '''
     sdict = pd.read_pickle('dill/dict_settings.pkl')
     try:
-        case_study = pd.read_pickle('dill/case_dill.pkl')
+        case_study = pd.read_pickle('dill/case_dill.pkl').at['prop', 'case']
     except OSError:
         case_study = 'error, no case_dill.pkl file found'
 
@@ -3341,7 +3345,7 @@ def save_and_load_dill_folder(save_as=None,
     try:
         # get current case study name
         case_df = pd.read_pickle('dill/case_dill.pkl')
-        current_case_name = case_df.case.value
+        current_case_name = case_df.at['prop', 'case']
     except OSError:
         current_case_name = 'copy'
 
@@ -3483,13 +3487,10 @@ def update_excel(case,
     dict0.update(ws_dict)
 
     # write the updated dictionary back to excel...
-    with pd.ExcelWriter(path,
-                        engine='xlsxwriter',
-                        datetime_format='yyyy-mm-dd',
-                        date_format='yyyy-mm-dd') as writer:
+    with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
 
         for sheet_name, df_sheet in dict0.items():
-            df_sheet.to_excel(writer, sheet_name=sheet_name)
+            df_sheet.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
 def copy_excel_file(case,
@@ -3507,7 +3508,8 @@ def copy_excel_file(case,
             the excel file name without the .xlsx extension
         return_path_and_df (boolean)
             if True, return a tuple containing the file path as a string and
-            the worksheet designated by the "file" input as a dataframe
+            the worksheet designated by the "file" input as a dataframe within
+            a dictionary
         revert (boolean)
             if False, copy the excel file and add '_orig' to the file name.
             if True, restore the copied file and drop the '_orig' suffix
@@ -3534,6 +3536,7 @@ def copy_excel_file(case,
 
         if return_path_and_df:
             try:
+                #note: output from read_excel is a dict
                 return path, pd.read_excel(path, sheet_name=None)
             except OSError:
                 print('\nproblem reading/returning ' + path + '"')
@@ -3947,7 +3950,7 @@ def anon_master(case,
 
     if any(attributes):
         path, d = copy_excel_file(case, 'master', return_path_and_df=True)
-        df = d['master']
+        df = next(iter(d.values()))
 
         if sample:
             df = sample_dataframe(df, n=n, frac=frac,
@@ -3986,14 +3989,20 @@ def anon_master(case,
                            inplace=inplace)
                 anon_cols.extend(date_col_list_sec)
 
-        d['master'] = df
+        d_dict = {}
+        d_dict['anon_master'] = df.copy()
+
         with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
 
-            for ws_name, df_sheet in d.items():
-                df_sheet.to_excel(writer, sheet_name=ws_name)
+            for ws_name, df_sheet in d_dict.items():
+                df_sheet.to_excel(writer, sheet_name=ws_name, index=False)
 
-        print('\n"' + path + '" anonymized!\n', '   columns: ',
+        print('\n"' + path + '" anonymized!\n', '   anon columns: ',
               anon_cols, '\n')
+
+    else:
+        print('Nothing set to anonymize, at least one input variable of',
+              '"empkey, name, date" must be set to True')
 
 
 def anon_pay_table(case,
@@ -4022,17 +4031,25 @@ def anon_pay_table(case,
     inplace = True
 
     path, d = copy_excel_file(case, 'pay_tables', return_path_and_df=True)
-    df = d['rates']
+
+    if 'rates' in d:
+        df = d['rates']
+    else:
+        print('rates worksheet not found in pay_tables workbook',
+              'must be lower case', 'exiting')
+        return
+
     anon_pay(df,
              proportional=proportional,
              mult=mult,
              inplace=inplace)
+    print(df)
     d['rates'] = df
 
     with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
 
         for ws_name, df_sheet in d.items():
-            df_sheet.to_excel(writer, sheet_name=ws_name)
+            df_sheet.to_excel(writer, sheet_name=ws_name, index=False)
 
     print('\nanon_pay_table routine complete')
 

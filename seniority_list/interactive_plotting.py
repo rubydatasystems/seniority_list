@@ -127,7 +127,7 @@ def bk_basic_interactive(doc, df=None,
     # create empty data source template
     source = ColumnDataSource(data=dict(x=[], y=[], c=[], s=[], a=[]))
 
-    slider_month = Slider(start=0, end=max_month,
+    slider_month = Slider(start=0, end=max_month-1,
                           value=0, step=1,
                           title='month',
                           height=slider_height,
@@ -255,13 +255,13 @@ def bk_basic_interactive(doc, df=None,
 
     def animate_update():
         mth = slider_month.value + 1
-        if mth > max_month:
+        if mth >= max_month:
             mth = 0
         slider_month.value = mth
 
     def fwd():
         slider_val = slider_month.value
-        if slider_val < max_month:
+        if slider_val < max_month - 1:
             slider_month.value = slider_val + 1
 
     def back():
@@ -296,3 +296,4 @@ def bk_basic_interactive(doc, df=None,
                                                   add_sub))
 
     doc.add_root(lo)
+

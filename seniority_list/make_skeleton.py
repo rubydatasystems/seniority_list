@@ -65,7 +65,6 @@ def main():
 
     # include furloughees by default
     df = df_mlist[(df_mlist.line == 1) | (df_mlist.fur == 1)].copy()
-
     df_mlist = []
 
     # MNUM*
@@ -259,7 +258,7 @@ def main():
 
     # save results to pickle
     if sdict['save_to_pickle']:
-        skel.to_pickle(skel_path_string)
+        skel.to_pickle(skel_path_string, protocol=4)
 
     # END OF SKELETON GENERATION
 

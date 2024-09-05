@@ -70,7 +70,7 @@ def main():
     script, proposed_order_df, fill_style = argv
 
     try:
-        case = pd.read_pickle('dill/case_dill.pkl').case.value
+        case = pd.read_pickle('dill/case_dill.pkl').at['prop', 'case']
     except OSError:
         print('case variable not found, ',
               'tried to find it in "dill/case_dill.pkl"',
@@ -92,6 +92,8 @@ def main():
     write_xl_path = (file_path + excel_file_name)
 
     df_master = pd.read_pickle(master_path_string)
+    df_orig_master = pd.read_excel('excel/' + case + '/master.xlsx')
+    df_orig_master.set_index('empkey', inplace=True)
 
     try:
         df_order = pd.read_pickle(order_path_string)
@@ -107,9 +109,24 @@ def main():
     else:
         idx = 'idx'
 
+    pre_retired = df_order.loc[~df_order.index.isin(df_master.index)]
+    pre_retired_count = len(pre_retired.index)
+
+    df_order = df_order.loc[df_order.index.isin(df_master.index)]
+
+    if pre_retired_count > 0:
+        pre_retired = pre_retired.join(df_orig_master)
+        pre_retired.to_pickle('dill/start_retired.pkl', protocol=4)
+
+        print(pre_retired_count,
+              'employees were removed from the proposal order list.')
+        print('These employees retire before the model start date.')
+        print('To view removed employee empkeys:',
+              " pd.read_pickle('dill/start_retired.pkl').")
+
     joined = df_master.join(df_order, how='outer')
 
-    eg_set = pd.unique(joined.eg)
+    eg_set = set(joined.eg)
 
     final = pd.DataFrame()
 
@@ -132,7 +149,7 @@ def main():
     final['snum'] = np.arange(len(final)).astype(int) + 1
     final.pop(idx)
 
-    final.to_pickle(dill_pre + out_name + pkl_suf)
+    final.to_pickle(dill_pre + out_name + pkl_suf, protocol=4)
 
     final.set_index('snum', drop=True, inplace=True)
 

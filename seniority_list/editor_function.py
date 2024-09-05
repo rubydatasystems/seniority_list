@@ -1012,11 +1012,11 @@ def editor(doc,
 
     def save_edited_df():
         store_vals()
-        calc_ds.data.to_pickle('dill/ds_edit.pkl')
+        calc_ds.data.to_pickle('dill/ds_edit.pkl', protocol=4)
         save_edited_order()
 
     def save_edited_order():
-        reorder_df.data[['new_order']].to_pickle('dill/p_edit.pkl')
+        reorder_df.data[['new_order']].to_pickle('dill/p_edit.pkl', protocol=4)
 
     def save_order_to_excel():
         xl_str = 'excel/' + ed.case + '/proposals.xlsx'
@@ -1031,7 +1031,7 @@ def editor(doc,
         with pd.ExcelWriter(xl_str, engine='xlsxwriter') as writer:
 
             for ws_name, df_sheet in ws_dict.items():
-                df_sheet.to_excel(writer, sheet_name=ws_name)
+                df_sheet.to_excel(writer, sheet_name=ws_name, index=False)
 
     def base_change(attr, old, new):
         ed.sel_base = new
@@ -1096,7 +1096,7 @@ def editor(doc,
         # not 'new_order'.
         # This avoids saving a non-edit proposal list as an edited list.
         if 'new_order' in proposal.list_order.columns:
-            proposal.list_order.to_pickle('dill/p_edit.pkl')
+            proposal.list_order.to_pickle('dill/p_edit.pkl', protocol=4)
         # save the widget settings
         store_vals()
         # calling the main integrated dataset generation routine...
@@ -2138,7 +2138,7 @@ def use_first_proposal_found(proposal_name):
         prop_names = \
             pd.read_pickle('dill/proposal_names.pkl').proposals.tolist()
         this_prop_name = prop_names[0]
-        stored_case = pd.read_pickle('dill/case_dill.pkl').case.value
+        stored_case = pd.read_pickle('dill/case_dill.pkl').at['prop', 'case']
         print('\nerror : proposal name "' +
               str(proposal_name) + '" not found...\n')
         print('available proposal names are ', prop_names,
