@@ -2,12 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-.. module:: interactive_plotting
-
-   :synopsis: The bokeh module contains interactive plotting functions.
-
-.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
-
+Interactive chart example running a bokeh server
 '''
 
 from bokeh.plotting import figure, ColumnDataSource
@@ -21,28 +16,28 @@ from bokeh.models.layouts import Spacer
 import numpy as np
 import pandas as pd
 
-'''
-TODO:
-add stacked area for cat_order
-test source.date update using groupby groups/precalculated ColumnDataSources
-add size, alpha sliders
-make tabs for right side controls
-background color selection, alpha control
-add datatable
-add save underlying data (reports?)
-add mark selected employees
-add dataset selection
-add diff comparison
-add hover (with user selection)
-add tools (crosshair, etc)
-add dataset selection
-add dataset group compare
-add dataset employee compare
-add ret_only
-add other chart types
-make this the only display??
-add persist df
-'''
+
+# TODO:
+# add stacked area for cat_order
+# test source.date update using groupby groups/precalculated ColumnDataSources
+# add size, alpha sliders
+# make tabs for right side controls
+# background color selection, alpha control
+# add datatable
+# add save underlying data (reports?)
+# add mark selected employees
+# add dataset selection
+# add diff comparison
+# add hover (with user selection)
+# add tools (crosshair, etc)
+# add dataset selection
+# add dataset group compare
+# add dataset employee compare
+# add ret_only
+# add other chart types
+# make this the only display??
+# add persist df
+
 
 
 def bk_basic_interactive(doc, df=None,

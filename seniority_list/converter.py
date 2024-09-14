@@ -23,14 +23,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '''
-.. module:: converter
-
-   :synopsis: The converter module contains a function which is used when
+   The converter module contains a function which is used when
    constructing a data model with an enhanced job level hierarchy (vs. basic)
-   which also contains special or conditional job assignment requirements.
-
-.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
-
+   which may also contains special or conditional job assignment requirements.
 '''
 
 import numpy as np

@@ -22,14 +22,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
+
 '''
-.. module:: reports
-
-   :synopsis: This module builds general statistical reports for all of the
-   program datasets and presents the results as spreadsheets and chart images
-   within the *reports* folder.
-
-.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
+    Create general statistical reports for all program datasets and present
+    as charts and spreadsheets within the reports folder.
 
 '''
 

@@ -21,10 +21,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-.. module:: list_builder
 
-   :synopsis: The list_builder module contains routines to build list
+'''
+   The list_builder module contains routines to build list
    orderings from the master list data as a starting point for further
    analysis and/or list editing. Lists may be built by various weighting
    and sorting methods.
@@ -55,9 +54,6 @@
    .. code:: python
 
       %run compute_measures.py hybrid
-
-.. moduleauthor:: Bob Davison <rubydatasystems@fastmail.net>
-
 '''
 
 import pandas as pd

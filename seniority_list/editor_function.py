@@ -120,12 +120,18 @@ def editor(doc,
 
     .. code:: python
 
-        import editor_function as ef
         from functools import partial
+        import editor_function as ef
 
+        from bokeh.resources import INLINE
         from bokeh.io import show, output_notebook
+
         from bokeh.application.handlers import FunctionHandler
         from bokeh.application import Application
+
+        import os
+
+        os.environ['BOKEH_ALLOW_WS_ORIGIN'] = '*'
 
         output_notebook()
 
