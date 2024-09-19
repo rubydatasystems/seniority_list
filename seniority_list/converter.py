@@ -25,7 +25,7 @@
 '''
    The converter module contains a function which is used when
    constructing a data model with an enhanced job level hierarchy (vs. basic)
-   which may also contains special or conditional job assignment requirements.
+   which may also contain special or conditional job assignment requirements.
 '''
 
 import numpy as np

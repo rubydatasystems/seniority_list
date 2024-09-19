@@ -122,7 +122,7 @@ def main():
               'employees were removed from the proposal order list.')
         print('These employees retire before the model start date.')
         print('To view removed employee empkeys:',
-              " pd.read_pickle('dill/start_retired.pkl').")
+              " pd.read_pickle('dill/start_retired.pkl').\n")
 
     joined = df_master.join(df_order, how='outer')
 

@@ -3780,7 +3780,10 @@ def eg_multiplot_with_cat_order(df, mnum, measure,
     # this function will discover and handle an egs input containing
     # an employee group which does not exist within the current data model
     eg_list = check_eg_input(egs, df)
-    if not eg_list:
+    if eg_list:
+        egs = eg_list
+    else:
+        print('check egs input, egs not found, exiting')
         return
 
     eg_vals = df.eg.values
@@ -6057,11 +6060,14 @@ def numeric_test(value):
 
 def check_eg_input(eg_list, df):
 
-    '''discover and handle an eg_list input containing an employee group
-     which does not exist within the current data model
+    '''
+    Discover and handle an eg_list input referencing an employee group
+    that does not exist within the current data model.
 
     inputs
         eg_list (list or integer)
+    df
+        df (pandas dataframe containing an "eg" column)
     '''
     df_eg_set = set(df.eg)
     df_egs = list(df_eg_set)
