@@ -62,6 +62,8 @@ import numpy as np
 import functions as f
 import warnings
 
+from IPython.display import display, HTML
+
 
 def prepare_master_list(name_int_demo=False,
                         pre_sort=True):
@@ -519,9 +521,19 @@ def find_row_orphans(base_df,
     def find_label_locs(df, orphans):
 
         loc_list = []
+        dup_msg = ''
         for orphan in orphans:
-            loc_list.append(df.index.get_loc(orphan))
-        return loc_list
+            loc = list(np.where(df.index == orphan)[0])
+            if not loc:
+                loc = str(orphan) + ' not found in index'
+            elif len(loc) == 1:
+                loc = loc[0]
+            else:
+                loc = str(loc) + '*'
+                dup_msg = '*duplicates'
+            loc_list.append(loc)
+
+        return loc_list, dup_msg
 
     def find_val_locs(df, orphans, col):
 
@@ -535,14 +547,15 @@ def find_row_orphans(base_df,
 
     if base_orphans:
         if col == 'index':
-            base_loners['index_loc'] = find_label_locs(base_df, base_orphans)
+            base_loners['index_loc'], blmsg = find_label_locs(base_df,
+                                                              base_orphans)
         else:
             base_loners['index_loc'] = find_val_locs(base_df,
                                                      base_orphans, col)
 
     if compare_orphans:
         if col == 'index':
-            compare_loners['index_loc'] = find_label_locs(compare_df,
+            compare_loners['index_loc'], clmsg = find_label_locs(compare_df,
                                                           compare_orphans)
         else:
             compare_loners['index_loc'] = find_val_locs(compare_df,
@@ -550,15 +563,15 @@ def find_row_orphans(base_df,
                                                         col)
 
     if print_output:
-        print('BASE:\n', base_loners, '\nCOMPARE:\n', compare_loners)
+        print('BASE:\n', base_loners, blmsg, '\n',
+              '\nCOMPARE:\n', compare_loners, clmsg, '\n')
     else:
         return base_loners, compare_loners
 
 
 def compare_dataframes(base, compare,
-                       return_orphans=True,
                        ignore_case=True,
-                       print_info=False,
+                       print_info=True,
                        convert_np_timestamps=True):
     """
     Compare all common index and common column DataFrame values and
@@ -567,7 +580,13 @@ def compare_dataframes(base, compare,
     Values are compared only by index and column label, not order.
     Therefore, the only values compared are within common index rows
     and common columns.  The routine will report the common columns and
-    any unique index rows when the print_info option is selected (True).
+    any unique or duplicated index rows when the print_info option is
+    selected (True, default setting).  Any duplicated indexes (empkeys)
+    within a single group list or individual index values not found in the
+    other employee group list must be resolve prior to creating datasets.
+
+    The function will also find and print value differences found within
+    all of the common columns for every employee.
 
     Inputs are pandas dataframes and/or pandas series.
 
@@ -583,9 +602,6 @@ def compare_dataframes(base, compare,
             baseline dataframe or series
         compare
             dataframe or series to compare against the baseline (base)
-        return_orphans
-            separately calculate and return the rows which are unique to
-            base and compare
         ignore_case
             convert the column labels and column data to be compared to
             lowercase - this will avoid differences detected based on string
@@ -599,6 +615,7 @@ def compare_dataframes(base, compare,
             this option will convert back to a date-only object for comparison.
 
     """
+
     try:
         assert ((isinstance(base, pd.DataFrame)) |
                 (isinstance(base, pd.Series))) and \
@@ -613,57 +630,156 @@ def compare_dataframes(base, compare,
     if isinstance(compare, pd.Series):
         compare = pd.DataFrame(compare)
 
+    # create copies of original dataframes for later indexing of problems
+    # found
+    base_orig = base.copy()
+    compare_orig = compare.copy()
+
+    for dframe in [base, compare]:
+        if not dframe.index.name == 'empkey':
+            try:
+                dframe.set_index('empkey', inplace=True)
+            except:
+                print('please check index is empkey',
+                      'for complete comparison results')
+        else:
+            pass
+
+    # find index values found in one but not the other dataframe
+    base_orphans = list(base.index[~base.index.isin(compare.index)])
+    compare_orphans = list(compare.index[~compare.index.isin(base.index)])
+
     common_rows = list(base.index[base.index.isin(compare.index)])
+    base_common_rows = list(base.index[base.index.isin(compare.index)])
+    compare_common_rows = list(compare.index[compare.index.isin(base.index)])
 
     if print_info:
-        print('\nROW AND INDEX INFORMATION:\n')
-        print('base length:', len(base))
-        print('comp length:', len(compare))
-        print('common index count:', len(common_rows), '\n')
+        print('-' * 40)
+        print('ROW AND INDEX INFORMATION:\n',
+              'indexes start with "0" (row 2 in spreadsheet)\n')
+        print('initial base data length:', len(base))
+        print('initial compare data length:', len(compare), '\n')
+        print('common index count (base in compare):',
+              len(base_common_rows),
+              '(includes duplicate rows)')
+        print('common index count (compare in base):',
+              len(compare_common_rows),
+              '(includes duplicate rows)', '\n')
+    else:
+        print('NOTE:  to see details of comparison,'
+              'set "print_info" to True')
 
     # orphans section---------------------------------------------------------
-    if return_orphans:
-        base_orphans = list(base.index[~base.index.isin(compare.index)])
-        compare_orphans = list(compare.index[~compare.index.isin(base.index)])
-        base_col_name = 'base_orphans'
-        compare_col_name = 'compare_orphans'
 
-        base_loners = pd.DataFrame(base_orphans,
-                                   columns=[base_col_name])
-        compare_loners = pd.DataFrame(compare_orphans,
-                                      columns=[compare_col_name])
+    base_orphans = list(base.index[~base.index.isin(compare.index)])
+    compare_orphans = list(compare.index[~compare.index.isin(base.index)])
+    base_col_name = 'base_orphans'
+    compare_col_name = 'compare_orphans'
 
-        def find_label_locs(df, orphans):
+    base_loners = pd.DataFrame(base_orphans,
+                               columns=[base_col_name])
 
-            loc_list = []
-            for orphan in orphans:
-                loc_list.append(df.index.get_loc(orphan))
-            return loc_list
+    compare_loners = pd.DataFrame(compare_orphans,
+                                  columns=[compare_col_name])
 
-        if base_orphans:
-            base_loners['index_loc'] = find_label_locs(base, base_orphans)
-            if print_info:
-                print('BASE LONERS (rows, by index):')
+    # find the index location of orphans or duplicate empkeys within
+    def find_label_locs(df, orphans):
+
+        loc_list = []
+        dup_msg = ''
+        for orphan in orphans:
+            loc = list(np.where(df.index == orphan)[0])
+            if not loc:
+                loc = str(orphan) + ' not found in index'
+            elif len(loc) == 1:
+                loc = loc[0]
+            else:
+                loc = str(loc) + '*'
+                dup_msg = ('*duplicate index values detected*')
+            loc_list.append(loc)
+
+        return loc_list, dup_msg
+
+    if base_orphans:
+        base_loners['index_loc'], blmsg = find_label_locs(base, base_orphans)
+        if print_info:
+            print('\n')
+            print('-' * 40)
+            print('BASE LONERS (rows, by index):')
+            if len(base_loners) <= 50:
+                display(HTML(base_loners.to_html()))
+            else:
                 print(base_loners, '\n')
-        else:
-            if print_info:
-                print('''There are no unique index rows in the base input vs.
-                      the compare input.\n''')
+            print(blmsg, '\n')
+    else:
+        if print_info:
+            print('There are no unique index rows (loners)',
+                  'in the base input vs. the compare input.\n')
 
-        if compare_orphans:
-            compare_loners['index_loc'] = find_label_locs(compare,
-                                                          compare_orphans)
-            if print_info:
-                print('COMPARE LONERS (rows, by index):')
+    if compare_orphans:
+        compare_loners['index_loc'], clmsg = find_label_locs(compare,
+                                                      compare_orphans)
+        if print_info:
+            print('\n')
+            print('-' * 40)
+            print('COMPARE LONERS (rows, by index):')
+            if len(compare_loners) <= 50:
+                display(HTML(compare_loners.to_html()))
+            else:
                 print(compare_loners, '\n')
-        else:
-            if print_info:
-                print('''There are no unique index rows in the compare input
-                      vs. the base input.\n''')
+            print(clmsg, '\n')
+    else:
+        if print_info:
+            print('There are no unique index rows (loners)',
+                  'in the compare input vs. the base input.\n')
+
     # -----------------------------------------------------------------------
 
-    base = base.loc[common_rows].copy()
-    compare = compare.loc[common_rows].copy()
+    # FIND DUPLICATES, ADD TO LONERS, AND REMOVE FROM BASE AND COMPARE
+
+    print('\n')
+    print('-' * 40)
+    print('DUPLICATES WITHIN GROUP INDEXES:\n',
+          '-these duplicates may also be loners shown above-\n\n')
+
+    removes = base_orphans + compare_orphans
+
+    base_dupl = base[base.index.duplicated(keep=False)]
+    compare_dupl = compare[compare.index.duplicated(keep=False)]
+
+    if base_dupl.empty:
+        print('base has no duplicated index')
+    else:
+        base_dups = list(base_dupl.index)
+        removes = removes + base_dups
+        base_lables = find_label_locs(base, base_dups)[0]
+        base_dups_df = pd.DataFrame(base_dups, columns=['base_dups'])
+        base_dups_df['index_loc'] = base_lables
+        print('duplicated value(s) detected in base index:')
+        display(HTML(base_dups_df.to_html()))
+
+    if compare_dupl.empty:
+        print('compare has no duplicated index')
+    else:
+        compare_dups = list(compare_dupl.index)
+        removes = removes + compare_dups
+        compare_lables = find_label_locs(compare, compare_dups)[0]
+        compare_dups_df = pd.DataFrame(compare_dups, columns=['compare_dups'])
+        compare_dups_df['index_loc'] = compare_lables
+        print('duplicated value(s) detected in compare index:')
+        display(HTML(compare_dups_df.to_html()))
+
+    removes = list(set(removes))
+
+    base = base[~base.index.isin(removes)].copy()
+    compare = compare[~compare.index.isin(removes)].copy()
+
+    print('\n')
+    print('-' * 40)
+    print('COMMON INDEX LENGTH\n',
+          '(after dups and unique indexes removed):\n')
+    print('base len:   ', len(base))
+    print('compare len:', len(compare))
 
     unequal_cols = []
     equal_cols = []
@@ -684,7 +800,10 @@ def compare_dataframes(base, compare,
 
     if print_info:
         same_col_list = []
-        print('\nCOMMON COLUMN equivalency:\n')
+        print('\n')
+        print('-' * 40)
+        print('COMMON COLUMN equivalency:\n')
+
     for col in common_cols:
         if ignore_case:
             try:
@@ -708,8 +827,10 @@ def compare_dataframes(base, compare,
                                    columns=['common_col', 'equivalent?'])
         same_col_df.sort_values(['equivalent?', 'common_col'], inplace=True)
         same_col_df.reset_index(drop=True, inplace=True)
-        print(same_col_df, '\n')
-        print('\nCOLUMN INFORMATION:')
+        display(HTML(same_col_df.to_html()))
+        print('\n')
+        print('-' * 40)
+        print('COLUMN INFORMATION:')
         print('\ncommon columns:\n', common_cols)
         print('\ncommon and equal columns:\n', equal_cols)
         print('\ncommon but unequal columns:\n', unequal_cols)
@@ -732,14 +853,17 @@ def compare_dataframes(base, compare,
         col_df.rename(columns={'unequal_cols': 'not_equal',
                                'base_only_cols': 'base_only',
                                'comp_only_cols': 'comp_only'}, inplace=True)
-        print('\nCATEGORIZED COLUMN DATAFRAME:\n')
-        print(col_df, '\n')
+        print('\n')
+        print('-' * 40)
+        print('CATEGORIZED COLUMN DATAFRAME:\n')
+        display(HTML(col_df.to_html()))
 
     zipped = []
     col_counts = []
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=FutureWarning)
         for col in base:
+
             base_np = base[col].values
             compare_np = compare[col].values
 
@@ -750,7 +874,11 @@ def compare_dataframes(base, compare,
                     mask = base.duplicated(subset=col, keep=False)
                     dups = list(base[mask][col])
                     print('error, duplicate values:')
-                    print(pd.DataFrame(dups, columns=['dups']))
+                    if len(dups) <= 50:
+                        display(HTML(pd.DataFrame(dups,
+                                                  columns=['dups']).to_html()))
+                    else:
+                        print(pd.DataFrame(dups, columns=['dups']))
                 except:
                     pass
 
@@ -769,25 +897,46 @@ def compare_dataframes(base, compare,
             col_counts.append(row_.size)
 
     diffs = pd.DataFrame(
-        zipped, columns=['row', 'index', 'column', 'base', 'compare'])
-    diffs.sort_values('row', inplace=True)
+        zipped, columns=['xlrow', 'index', 'column', 'base', 'compare'])
+    diffs.sort_values('xlrow', inplace=True)
     diffs.reset_index(drop=True, inplace=True)
 
     if print_info:
-        print('\nDIFFERENTIAL DATAFRAME:\n')
-        print(diffs)
-        print('\nSUMMARY:\n')
+        idxs = diffs["index"].values
+        locate1 = find_index_locs(base_orig, idxs)
+        # uncomment this section if dataframes are not in the same order
+        locate2 = find_index_locs(compare_orig, idxs)
+        diffs['xlrow_b'] = np.array(locate1) + 2
+        diffs['xlrow_c'] = np.array(locate2) + 2
+        # diffs['xlrow'] = diffs['xlrow'] + 2
+        diffs['xlrow'] = np.array(locate1) + 2
+
+
+        print('\n')
+        print('-' * 40)
+        print('DIFFERENTIAL DATAFRAME:\n',
+              '(unequal column values detected)\n')
+
+        if len(diffs) <= 50:
+            display(HTML(diffs.to_html()))
+        else:
+            print(diffs)
+
+        print('\n')
+        print('-' * 40)
+        print('SUMMARY:\n')
         print('''{!r} total differences found in
               common rows and columns\n'''.format(len(zipped)))
 
         if len(zipped) == 0:
-            print('''Comparison complete, dataframes are
-                  equivalent. \nIndex and Column order may be different\n''')
+            print('Comparison complete, dataframes are',
+                  'equivalent. \nIndex and Column order may be different\n')
         else:
-            print('Breakdown by column:\n',
-                  pd.DataFrame(list(zip(base.columns, col_counts)),
-                               columns=['column', 'diff_count']),
-                  '\n')
+            bd_df = pd.DataFrame(list(zip(base.columns, col_counts)),
+                                 columns=['column', 'diff_count'])
+            print('Breakdown by column:')
+            display(HTML(bd_df.to_html()))
+            print('\n')
 
     else:
         if return_orphans:
@@ -866,11 +1015,11 @@ def test_df_col_or_idx_equivalence(df1,
     Returns True or False
     '''
     if not col:
-        result = all(np.in1d(df1.index, df2.index,
+        result = all(np.isin(df1.index, df2.index,
                              assume_unique=True,
                              invert=False))
     else:
-        result = all(np.in1d(df1[col], df2[col],
+        result = all(np.isin(df1[col], df2[col],
                              assume_unique=False,
                              invert=False))
 
