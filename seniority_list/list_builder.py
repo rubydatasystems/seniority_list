@@ -577,6 +577,11 @@ def compare_dataframes(base, compare,
     Compare all common index and common column DataFrame values and
     report if any value is not equal in a returned dataframe.
 
+    This function is primarily intended to compare proposal ordering lists and
+    initial master data lists.  It will spot problems with empkey duplications
+    or mismatches in addition to value differences in any of the columns of a
+    master list.
+
     Values are compared only by index and column label, not order.
     Therefore, the only values compared are within common index rows
     and common columns.  The routine will report the common columns and
@@ -591,11 +596,9 @@ def compare_dataframes(base, compare,
     Inputs are pandas dataframes and/or pandas series.
 
     This function works well when comparing initial data lists, such as
-    those which may be received from opposing parties.
-
-    If return_orphans, returns tuple (diffs, base_loners, compare_loners),
-    else returns diffs.
-    diffs is a differential dataframe.
+    those which may be received from opposing parties.  Both master lists
+    should be formatted to match the example master.xlsx within the sample3
+    demo excel folder.
 
     inputs
         base
@@ -755,6 +758,8 @@ def compare_dataframes(base, compare,
         base_lables = find_label_locs(base, base_dups)[0]
         base_dups_df = pd.DataFrame(base_dups, columns=['base_dups'])
         base_dups_df['index_loc'] = base_lables
+        base_dups_df.sort_values('base_dups',
+                                 inplace=True, ignore_index=True)
         print('duplicated value(s) detected in base index:')
         display(HTML(base_dups_df.to_html()))
 
@@ -766,6 +771,8 @@ def compare_dataframes(base, compare,
         compare_lables = find_label_locs(compare, compare_dups)[0]
         compare_dups_df = pd.DataFrame(compare_dups, columns=['compare_dups'])
         compare_dups_df['index_loc'] = compare_lables
+        compare_dups_df.sort_values('compare_dups',
+                                    inplace=True, ignore_index=True)
         print('duplicated value(s) detected in compare index:')
         display(HTML(compare_dups_df.to_html()))
 
@@ -882,9 +889,9 @@ def compare_dataframes(base, compare,
                 except:
                     pass
 
-            row_ = np.where(unequal)[0]
-            index_ = base.iloc[row_].index
-            col_ = np.array([col] * row_.size)
+            indexrow_ = np.where(unequal)[0]
+            empkey_ = base.iloc[indexrow_].index
+            col_ = np.array([col] * indexrow_.size)
             base_ = base_np[unequal]
             compare_ = compare_np[unequal]
             if (base[col]).dtype == 'datetime64[ns]' and convert_np_timestamps:
@@ -893,23 +900,27 @@ def compare_dataframes(base, compare,
                     compare_ = compare_.astype('M8[D]')
                 except:
                     pass
-            zipped.extend(list(zip(row_, index_, col_, base_, compare_)))
-            col_counts.append(row_.size)
+            zipped.extend(list(zip(indexrow_, empkey_, col_, base_, compare_)))
+            col_counts.append(indexrow_.size)
 
     diffs = pd.DataFrame(
-        zipped, columns=['xlrow', 'index', 'column', 'base', 'compare'])
-    diffs.sort_values('xlrow', inplace=True)
+        zipped, columns=['index_row', 'empkey', 'column', 'base', 'compare'])
+    diffs.sort_values('index_row', inplace=True)
     diffs.reset_index(drop=True, inplace=True)
 
     if print_info:
-        idxs = diffs["index"].values
+        # ensure empkey is the index
+        for df in [base_orig, compare_orig]:
+            try:
+                df.set_index('empkey', drop=False, inplace=True)
+            except:
+                pass
+        idxs = list(diffs['empkey'].values)
         locate1 = find_index_locs(base_orig, idxs)
-        # uncomment this section if dataframes are not in the same order
         locate2 = find_index_locs(compare_orig, idxs)
+        # provide row reference for original excel spreadsheets
         diffs['xlrow_b'] = np.array(locate1) + 2
         diffs['xlrow_c'] = np.array(locate2) + 2
-        # diffs['xlrow'] = diffs['xlrow'] + 2
-        diffs['xlrow'] = np.array(locate1) + 2
 
 
         print('\n')
