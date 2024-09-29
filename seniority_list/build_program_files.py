@@ -78,6 +78,7 @@ from matplotlib_charting import make_color_list as mcl
 import converter as cv
 
 from sys import argv
+from IPython.display import display, HTML
 
 
 def main():
@@ -114,6 +115,24 @@ def main():
         f.clear_dill_files()
         case_dill = pd.DataFrame({'case': case}, index=['prop'])
         case_dill.to_pickle('dill/case_dill.pkl', protocol=4)
+
+    # Read the master.xlxs file and convert it to dataframe, then check it
+    # for empkey duplicates.  If duplicates are found, exit the routine.
+    # The master list may not contain empkey duplicates.
+    master = pd.read_excel('excel/' + case + '/master.xlsx')
+
+    master.set_index('empkey', drop=False, inplace=True)
+
+    if f.index_dups_exist(master):
+        print('\n**empkey duplicates found within the master data list - ',
+              'please correct before proceeding**\n')
+        ids = f.index_duplicates(master)
+        if len(ids) <= 50:
+            display(HTML(ids.to_html()))
+            print('\n', '...exiting routine...\n')
+        else:
+            print(ids, '\n', '...exiting routine...\n')
+        return
 
     # START THE SETTINGS DICTIONARY - POPULATE WITH THE SCALARS ONLY
     # some of these values will be used for pay data calculation
@@ -676,9 +695,7 @@ def main():
     # OLD CODE STARTS HERE:  (making pickle files...) *********************
 
     # MASTER FILE:
-    master = pd.read_excel('excel/' + case + '/master.xlsx')
-
-    master.set_index('empkey', drop=False, inplace=True)
+    # (previously instantiated at start of script...)
 
     master['retdate'] = master['dob'] + \
         pd.DateOffset(years=settings['init_ret_age_years']) + \
@@ -724,12 +741,24 @@ def main():
         try:
             df = xl.parse(ws)[['empkey']]
             df.set_index('empkey', inplace=True)
+            #print(df.head(10))
             if ws == 'edit':
                 order_name = 'new_order'
             else:
                 order_name = 'idx'
             df[order_name] = np.arange(len(df)).astype(int) + 1
-            df.to_pickle('dill/p_' + ws + '.pkl', protocol=4)
+            if f.index_dups_exist(df):
+                print('\n**empkey duplicates found in', ws, 'proposal',
+                      'please correct before proceeding**\n')
+                ids = f.index_duplicates(df)
+                if len(ids) <= 50:
+                    display(HTML(ids.to_html()))
+                    print('\n', '...exiting routine...\n')
+                else:
+                    print(ids, '\n', '...exiting routine...\n')
+                return
+            else:
+                df.to_pickle('dill/p_' + ws + '.pkl', protocol=4)
         except:
             print('proposal worksheet', ws, 'skipped during processing')
             continue

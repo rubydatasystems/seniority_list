@@ -3487,7 +3487,10 @@ def update_excel(case,
     dict0.update(ws_dict)
 
     # write the updated dictionary back to excel...
-    with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(path,
+                    engine='xlsxwriter',
+                    datetime_format='yyyy-mm-dd',
+                    date_format='yyyy-mm-dd') as writer:
 
         for sheet_name, df_sheet in dict0.items():
             df_sheet.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -4449,3 +4452,32 @@ def eg_quotas(quota, actual, cap=None, this_job_count=None):
     grp_assign_count = actual + additives
 
     return grp_assign_count
+
+def index_dups_exist(df):
+    '''determine if any index values are duplicated within a dataframe
+    and return True or False
+
+    inputs
+        df (dataframe with at least one column)
+    '''
+
+    idups = df[df.index.duplicated(keep=False)]
+    if idups.empty:
+        result = False
+    else:
+        result = True
+
+    return result
+
+def index_duplicates(df):
+    '''return a pandas dataframe containing all rows which share the same
+    index value.  If the dataframe has no duplicated indexes, and empty
+    dataframe is returned.
+
+    inputs
+        df (dataframe with at least one column)
+    '''
+
+    idx_dups = df[df.index.duplicated(keep=False)]
+
+    return idx_dups
