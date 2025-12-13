@@ -83,7 +83,7 @@ def main():
 
     # sort the skeleton by employee group, month, and index
     # (preserves each group's list order)
-    ds.sort_values(['eg', 'mnum', 'idx'])
+    ds = ds.sort_values(['eg', 'mnum', 'idx'])
 
     ds_dict = {}
     short_ds_dict = {}
